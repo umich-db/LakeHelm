@@ -1,0 +1,229 @@
+=== Optimized Logical Plan ===
+Sort [d_year#15690 ASC NULLS FIRST], true
++- Project [ca_county#15719, d_year#15690, CheckOverflow((promote_precision(web_sales#15843) / promote_precision(web_sales#15660)), DecimalType(37,20)) AS web_q1_q2_increase#15655, CheckOverflow((promote_precision(store_sales#15835) / promote_precision(store_sales#15659)), DecimalType(37,20)) AS store_q1_q2_increase#15656, CheckOverflow((promote_precision(web_sales#15847) / promote_precision(web_sales#15843)), DecimalType(37,20)) AS web_q2_q3_increase#15657, CheckOverflow((promote_precision(store_sales#15839) / promote_precision(store_sales#15835)), DecimalType(37,20)) AS store_q2_q3_increase#15658]
+   +- Join Inner, ((ca_county#15794 = ca_county#16411) AND (CASE WHEN (web_sales#15843 > 0.00) THEN CheckOverflow((promote_precision(web_sales#15847) / promote_precision(web_sales#15843)), DecimalType(37,20)) END > CASE WHEN (store_sales#15835 > 0.00) THEN CheckOverflow((promote_precision(store_sales#15839) / promote_precision(store_sales#15835)), DecimalType(37,20)) END))
+      :- Project [ca_county#15719, d_year#15690, store_sales#15659, store_sales#15835, store_sales#15839, ca_county#15794, web_sales#15660, web_sales#15843]
+      :  +- Join Inner, ((ca_county#15794 = ca_county#16335) AND (CASE WHEN (web_sales#15660 > 0.00) THEN CheckOverflow((promote_precision(web_sales#15843) / promote_precision(web_sales#15660)), DecimalType(37,20)) END > CASE WHEN (store_sales#15659 > 0.00) THEN CheckOverflow((promote_precision(store_sales#15835) / promote_precision(store_sales#15659)), DecimalType(37,20)) END))
+      :     :- Join Inner, (ca_county#15719 = ca_county#15794)
+      :     :  :- Project [ca_county#15719, d_year#15690, store_sales#15659, store_sales#15835, store_sales#15839]
+      :     :  :  +- Join Inner, (ca_county#16194 = ca_county#16259)
+      :     :  :     :- Join Inner, (ca_county#15719 = ca_county#16194)
+      :     :  :     :  :- Aggregate [ca_county#15719, d_qoy#15694, d_year#15690], [ca_county#15719, d_year#15690, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#15675)),17,2) AS store_sales#15659]
+      :     :  :     :  :  +- Project [ss_ext_sales_price#15675, d_year#15690, d_qoy#15694, ca_county#15719]
+      :     :  :     :  :     +- Join Inner, (ss_addr_sk#15666 = ca_address_sk#15712)
+      :     :  :     :  :        :- Project [ss_addr_sk#15666, ss_ext_sales_price#15675, d_year#15690, d_qoy#15694]
+      :     :  :     :  :        :  +- Join Inner, (ss_sold_date_sk#15683 = d_date_sk#15684)
+      :     :  :     :  :        :     :- Filter ((isnotnull(ss_sold_date_sk#15683) AND isnotnull(ss_addr_sk#15666)) AND dynamicpruning#16466 [ss_sold_date_sk#15683])
+      :     :  :     :  :        :     :  :  +- Filter ((((isnotnull(d_qoy#15694) AND isnotnull(d_year#15690)) AND (d_qoy#15694 = 1)) AND (d_year#15690 = 2000)) AND isnotnull(d_date_sk#15684))
+      :     :  :     :  :        :     :  :     +- RelationV2[d_date_sk#15684, d_year#15690, d_qoy#15694] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     :  :     :  :        :     :  +- RelationV2[ss_addr_sk#15666, ss_ext_sales_price#15675, ss_sold_date_sk#15683] spark_catalog.tpcds_iceberg_10g.store_sales
+      :     :  :     :  :        :     +- Filter ((((isnotnull(d_qoy#15694) AND isnotnull(d_year#15690)) AND (d_qoy#15694 = 1)) AND (d_year#15690 = 2000)) AND isnotnull(d_date_sk#15684))
+      :     :  :     :  :        :        +- RelationV2[d_date_sk#15684, d_year#15690, d_qoy#15694] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     :  :     :  :        +- Filter (isnotnull(ca_address_sk#15712) AND isnotnull(ca_county#15719))
+      :     :  :     :  :           +- RelationV2[ca_address_sk#15712, ca_county#15719] spark_catalog.tpcds_iceberg_10g.customer_address
+      :     :  :     :  +- Aggregate [ca_county#16194, d_qoy#16169, d_year#16165], [ca_county#16194, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#16150)),17,2) AS store_sales#15835]
+      :     :  :     :     +- Project [ss_ext_sales_price#16150, d_year#16165, d_qoy#16169, ca_county#16194]
+      :     :  :     :        +- Join Inner, (ss_addr_sk#16141 = ca_address_sk#16187)
+      :     :  :     :           :- Project [ss_addr_sk#16141, ss_ext_sales_price#16150, d_year#16165, d_qoy#16169]
+      :     :  :     :           :  +- Join Inner, (ss_sold_date_sk#16158 = d_date_sk#16159)
+      :     :  :     :           :     :- Filter ((isnotnull(ss_sold_date_sk#16158) AND isnotnull(ss_addr_sk#16141)) AND dynamicpruning#16467 [ss_sold_date_sk#16158])
+      :     :  :     :           :     :  :  +- Filter ((((isnotnull(d_qoy#16169) AND isnotnull(d_year#16165)) AND (d_qoy#16169 = 2)) AND (d_year#16165 = 2000)) AND isnotnull(d_date_sk#16159))
+      :     :  :     :           :     :  :     +- RelationV2[d_date_sk#16159, d_year#16165, d_qoy#16169] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     :  :     :           :     :  +- RelationV2[ss_addr_sk#16141, ss_ext_sales_price#16150, ss_sold_date_sk#16158] spark_catalog.tpcds_iceberg_10g.store_sales
+      :     :  :     :           :     +- Filter ((((isnotnull(d_qoy#16169) AND isnotnull(d_year#16165)) AND (d_qoy#16169 = 2)) AND (d_year#16165 = 2000)) AND isnotnull(d_date_sk#16159))
+      :     :  :     :           :        +- RelationV2[d_date_sk#16159, d_year#16165, d_qoy#16169] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     :  :     :           +- Filter (isnotnull(ca_address_sk#16187) AND isnotnull(ca_county#16194))
+      :     :  :     :              +- RelationV2[ca_address_sk#16187, ca_county#16194] spark_catalog.tpcds_iceberg_10g.customer_address
+      :     :  :     +- Aggregate [ca_county#16259, d_qoy#16234, d_year#16230], [ca_county#16259, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#16215)),17,2) AS store_sales#15839]
+      :     :  :        +- Project [ss_ext_sales_price#16215, d_year#16230, d_qoy#16234, ca_county#16259]
+      :     :  :           +- Join Inner, (ss_addr_sk#16206 = ca_address_sk#16252)
+      :     :  :              :- Project [ss_addr_sk#16206, ss_ext_sales_price#16215, d_year#16230, d_qoy#16234]
+      :     :  :              :  +- Join Inner, (ss_sold_date_sk#16223 = d_date_sk#16224)
+      :     :  :              :     :- Filter ((isnotnull(ss_sold_date_sk#16223) AND isnotnull(ss_addr_sk#16206)) AND dynamicpruning#16468 [ss_sold_date_sk#16223])
+      :     :  :              :     :  :  +- Filter ((((isnotnull(d_qoy#16234) AND isnotnull(d_year#16230)) AND (d_qoy#16234 = 3)) AND (d_year#16230 = 2000)) AND isnotnull(d_date_sk#16224))
+      :     :  :              :     :  :     +- RelationV2[d_date_sk#16224, d_year#16230, d_qoy#16234] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     :  :              :     :  +- RelationV2[ss_addr_sk#16206, ss_ext_sales_price#16215, ss_sold_date_sk#16223] spark_catalog.tpcds_iceberg_10g.store_sales
+      :     :  :              :     +- Filter ((((isnotnull(d_qoy#16234) AND isnotnull(d_year#16230)) AND (d_qoy#16234 = 3)) AND (d_year#16230 = 2000)) AND isnotnull(d_date_sk#16224))
+      :     :  :              :        +- RelationV2[d_date_sk#16224, d_year#16230, d_qoy#16234] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     :  :              +- Filter (isnotnull(ca_address_sk#16252) AND isnotnull(ca_county#16259))
+      :     :  :                 +- RelationV2[ca_address_sk#16252, ca_county#16259] spark_catalog.tpcds_iceberg_10g.customer_address
+      :     :  +- Aggregate [ca_county#15794, d_qoy#15769, d_year#15765], [ca_county#15794, MakeDecimal(sum(UnscaledValue(ws_ext_sales_price#15747)),17,2) AS web_sales#15660]
+      :     :     +- Project [ws_ext_sales_price#15747, d_year#15765, d_qoy#15769, ca_county#15794]
+      :     :        +- Join Inner, (ws_bill_addr_sk#15731 = ca_address_sk#15787)
+      :     :           :- Project [ws_bill_addr_sk#15731, ws_ext_sales_price#15747, d_year#15765, d_qoy#15769]
+      :     :           :  +- Join Inner, (ws_sold_date_sk#15758 = d_date_sk#15759)
+      :     :           :     :- Filter ((isnotnull(ws_sold_date_sk#15758) AND isnotnull(ws_bill_addr_sk#15731)) AND dynamicpruning#16469 [ws_sold_date_sk#15758])
+      :     :           :     :  :  +- Filter ((((isnotnull(d_qoy#15769) AND isnotnull(d_year#15765)) AND (d_qoy#15769 = 1)) AND (d_year#15765 = 2000)) AND isnotnull(d_date_sk#15759))
+      :     :           :     :  :     +- RelationV2[d_date_sk#15759, d_year#15765, d_qoy#15769] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     :           :     :  +- RelationV2[ws_bill_addr_sk#15731, ws_ext_sales_price#15747, ws_sold_date_sk#15758] spark_catalog.tpcds_iceberg_10g.web_sales
+      :     :           :     +- Filter ((((isnotnull(d_qoy#15769) AND isnotnull(d_year#15765)) AND (d_qoy#15769 = 1)) AND (d_year#15765 = 2000)) AND isnotnull(d_date_sk#15759))
+      :     :           :        +- RelationV2[d_date_sk#15759, d_year#15765, d_qoy#15769] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     :           +- Filter (isnotnull(ca_address_sk#15787) AND isnotnull(ca_county#15794))
+      :     :              +- RelationV2[ca_address_sk#15787, ca_county#15794] spark_catalog.tpcds_iceberg_10g.customer_address
+      :     +- Aggregate [ca_county#16335, d_qoy#16310, d_year#16306], [ca_county#16335, MakeDecimal(sum(UnscaledValue(ws_ext_sales_price#16288)),17,2) AS web_sales#15843]
+      :        +- Project [ws_ext_sales_price#16288, d_year#16306, d_qoy#16310, ca_county#16335]
+      :           +- Join Inner, (ws_bill_addr_sk#16272 = ca_address_sk#16328)
+      :              :- Project [ws_bill_addr_sk#16272, ws_ext_sales_price#16288, d_year#16306, d_qoy#16310]
+      :              :  +- Join Inner, (ws_sold_date_sk#16299 = d_date_sk#16300)
+      :              :     :- Filter ((isnotnull(ws_sold_date_sk#16299) AND isnotnull(ws_bill_addr_sk#16272)) AND dynamicpruning#16470 [ws_sold_date_sk#16299])
+      :              :     :  :  +- Filter ((((isnotnull(d_qoy#16310) AND isnotnull(d_year#16306)) AND (d_qoy#16310 = 2)) AND (d_year#16306 = 2000)) AND isnotnull(d_date_sk#16300))
+      :              :     :  :     +- RelationV2[d_date_sk#16300, d_year#16306, d_qoy#16310] spark_catalog.tpcds_iceberg_10g.date_dim
+      :              :     :  +- RelationV2[ws_bill_addr_sk#16272, ws_ext_sales_price#16288, ws_sold_date_sk#16299] spark_catalog.tpcds_iceberg_10g.web_sales
+      :              :     +- Filter ((((isnotnull(d_qoy#16310) AND isnotnull(d_year#16306)) AND (d_qoy#16310 = 2)) AND (d_year#16306 = 2000)) AND isnotnull(d_date_sk#16300))
+      :              :        +- RelationV2[d_date_sk#16300, d_year#16306, d_qoy#16310] spark_catalog.tpcds_iceberg_10g.date_dim
+      :              +- Filter (isnotnull(ca_address_sk#16328) AND isnotnull(ca_county#16335))
+      :                 +- RelationV2[ca_address_sk#16328, ca_county#16335] spark_catalog.tpcds_iceberg_10g.customer_address
+      +- Aggregate [ca_county#16411, d_qoy#16386, d_year#16382], [ca_county#16411, MakeDecimal(sum(UnscaledValue(ws_ext_sales_price#16364)),17,2) AS web_sales#15847]
+         +- Project [ws_ext_sales_price#16364, d_year#16382, d_qoy#16386, ca_county#16411]
+            +- Join Inner, (ws_bill_addr_sk#16348 = ca_address_sk#16404)
+               :- Project [ws_bill_addr_sk#16348, ws_ext_sales_price#16364, d_year#16382, d_qoy#16386]
+               :  +- Join Inner, (ws_sold_date_sk#16375 = d_date_sk#16376)
+               :     :- Filter ((isnotnull(ws_sold_date_sk#16375) AND isnotnull(ws_bill_addr_sk#16348)) AND dynamicpruning#16471 [ws_sold_date_sk#16375])
+               :     :  :  +- Filter ((((isnotnull(d_qoy#16386) AND isnotnull(d_year#16382)) AND (d_qoy#16386 = 3)) AND (d_year#16382 = 2000)) AND isnotnull(d_date_sk#16376))
+               :     :  :     +- RelationV2[d_date_sk#16376, d_year#16382, d_qoy#16386] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :  +- RelationV2[ws_bill_addr_sk#16348, ws_ext_sales_price#16364, ws_sold_date_sk#16375] spark_catalog.tpcds_iceberg_10g.web_sales
+               :     +- Filter ((((isnotnull(d_qoy#16386) AND isnotnull(d_year#16382)) AND (d_qoy#16386 = 3)) AND (d_year#16382 = 2000)) AND isnotnull(d_date_sk#16376))
+               :        +- RelationV2[d_date_sk#16376, d_year#16382, d_qoy#16386] spark_catalog.tpcds_iceberg_10g.date_dim
+               +- Filter (isnotnull(ca_address_sk#16404) AND isnotnull(ca_county#16411))
+                  +- RelationV2[ca_address_sk#16404, ca_county#16411] spark_catalog.tpcds_iceberg_10g.customer_address
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [d_year#15690 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(d_year#15690 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=14354]
+      +- Project [ca_county#15719, d_year#15690, CheckOverflow((promote_precision(web_sales#15843) / promote_precision(web_sales#15660)), DecimalType(37,20)) AS web_q1_q2_increase#15655, CheckOverflow((promote_precision(store_sales#15835) / promote_precision(store_sales#15659)), DecimalType(37,20)) AS store_q1_q2_increase#15656, CheckOverflow((promote_precision(web_sales#15847) / promote_precision(web_sales#15843)), DecimalType(37,20)) AS web_q2_q3_increase#15657, CheckOverflow((promote_precision(store_sales#15839) / promote_precision(store_sales#15835)), DecimalType(37,20)) AS store_q2_q3_increase#15658]
+         +- SortMergeJoin [ca_county#15794], [ca_county#16411], Inner, (CASE WHEN (web_sales#15843 > 0.00) THEN CheckOverflow((promote_precision(web_sales#15847) / promote_precision(web_sales#15843)), DecimalType(37,20)) END > CASE WHEN (store_sales#15835 > 0.00) THEN CheckOverflow((promote_precision(store_sales#15839) / promote_precision(store_sales#15835)), DecimalType(37,20)) END)
+            :- Project [ca_county#15719, d_year#15690, store_sales#15659, store_sales#15835, store_sales#15839, ca_county#15794, web_sales#15660, web_sales#15843]
+            :  +- SortMergeJoin [ca_county#15794], [ca_county#16335], Inner, (CASE WHEN (web_sales#15660 > 0.00) THEN CheckOverflow((promote_precision(web_sales#15843) / promote_precision(web_sales#15660)), DecimalType(37,20)) END > CASE WHEN (store_sales#15659 > 0.00) THEN CheckOverflow((promote_precision(store_sales#15835) / promote_precision(store_sales#15659)), DecimalType(37,20)) END)
+            :     :- SortMergeJoin [ca_county#15719], [ca_county#15794], Inner
+            :     :  :- Project [ca_county#15719, d_year#15690, store_sales#15659, store_sales#15835, store_sales#15839]
+            :     :  :  +- SortMergeJoin [ca_county#16194], [ca_county#16259], Inner
+            :     :  :     :- SortMergeJoin [ca_county#15719], [ca_county#16194], Inner
+            :     :  :     :  :- Sort [ca_county#15719 ASC NULLS FIRST], false, 0
+            :     :  :     :  :  +- Exchange hashpartitioning(ca_county#15719, 200), ENSURE_REQUIREMENTS, [plan_id=14281]
+            :     :  :     :  :     +- HashAggregate(keys=[ca_county#15719, d_qoy#15694, d_year#15690], functions=[sum(UnscaledValue(ss_ext_sales_price#15675))], output=[ca_county#15719, d_year#15690, store_sales#15659])
+            :     :  :     :  :        +- Exchange hashpartitioning(ca_county#15719, d_qoy#15694, d_year#15690, 200), ENSURE_REQUIREMENTS, [plan_id=14266]
+            :     :  :     :  :           +- HashAggregate(keys=[ca_county#15719, d_qoy#15694, d_year#15690], functions=[partial_sum(UnscaledValue(ss_ext_sales_price#15675))], output=[ca_county#15719, d_qoy#15694, d_year#15690, sum#16473L])
+            :     :  :     :  :              +- Project [ss_ext_sales_price#15675, d_year#15690, d_qoy#15694, ca_county#15719]
+            :     :  :     :  :                 +- BroadcastHashJoin [ss_addr_sk#15666], [ca_address_sk#15712], Inner, BuildRight, false
+            :     :  :     :  :                    :- Project [ss_addr_sk#15666, ss_ext_sales_price#15675, d_year#15690, d_qoy#15694]
+            :     :  :     :  :                    :  +- BroadcastHashJoin [ss_sold_date_sk#15683], [d_date_sk#15684], Inner, BuildRight, false
+            :     :  :     :  :                    :     :- Filter (isnotnull(ss_sold_date_sk#15683) AND isnotnull(ss_addr_sk#15666))
+            :     :  :     :  :                    :     :  +- BatchScan[ss_addr_sk#15666, ss_ext_sales_price#15675, ss_sold_date_sk#15683] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sold_date_sk IS NOT NULL, ss_addr_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#15683 IN dynamicpruning#16466)]
+            :     :  :     :  :                    :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#16466, 0, true, Filter ((((isnotnull(d_qoy#15694) AND isnotnull(d_year#15690)) AND (d_qoy#15694 = 1)) AND (d_year#15690 = 2000)) AND isnotnull(d_date_sk#15684)), [d_date_sk#15684]
+            :     :  :     :  :                    :     :           +- AdaptiveSparkPlan isFinalPlan=false
+            :     :  :     :  :                    :     :              +- Filter ((((isnotnull(d_qoy#15694) AND isnotnull(d_year#15690)) AND (d_qoy#15694 = 1)) AND (d_year#15690 = 2000)) AND isnotnull(d_date_sk#15684))
+            :     :  :     :  :                    :     :                 +- BatchScan[d_date_sk#15684, d_year#15690, d_qoy#15694] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 1, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :     :  :     :  :                    :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14257]
+            :     :  :     :  :                    :        +- Filter ((((isnotnull(d_qoy#15694) AND isnotnull(d_year#15690)) AND (d_qoy#15694 = 1)) AND (d_year#15690 = 2000)) AND isnotnull(d_date_sk#15684))
+            :     :  :     :  :                    :           +- BatchScan[d_date_sk#15684, d_year#15690, d_qoy#15694] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 1, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :     :  :     :  :                    +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14261]
+            :     :  :     :  :                       +- Filter (isnotnull(ca_address_sk#15712) AND isnotnull(ca_county#15719))
+            :     :  :     :  :                          +- BatchScan[ca_address_sk#15712, ca_county#15719] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL, ca_county IS NOT NULL] RuntimeFilters: []
+            :     :  :     :  +- Sort [ca_county#16194 ASC NULLS FIRST], false, 0
+            :     :  :     :     +- Exchange hashpartitioning(ca_county#16194, 200), ENSURE_REQUIREMENTS, [plan_id=14282]
+            :     :  :     :        +- HashAggregate(keys=[ca_county#16194, d_qoy#16169, d_year#16165], functions=[sum(UnscaledValue(ss_ext_sales_price#16150))], output=[ca_county#16194, store_sales#15835])
+            :     :  :     :           +- Exchange hashpartitioning(ca_county#16194, d_qoy#16169, d_year#16165, 200), ENSURE_REQUIREMENTS, [plan_id=14277]
+            :     :  :     :              +- HashAggregate(keys=[ca_county#16194, d_qoy#16169, d_year#16165], functions=[partial_sum(UnscaledValue(ss_ext_sales_price#16150))], output=[ca_county#16194, d_qoy#16169, d_year#16165, sum#16475L])
+            :     :  :     :                 +- Project [ss_ext_sales_price#16150, d_year#16165, d_qoy#16169, ca_county#16194]
+            :     :  :     :                    +- BroadcastHashJoin [ss_addr_sk#16141], [ca_address_sk#16187], Inner, BuildRight, false
+            :     :  :     :                       :- Project [ss_addr_sk#16141, ss_ext_sales_price#16150, d_year#16165, d_qoy#16169]
+            :     :  :     :                       :  +- BroadcastHashJoin [ss_sold_date_sk#16158], [d_date_sk#16159], Inner, BuildRight, false
+            :     :  :     :                       :     :- Filter (isnotnull(ss_sold_date_sk#16158) AND isnotnull(ss_addr_sk#16141))
+            :     :  :     :                       :     :  +- BatchScan[ss_addr_sk#16141, ss_ext_sales_price#16150, ss_sold_date_sk#16158] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sold_date_sk IS NOT NULL, ss_addr_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#16158 IN dynamicpruning#16467)]
+            :     :  :     :                       :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#16467, 0, true, Filter ((((isnotnull(d_qoy#16169) AND isnotnull(d_year#16165)) AND (d_qoy#16169 = 2)) AND (d_year#16165 = 2000)) AND isnotnull(d_date_sk#16159)), [d_date_sk#16159]
+            :     :  :     :                       :     :           +- AdaptiveSparkPlan isFinalPlan=false
+            :     :  :     :                       :     :              +- Filter ((((isnotnull(d_qoy#16169) AND isnotnull(d_year#16165)) AND (d_qoy#16169 = 2)) AND (d_year#16165 = 2000)) AND isnotnull(d_date_sk#16159))
+            :     :  :     :                       :     :                 +- BatchScan[d_date_sk#16159, d_year#16165, d_qoy#16169] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 2, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :     :  :     :                       :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14268]
+            :     :  :     :                       :        +- Filter ((((isnotnull(d_qoy#16169) AND isnotnull(d_year#16165)) AND (d_qoy#16169 = 2)) AND (d_year#16165 = 2000)) AND isnotnull(d_date_sk#16159))
+            :     :  :     :                       :           +- BatchScan[d_date_sk#16159, d_year#16165, d_qoy#16169] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 2, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :     :  :     :                       +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14272]
+            :     :  :     :                          +- Filter (isnotnull(ca_address_sk#16187) AND isnotnull(ca_county#16194))
+            :     :  :     :                             +- BatchScan[ca_address_sk#16187, ca_county#16194] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL, ca_county IS NOT NULL] RuntimeFilters: []
+            :     :  :     +- Sort [ca_county#16259 ASC NULLS FIRST], false, 0
+            :     :  :        +- Exchange hashpartitioning(ca_county#16259, 200), ENSURE_REQUIREMENTS, [plan_id=14299]
+            :     :  :           +- HashAggregate(keys=[ca_county#16259, d_qoy#16234, d_year#16230], functions=[sum(UnscaledValue(ss_ext_sales_price#16215))], output=[ca_county#16259, store_sales#15839])
+            :     :  :              +- Exchange hashpartitioning(ca_county#16259, d_qoy#16234, d_year#16230, 200), ENSURE_REQUIREMENTS, [plan_id=14295]
+            :     :  :                 +- HashAggregate(keys=[ca_county#16259, d_qoy#16234, d_year#16230], functions=[partial_sum(UnscaledValue(ss_ext_sales_price#16215))], output=[ca_county#16259, d_qoy#16234, d_year#16230, sum#16477L])
+            :     :  :                    +- Project [ss_ext_sales_price#16215, d_year#16230, d_qoy#16234, ca_county#16259]
+            :     :  :                       +- BroadcastHashJoin [ss_addr_sk#16206], [ca_address_sk#16252], Inner, BuildRight, false
+            :     :  :                          :- Project [ss_addr_sk#16206, ss_ext_sales_price#16215, d_year#16230, d_qoy#16234]
+            :     :  :                          :  +- BroadcastHashJoin [ss_sold_date_sk#16223], [d_date_sk#16224], Inner, BuildRight, false
+            :     :  :                          :     :- Filter (isnotnull(ss_sold_date_sk#16223) AND isnotnull(ss_addr_sk#16206))
+            :     :  :                          :     :  +- BatchScan[ss_addr_sk#16206, ss_ext_sales_price#16215, ss_sold_date_sk#16223] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sold_date_sk IS NOT NULL, ss_addr_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#16223 IN dynamicpruning#16468)]
+            :     :  :                          :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#16468, 0, true, Filter ((((isnotnull(d_qoy#16234) AND isnotnull(d_year#16230)) AND (d_qoy#16234 = 3)) AND (d_year#16230 = 2000)) AND isnotnull(d_date_sk#16224)), [d_date_sk#16224]
+            :     :  :                          :     :           +- AdaptiveSparkPlan isFinalPlan=false
+            :     :  :                          :     :              +- Filter ((((isnotnull(d_qoy#16234) AND isnotnull(d_year#16230)) AND (d_qoy#16234 = 3)) AND (d_year#16230 = 2000)) AND isnotnull(d_date_sk#16224))
+            :     :  :                          :     :                 +- BatchScan[d_date_sk#16224, d_year#16230, d_qoy#16234] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 3, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :     :  :                          :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14286]
+            :     :  :                          :        +- Filter ((((isnotnull(d_qoy#16234) AND isnotnull(d_year#16230)) AND (d_qoy#16234 = 3)) AND (d_year#16230 = 2000)) AND isnotnull(d_date_sk#16224))
+            :     :  :                          :           +- BatchScan[d_date_sk#16224, d_year#16230, d_qoy#16234] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 3, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :     :  :                          +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14290]
+            :     :  :                             +- Filter (isnotnull(ca_address_sk#16252) AND isnotnull(ca_county#16259))
+            :     :  :                                +- BatchScan[ca_address_sk#16252, ca_county#16259] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL, ca_county IS NOT NULL] RuntimeFilters: []
+            :     :  +- Sort [ca_county#15794 ASC NULLS FIRST], false, 0
+            :     :     +- Exchange hashpartitioning(ca_county#15794, 200), ENSURE_REQUIREMENTS, [plan_id=14316]
+            :     :        +- HashAggregate(keys=[ca_county#15794, d_qoy#15769, d_year#15765], functions=[sum(UnscaledValue(ws_ext_sales_price#15747))], output=[ca_county#15794, web_sales#15660])
+            :     :           +- Exchange hashpartitioning(ca_county#15794, d_qoy#15769, d_year#15765, 200), ENSURE_REQUIREMENTS, [plan_id=14312]
+            :     :              +- HashAggregate(keys=[ca_county#15794, d_qoy#15769, d_year#15765], functions=[partial_sum(UnscaledValue(ws_ext_sales_price#15747))], output=[ca_county#15794, d_qoy#15769, d_year#15765, sum#16479L])
+            :     :                 +- Project [ws_ext_sales_price#15747, d_year#15765, d_qoy#15769, ca_county#15794]
+            :     :                    +- BroadcastHashJoin [ws_bill_addr_sk#15731], [ca_address_sk#15787], Inner, BuildRight, false
+            :     :                       :- Project [ws_bill_addr_sk#15731, ws_ext_sales_price#15747, d_year#15765, d_qoy#15769]
+            :     :                       :  +- BroadcastHashJoin [ws_sold_date_sk#15758], [d_date_sk#15759], Inner, BuildRight, false
+            :     :                       :     :- Filter (isnotnull(ws_sold_date_sk#15758) AND isnotnull(ws_bill_addr_sk#15731))
+            :     :                       :     :  +- BatchScan[ws_bill_addr_sk#15731, ws_ext_sales_price#15747, ws_sold_date_sk#15758] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sold_date_sk IS NOT NULL, ws_bill_addr_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#15758 IN dynamicpruning#16469)]
+            :     :                       :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#16469, 0, true, Filter ((((isnotnull(d_qoy#15769) AND isnotnull(d_year#15765)) AND (d_qoy#15769 = 1)) AND (d_year#15765 = 2000)) AND isnotnull(d_date_sk#15759)), [d_date_sk#15759]
+            :     :                       :     :           +- AdaptiveSparkPlan isFinalPlan=false
+            :     :                       :     :              +- Filter ((((isnotnull(d_qoy#15769) AND isnotnull(d_year#15765)) AND (d_qoy#15769 = 1)) AND (d_year#15765 = 2000)) AND isnotnull(d_date_sk#15759))
+            :     :                       :     :                 +- BatchScan[d_date_sk#15759, d_year#15765, d_qoy#15769] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 1, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :     :                       :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14303]
+            :     :                       :        +- Filter ((((isnotnull(d_qoy#15769) AND isnotnull(d_year#15765)) AND (d_qoy#15769 = 1)) AND (d_year#15765 = 2000)) AND isnotnull(d_date_sk#15759))
+            :     :                       :           +- BatchScan[d_date_sk#15759, d_year#15765, d_qoy#15769] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 1, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :     :                       +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14307]
+            :     :                          +- Filter (isnotnull(ca_address_sk#15787) AND isnotnull(ca_county#15794))
+            :     :                             +- BatchScan[ca_address_sk#15787, ca_county#15794] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL, ca_county IS NOT NULL] RuntimeFilters: []
+            :     +- Sort [ca_county#16335 ASC NULLS FIRST], false, 0
+            :        +- Exchange hashpartitioning(ca_county#16335, 200), ENSURE_REQUIREMENTS, [plan_id=14332]
+            :           +- HashAggregate(keys=[ca_county#16335, d_qoy#16310, d_year#16306], functions=[sum(UnscaledValue(ws_ext_sales_price#16288))], output=[ca_county#16335, web_sales#15843])
+            :              +- Exchange hashpartitioning(ca_county#16335, d_qoy#16310, d_year#16306, 200), ENSURE_REQUIREMENTS, [plan_id=14328]
+            :                 +- HashAggregate(keys=[ca_county#16335, d_qoy#16310, d_year#16306], functions=[partial_sum(UnscaledValue(ws_ext_sales_price#16288))], output=[ca_county#16335, d_qoy#16310, d_year#16306, sum#16481L])
+            :                    +- Project [ws_ext_sales_price#16288, d_year#16306, d_qoy#16310, ca_county#16335]
+            :                       +- BroadcastHashJoin [ws_bill_addr_sk#16272], [ca_address_sk#16328], Inner, BuildRight, false
+            :                          :- Project [ws_bill_addr_sk#16272, ws_ext_sales_price#16288, d_year#16306, d_qoy#16310]
+            :                          :  +- BroadcastHashJoin [ws_sold_date_sk#16299], [d_date_sk#16300], Inner, BuildRight, false
+            :                          :     :- Filter (isnotnull(ws_sold_date_sk#16299) AND isnotnull(ws_bill_addr_sk#16272))
+            :                          :     :  +- BatchScan[ws_bill_addr_sk#16272, ws_ext_sales_price#16288, ws_sold_date_sk#16299] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sold_date_sk IS NOT NULL, ws_bill_addr_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#16299 IN dynamicpruning#16470)]
+            :                          :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#16470, 0, true, Filter ((((isnotnull(d_qoy#16310) AND isnotnull(d_year#16306)) AND (d_qoy#16310 = 2)) AND (d_year#16306 = 2000)) AND isnotnull(d_date_sk#16300)), [d_date_sk#16300]
+            :                          :     :           +- AdaptiveSparkPlan isFinalPlan=false
+            :                          :     :              +- Filter ((((isnotnull(d_qoy#16310) AND isnotnull(d_year#16306)) AND (d_qoy#16310 = 2)) AND (d_year#16306 = 2000)) AND isnotnull(d_date_sk#16300))
+            :                          :     :                 +- BatchScan[d_date_sk#16300, d_year#16306, d_qoy#16310] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 2, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :                          :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14319]
+            :                          :        +- Filter ((((isnotnull(d_qoy#16310) AND isnotnull(d_year#16306)) AND (d_qoy#16310 = 2)) AND (d_year#16306 = 2000)) AND isnotnull(d_date_sk#16300))
+            :                          :           +- BatchScan[d_date_sk#16300, d_year#16306, d_qoy#16310] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 2, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+            :                          +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14323]
+            :                             +- Filter (isnotnull(ca_address_sk#16328) AND isnotnull(ca_county#16335))
+            :                                +- BatchScan[ca_address_sk#16328, ca_county#16335] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL, ca_county IS NOT NULL] RuntimeFilters: []
+            +- Sort [ca_county#16411 ASC NULLS FIRST], false, 0
+               +- Exchange hashpartitioning(ca_county#16411, 200), ENSURE_REQUIREMENTS, [plan_id=14349]
+                  +- HashAggregate(keys=[ca_county#16411, d_qoy#16386, d_year#16382], functions=[sum(UnscaledValue(ws_ext_sales_price#16364))], output=[ca_county#16411, web_sales#15847])
+                     +- Exchange hashpartitioning(ca_county#16411, d_qoy#16386, d_year#16382, 200), ENSURE_REQUIREMENTS, [plan_id=14345]
+                        +- HashAggregate(keys=[ca_county#16411, d_qoy#16386, d_year#16382], functions=[partial_sum(UnscaledValue(ws_ext_sales_price#16364))], output=[ca_county#16411, d_qoy#16386, d_year#16382, sum#16483L])
+                           +- Project [ws_ext_sales_price#16364, d_year#16382, d_qoy#16386, ca_county#16411]
+                              +- BroadcastHashJoin [ws_bill_addr_sk#16348], [ca_address_sk#16404], Inner, BuildRight, false
+                                 :- Project [ws_bill_addr_sk#16348, ws_ext_sales_price#16364, d_year#16382, d_qoy#16386]
+                                 :  +- BroadcastHashJoin [ws_sold_date_sk#16375], [d_date_sk#16376], Inner, BuildRight, false
+                                 :     :- Filter (isnotnull(ws_sold_date_sk#16375) AND isnotnull(ws_bill_addr_sk#16348))
+                                 :     :  +- BatchScan[ws_bill_addr_sk#16348, ws_ext_sales_price#16364, ws_sold_date_sk#16375] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sold_date_sk IS NOT NULL, ws_bill_addr_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#16375 IN dynamicpruning#16471)]
+                                 :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#16471, 0, true, Filter ((((isnotnull(d_qoy#16386) AND isnotnull(d_year#16382)) AND (d_qoy#16386 = 3)) AND (d_year#16382 = 2000)) AND isnotnull(d_date_sk#16376)), [d_date_sk#16376]
+                                 :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                                 :     :              +- Filter ((((isnotnull(d_qoy#16386) AND isnotnull(d_year#16382)) AND (d_qoy#16386 = 3)) AND (d_year#16382 = 2000)) AND isnotnull(d_date_sk#16376))
+                                 :     :                 +- BatchScan[d_date_sk#16376, d_year#16382, d_qoy#16386] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 3, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                 :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14336]
+                                 :        +- Filter ((((isnotnull(d_qoy#16386) AND isnotnull(d_year#16382)) AND (d_qoy#16386 = 3)) AND (d_year#16382 = 2000)) AND isnotnull(d_date_sk#16376))
+                                 :           +- BatchScan[d_date_sk#16376, d_year#16382, d_qoy#16386] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 3, d_year = 2000, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                 +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=14340]
+                                    +- Filter (isnotnull(ca_address_sk#16404) AND isnotnull(ca_county#16411))
+                                       +- BatchScan[ca_address_sk#16404, ca_county#16411] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL, ca_county IS NOT NULL] RuntimeFilters: []
+

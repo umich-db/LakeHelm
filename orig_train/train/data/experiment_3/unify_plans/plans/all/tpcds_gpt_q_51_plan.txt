@@ -1,0 +1,34 @@
+== Optimized Logical Plan ==
+Aggregate [w_warehouse_name#8467, i_category#8491], [w_warehouse_name#8467, i_category#8491, sum(inv_quantity_on_hand#8463) AS total_stock#8460L]
++- Project [inv_quantity_on_hand#8463, w_warehouse_name#8467, i_category#8491]
+   +- Join Inner, (inv_item_sk#8461 = i_item_sk#8479)
+      :- Project [inv_item_sk#8461, inv_quantity_on_hand#8463, w_warehouse_name#8467]
+      :  +- Join Inner, (inv_warehouse_sk#8462 = w_warehouse_sk#8465)
+      :     :- Filter (isnotnull(inv_warehouse_sk#8462) AND isnotnull(inv_item_sk#8461))
+      :     :  +- RelationV2[inv_item_sk#8461, inv_warehouse_sk#8462, inv_quantity_on_hand#8463] spark_catalog.tpcds_iceberg_10g.inventory
+      :     +- Filter isnotnull(w_warehouse_sk#8465)
+      :        +- RelationV2[w_warehouse_sk#8465, w_warehouse_name#8467] spark_catalog.tpcds_iceberg_10g.warehouse
+      +- Project [i_item_sk#8479, i_category#8491]
+         +- Filter ((isnotnull(i_current_price#8484) AND (i_current_price#8484 > 50.00)) AND isnotnull(i_item_sk#8479))
+            +- RelationV2[i_item_sk#8479, i_current_price#8484, i_category#8491] spark_catalog.tpcds_iceberg_10g.item
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[w_warehouse_name#8467, i_category#8491], functions=[sum(inv_quantity_on_hand#8463)], output=[w_warehouse_name#8467, i_category#8491, total_stock#8460L])
+   +- Exchange hashpartitioning(w_warehouse_name#8467, i_category#8491, 200), ENSURE_REQUIREMENTS, [plan_id=6288]
+      +- HashAggregate(keys=[w_warehouse_name#8467, i_category#8491], functions=[partial_sum(inv_quantity_on_hand#8463)], output=[w_warehouse_name#8467, i_category#8491, sum#8529L])
+         +- Project [inv_quantity_on_hand#8463, w_warehouse_name#8467, i_category#8491]
+            +- BroadcastHashJoin [inv_item_sk#8461], [i_item_sk#8479], Inner, BuildRight, false
+               :- Project [inv_item_sk#8461, inv_quantity_on_hand#8463, w_warehouse_name#8467]
+               :  +- BroadcastHashJoin [inv_warehouse_sk#8462], [w_warehouse_sk#8465], Inner, BuildRight, false
+               :     :- Filter (isnotnull(inv_warehouse_sk#8462) AND isnotnull(inv_item_sk#8461))
+               :     :  +- BatchScan[inv_item_sk#8461, inv_warehouse_sk#8462, inv_quantity_on_hand#8463] spark_catalog.tpcds_iceberg_10g.inventory [filters=inv_warehouse_sk IS NOT NULL, inv_item_sk IS NOT NULL] RuntimeFilters: []
+               :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=6279]
+               :        +- Filter isnotnull(w_warehouse_sk#8465)
+               :           +- BatchScan[w_warehouse_sk#8465, w_warehouse_name#8467] spark_catalog.tpcds_iceberg_10g.warehouse [filters=w_warehouse_sk IS NOT NULL] RuntimeFilters: []
+               +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=6283]
+                  +- Project [i_item_sk#8479, i_category#8491]
+                     +- Filter ((isnotnull(i_current_price#8484) AND (i_current_price#8484 > 50.00)) AND isnotnull(i_item_sk#8479))
+                        +- BatchScan[i_item_sk#8479, i_current_price#8484, i_category#8491] spark_catalog.tpcds_iceberg_10g.item [filters=i_current_price IS NOT NULL, i_current_price > 50.00, i_item_sk IS NOT NULL] RuntimeFilters: []
+

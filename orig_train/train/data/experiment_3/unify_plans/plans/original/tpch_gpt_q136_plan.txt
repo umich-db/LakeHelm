@@ -1,0 +1,19 @@
+== Optimized Logical Plan ==
+Sort [revenue#25201 DESC NULLS LAST], true
++- Aggregate [l_shipmode#25216], [l_shipmode#25216, sum((l_extendedprice#25207 * (1.0 - l_discount#25208))) AS revenue#25201]
+   +- Project [l_extendedprice#25207, l_discount#25208, l_shipmode#25216]
+      +- Filter ((((l_commitdate#25213 < l_receiptdate#25214) AND isnotnull(l_commitdate#25213)) AND isnotnull(l_receiptdate#25214)) AND l_shipmode#25216 IN (AIR,SHIP))
+         +- RelationV2[l_extendedprice#25207, l_discount#25208, l_commitdate#25213, l_receiptdate#25214, l_shipmode#25216] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [revenue#25201 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(revenue#25201 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=29890]
+      +- HashAggregate(keys=[l_shipmode#25216], functions=[sum((l_extendedprice#25207 * (1.0 - l_discount#25208)))], output=[l_shipmode#25216, revenue#25201])
+         +- Exchange hashpartitioning(l_shipmode#25216, 200), ENSURE_REQUIREMENTS, [plan_id=29887]
+            +- HashAggregate(keys=[l_shipmode#25216], functions=[partial_sum((l_extendedprice#25207 * (1.0 - l_discount#25208)))], output=[l_shipmode#25216, sum#25232])
+               +- Project [l_extendedprice#25207, l_discount#25208, l_shipmode#25216]
+                  +- Filter ((((l_commitdate#25213 < l_receiptdate#25214) AND isnotnull(l_commitdate#25213)) AND isnotnull(l_receiptdate#25214)) AND l_shipmode#25216 IN (AIR,SHIP))
+                     +- BatchScan[l_extendedprice#25207, l_discount#25208, l_commitdate#25213, l_receiptdate#25214, l_shipmode#25216] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_commitdate IS NOT NULL, l_receiptdate IS NOT NULL, l_shipmode IN ('AIR', 'SHIP')] RuntimeFilters: []
+

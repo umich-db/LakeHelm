@@ -1,0 +1,92 @@
+=== Optimized Logical Plan ===
+Sort [d_week_seq1#12037 ASC NULLS FIRST], true
++- Project [d_week_seq1#12037, round(CheckOverflow((promote_precision(sun_sales1#12038) / promote_precision(sun_sales2#12046)), DecimalType(37,20)), 2) AS round((sun_sales1 / sun_sales2), 2)#12238, round(CheckOverflow((promote_precision(mon_sales1#12039) / promote_precision(mon_sales2#12047)), DecimalType(37,20)), 2) AS round((mon_sales1 / mon_sales2), 2)#12239, round(CheckOverflow((promote_precision(tue_sales1#12040) / promote_precision(tue_sales2#12048)), DecimalType(37,20)), 2) AS round((tue_sales1 / tue_sales2), 2)#12240, round(CheckOverflow((promote_precision(wed_sales1#12041) / promote_precision(wed_sales2#12049)), DecimalType(37,20)), 2) AS round((wed_sales1 / wed_sales2), 2)#12241, round(CheckOverflow((promote_precision(thu_sales1#12042) / promote_precision(thu_sales2#12050)), DecimalType(37,20)), 2) AS round((thu_sales1 / thu_sales2), 2)#12242, round(CheckOverflow((promote_precision(fri_sales1#12043) / promote_precision(fri_sales2#12051)), DecimalType(37,20)), 2) AS round((fri_sales1 / fri_sales2), 2)#12243, round(CheckOverflow((promote_precision(sat_sales1#12044) / promote_precision(sat_sales2#12052)), DecimalType(37,20)), 2) AS round((sat_sales1 / sat_sales2), 2)#12244]
+   +- Join Inner, (d_week_seq1#12037 = (d_week_seq2#12045 - 53))
+      :- Project [d_week_seq#12136 AS d_week_seq1#12037, sun_sales#12057 AS sun_sales1#12038, mon_sales#12058 AS mon_sales1#12039, tue_sales#12059 AS tue_sales1#12040, wed_sales#12060 AS wed_sales1#12041, thu_sales#12061 AS thu_sales1#12042, fri_sales#12062 AS fri_sales1#12043, sat_sales#12063 AS sat_sales1#12044]
+      :  +- Join Inner, (d_week_seq#12164 = d_week_seq#12136)
+      :     :- Aggregate [d_week_seq#12136], [d_week_seq#12136, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Sunday) THEN sales_price#12054 END)),17,2) AS sun_sales#12057, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Monday) THEN sales_price#12054 END)),17,2) AS mon_sales#12058, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Tuesday) THEN sales_price#12054 END)),17,2) AS tue_sales#12059, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Wednesday) THEN sales_price#12054 END)),17,2) AS wed_sales#12060, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Thursday) THEN sales_price#12054 END)),17,2) AS thu_sales#12061, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Friday) THEN sales_price#12054 END)),17,2) AS fri_sales#12062, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Saturday) THEN sales_price#12054 END)),17,2) AS sat_sales#12063]
+      :     :  +- Project [sales_price#12054, d_week_seq#12136, d_day_name#12146]
+      :     :     +- Join Inner, (d_date_sk#12132 = sold_date_sk#12053)
+      :     :        :- Union false, false
+      :     :        :  :- Project [ws_sold_date_sk#12097 AS sold_date_sk#12053, ws_ext_sales_price#12086 AS sales_price#12054]
+      :     :        :  :  +- Filter isnotnull(ws_sold_date_sk#12097)
+      :     :        :  :     +- RelationV2[ws_ext_sales_price#12086, ws_sold_date_sk#12097] spark_catalog.tpcds_iceberg_10g.web_sales
+      :     :        :  +- Project [cs_sold_date_sk#12131 AS sold_date_sk#12055, cs_ext_sales_price#12120 AS sales_price#12056]
+      :     :        :     +- Filter isnotnull(cs_sold_date_sk#12131)
+      :     :        :        +- RelationV2[cs_ext_sales_price#12120, cs_sold_date_sk#12131] spark_catalog.tpcds_iceberg_10g.catalog_sales
+      :     :        +- Filter (isnotnull(d_date_sk#12132) AND isnotnull(d_week_seq#12136))
+      :     :           +- RelationV2[d_date_sk#12132, d_week_seq#12136, d_day_name#12146] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     +- Project [d_week_seq#12164]
+      :        +- Filter ((isnotnull(d_year#12166) AND (d_year#12166 = 2001)) AND isnotnull(d_week_seq#12164))
+      :           +- RelationV2[d_week_seq#12164, d_year#12166] spark_catalog.tpcds_iceberg_10g.date_dim
+      +- Project [d_week_seq#12136 AS d_week_seq2#12045, sun_sales#12057 AS sun_sales2#12046, mon_sales#12058 AS mon_sales2#12047, tue_sales#12059 AS tue_sales2#12048, wed_sales#12060 AS wed_sales2#12049, thu_sales#12061 AS thu_sales2#12050, fri_sales#12062 AS fri_sales2#12051, sat_sales#12063 AS sat_sales2#12052]
+         +- Join Inner, (d_week_seq#12192 = d_week_seq#12136)
+            :- Aggregate [d_week_seq#12136], [d_week_seq#12136, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Sunday) THEN sales_price#12054 END)),17,2) AS sun_sales#12057, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Monday) THEN sales_price#12054 END)),17,2) AS mon_sales#12058, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Tuesday) THEN sales_price#12054 END)),17,2) AS tue_sales#12059, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Wednesday) THEN sales_price#12054 END)),17,2) AS wed_sales#12060, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Thursday) THEN sales_price#12054 END)),17,2) AS thu_sales#12061, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Friday) THEN sales_price#12054 END)),17,2) AS fri_sales#12062, MakeDecimal(sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Saturday) THEN sales_price#12054 END)),17,2) AS sat_sales#12063]
+            :  +- Project [sales_price#12054, d_week_seq#12136, d_day_name#12146]
+            :     +- Join Inner, (d_date_sk#12132 = sold_date_sk#12053)
+            :        :- Union false, false
+            :        :  :- Project [ws_sold_date_sk#12097 AS sold_date_sk#12053, ws_ext_sales_price#12086 AS sales_price#12054]
+            :        :  :  +- Filter isnotnull(ws_sold_date_sk#12097)
+            :        :  :     +- RelationV2[ws_ext_sales_price#12086, ws_sold_date_sk#12097] spark_catalog.tpcds_iceberg_10g.web_sales
+            :        :  +- Project [cs_sold_date_sk#12131 AS sold_date_sk#12055, cs_ext_sales_price#12120 AS sales_price#12056]
+            :        :     +- Filter isnotnull(cs_sold_date_sk#12131)
+            :        :        +- RelationV2[cs_ext_sales_price#12120, cs_sold_date_sk#12131] spark_catalog.tpcds_iceberg_10g.catalog_sales
+            :        +- Filter (isnotnull(d_date_sk#12132) AND isnotnull(d_week_seq#12136))
+            :           +- RelationV2[d_date_sk#12132, d_week_seq#12136, d_day_name#12146] spark_catalog.tpcds_iceberg_10g.date_dim
+            +- Project [d_week_seq#12192]
+               +- Filter ((isnotnull(d_year#12194) AND (d_year#12194 = 2002)) AND isnotnull(d_week_seq#12192))
+                  +- RelationV2[d_week_seq#12192, d_year#12194] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [d_week_seq1#12037 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(d_week_seq1#12037 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=10581]
+      +- Project [d_week_seq1#12037, round(CheckOverflow((promote_precision(sun_sales1#12038) / promote_precision(sun_sales2#12046)), DecimalType(37,20)), 2) AS round((sun_sales1 / sun_sales2), 2)#12238, round(CheckOverflow((promote_precision(mon_sales1#12039) / promote_precision(mon_sales2#12047)), DecimalType(37,20)), 2) AS round((mon_sales1 / mon_sales2), 2)#12239, round(CheckOverflow((promote_precision(tue_sales1#12040) / promote_precision(tue_sales2#12048)), DecimalType(37,20)), 2) AS round((tue_sales1 / tue_sales2), 2)#12240, round(CheckOverflow((promote_precision(wed_sales1#12041) / promote_precision(wed_sales2#12049)), DecimalType(37,20)), 2) AS round((wed_sales1 / wed_sales2), 2)#12241, round(CheckOverflow((promote_precision(thu_sales1#12042) / promote_precision(thu_sales2#12050)), DecimalType(37,20)), 2) AS round((thu_sales1 / thu_sales2), 2)#12242, round(CheckOverflow((promote_precision(fri_sales1#12043) / promote_precision(fri_sales2#12051)), DecimalType(37,20)), 2) AS round((fri_sales1 / fri_sales2), 2)#12243, round(CheckOverflow((promote_precision(sat_sales1#12044) / promote_precision(sat_sales2#12052)), DecimalType(37,20)), 2) AS round((sat_sales1 / sat_sales2), 2)#12244]
+         +- SortMergeJoin [d_week_seq1#12037], [(d_week_seq2#12045 - 53)], Inner
+            :- Sort [d_week_seq1#12037 ASC NULLS FIRST], false, 0
+            :  +- Project [d_week_seq#12136 AS d_week_seq1#12037, sun_sales#12057 AS sun_sales1#12038, mon_sales#12058 AS mon_sales1#12039, tue_sales#12059 AS tue_sales1#12040, wed_sales#12060 AS wed_sales1#12041, thu_sales#12061 AS thu_sales1#12042, fri_sales#12062 AS fri_sales1#12043, sat_sales#12063 AS sat_sales1#12044]
+            :     +- BroadcastHashJoin [d_week_seq#12136], [d_week_seq#12164], Inner, BuildRight, false
+            :        :- HashAggregate(keys=[d_week_seq#12136], functions=[sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Sunday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Monday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Tuesday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Wednesday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Thursday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Friday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Saturday) THEN sales_price#12054 END))], output=[d_week_seq#12136, sun_sales#12057, mon_sales#12058, tue_sales#12059, wed_sales#12060, thu_sales#12061, fri_sales#12062, sat_sales#12063])
+            :        :  +- Exchange hashpartitioning(d_week_seq#12136, 200), ENSURE_REQUIREMENTS, [plan_id=10556]
+            :        :     +- HashAggregate(keys=[d_week_seq#12136], functions=[partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Sunday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Monday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Tuesday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Wednesday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Thursday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Friday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Saturday) THEN sales_price#12054 END))], output=[d_week_seq#12136, sum#12288L, sum#12289L, sum#12290L, sum#12291L, sum#12292L, sum#12293L, sum#12294L])
+            :        :        +- Project [sales_price#12054, d_week_seq#12136, d_day_name#12146]
+            :        :           +- BroadcastHashJoin [sold_date_sk#12053], [d_date_sk#12132], Inner, BuildRight, false
+            :        :              :- Union
+            :        :              :  :- Project [ws_sold_date_sk#12097 AS sold_date_sk#12053, ws_ext_sales_price#12086 AS sales_price#12054]
+            :        :              :  :  +- Filter isnotnull(ws_sold_date_sk#12097)
+            :        :              :  :     +- BatchScan[ws_ext_sales_price#12086, ws_sold_date_sk#12097] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sold_date_sk IS NOT NULL] RuntimeFilters: []
+            :        :              :  +- Project [cs_sold_date_sk#12131 AS sold_date_sk#12055, cs_ext_sales_price#12120 AS sales_price#12056]
+            :        :              :     +- Filter isnotnull(cs_sold_date_sk#12131)
+            :        :              :        +- BatchScan[cs_ext_sales_price#12120, cs_sold_date_sk#12131] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_sold_date_sk IS NOT NULL] RuntimeFilters: []
+            :        :              +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=10551]
+            :        :                 +- Filter (isnotnull(d_date_sk#12132) AND isnotnull(d_week_seq#12136))
+            :        :                    +- BatchScan[d_date_sk#12132, d_week_seq#12136, d_day_name#12146] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL, d_week_seq IS NOT NULL] RuntimeFilters: []
+            :        +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=10559]
+            :           +- Project [d_week_seq#12164]
+            :              +- Filter ((isnotnull(d_year#12166) AND (d_year#12166 = 2001)) AND isnotnull(d_week_seq#12164))
+            :                 +- BatchScan[d_week_seq#12164, d_year#12166] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_week_seq IS NOT NULL] RuntimeFilters: []
+            +- Sort [(d_week_seq2#12045 - 53) ASC NULLS FIRST], false, 0
+               +- Exchange hashpartitioning((d_week_seq2#12045 - 53), 200), ENSURE_REQUIREMENTS, [plan_id=10575]
+                  +- Project [d_week_seq#12136 AS d_week_seq2#12045, sun_sales#12057 AS sun_sales2#12046, mon_sales#12058 AS mon_sales2#12047, tue_sales#12059 AS tue_sales2#12048, wed_sales#12060 AS wed_sales2#12049, thu_sales#12061 AS thu_sales2#12050, fri_sales#12062 AS fri_sales2#12051, sat_sales#12063 AS sat_sales2#12052]
+                     +- BroadcastHashJoin [d_week_seq#12136], [d_week_seq#12192], Inner, BuildRight, false
+                        :- HashAggregate(keys=[d_week_seq#12136], functions=[sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Sunday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Monday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Tuesday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Wednesday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Thursday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Friday) THEN sales_price#12054 END)), sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Saturday) THEN sales_price#12054 END))], output=[d_week_seq#12136, sun_sales#12057, mon_sales#12058, tue_sales#12059, wed_sales#12060, thu_sales#12061, fri_sales#12062, sat_sales#12063])
+                        :  +- Exchange hashpartitioning(d_week_seq#12136, 200), ENSURE_REQUIREMENTS, [plan_id=10567]
+                        :     +- HashAggregate(keys=[d_week_seq#12136], functions=[partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Sunday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Monday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Tuesday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Wednesday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Thursday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Friday) THEN sales_price#12054 END)), partial_sum(UnscaledValue(CASE WHEN (d_day_name#12146 = Saturday) THEN sales_price#12054 END))], output=[d_week_seq#12136, sum#12302L, sum#12303L, sum#12304L, sum#12305L, sum#12306L, sum#12307L, sum#12308L])
+                        :        +- Project [sales_price#12054, d_week_seq#12136, d_day_name#12146]
+                        :           +- BroadcastHashJoin [sold_date_sk#12053], [d_date_sk#12132], Inner, BuildRight, false
+                        :              :- Union
+                        :              :  :- Project [ws_sold_date_sk#12097 AS sold_date_sk#12053, ws_ext_sales_price#12086 AS sales_price#12054]
+                        :              :  :  +- Filter isnotnull(ws_sold_date_sk#12097)
+                        :              :  :     +- BatchScan[ws_ext_sales_price#12086, ws_sold_date_sk#12097] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sold_date_sk IS NOT NULL] RuntimeFilters: []
+                        :              :  +- Project [cs_sold_date_sk#12131 AS sold_date_sk#12055, cs_ext_sales_price#12120 AS sales_price#12056]
+                        :              :     +- Filter isnotnull(cs_sold_date_sk#12131)
+                        :              :        +- BatchScan[cs_ext_sales_price#12120, cs_sold_date_sk#12131] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_sold_date_sk IS NOT NULL] RuntimeFilters: []
+                        :              +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=10562]
+                        :                 +- Filter (isnotnull(d_date_sk#12132) AND isnotnull(d_week_seq#12136))
+                        :                    +- BatchScan[d_date_sk#12132, d_week_seq#12136, d_day_name#12146] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL, d_week_seq IS NOT NULL] RuntimeFilters: []
+                        +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=10570]
+                           +- Project [d_week_seq#12192]
+                              +- Filter ((isnotnull(d_year#12194) AND (d_year#12194 = 2002)) AND isnotnull(d_week_seq#12192))
+                                 +- BatchScan[d_week_seq#12192, d_year#12194] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_week_seq IS NOT NULL] RuntimeFilters: []
+

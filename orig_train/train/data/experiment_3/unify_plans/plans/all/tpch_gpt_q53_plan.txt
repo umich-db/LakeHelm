@@ -1,0 +1,27 @@
+== Optimized Logical Plan ==
+Sort [total_market_sales#26270 DESC NULLS LAST], true
++- Aggregate [c_mktsegment#26277], [c_mktsegment#26277, sum(o_totalprice#26282) AS total_market_sales#26270]
+   +- Project [c_mktsegment#26277, o_totalprice#26282]
+      +- Join Inner, (c_custkey#26271L = o_custkey#26280L)
+         :- Filter isnotnull(c_custkey#26271L)
+         :  +- RelationV2[c_custkey#26271L, c_mktsegment#26277] spark_catalog.tpch_iceberg_10g.customer
+         +- Project [o_custkey#26280L, o_totalprice#26282]
+            +- Filter (((isnotnull(o_orderdate#26283) AND (o_orderdate#26283 >= 2023-01-01)) AND (o_orderdate#26283 <= 2023-12-31)) AND isnotnull(o_custkey#26280L))
+               +- RelationV2[o_custkey#26280L, o_totalprice#26282, o_orderdate#26283] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_market_sales#26270 DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[c_mktsegment#26277], functions=[sum(o_totalprice#26282)], output=[c_mktsegment#26277, total_market_sales#26270])
+      +- HashAggregate(keys=[c_mktsegment#26277], functions=[partial_sum(o_totalprice#26282)], output=[c_mktsegment#26277, sum#26307])
+         +- Project [c_mktsegment#26277, o_totalprice#26282]
+            +- BroadcastHashJoin [c_custkey#26271L], [o_custkey#26280L], Inner, BuildRight, false
+               :- Filter isnotnull(c_custkey#26271L)
+               :  +- BatchScan[c_custkey#26271L, c_mktsegment#26277] spark_catalog.tpch_iceberg_10g.customer [filters=c_custkey IS NOT NULL] RuntimeFilters: []
+               +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=31357]
+                  +- Project [o_custkey#26280L, o_totalprice#26282]
+                     +- Filter (((isnotnull(o_orderdate#26283) AND (o_orderdate#26283 >= 2023-01-01)) AND (o_orderdate#26283 <= 2023-12-31)) AND isnotnull(o_custkey#26280L))
+                        +- BatchScan[o_custkey#26280L, o_totalprice#26282, o_orderdate#26283] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderdate IS NOT NULL, o_orderdate >= '2023-01-01', o_orderdate <= '2023-12-31', o_custkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

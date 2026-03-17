@@ -1,0 +1,126 @@
+== Parsed Logical Plan ==
+'Sort ['value DESC NULLS LAST], true
++- 'UnresolvedHaving ('sum(('ps_supplycost * 'ps_availqty)) > scalar-subquery#16176 [])
+   :  +- 'Project [unresolvedalias(('sum(('ps_supplycost * 'ps_availqty)) * 0.0001000000), None)]
+   :     +- 'Filter ((('ps_suppkey = 's_suppkey) AND ('s_nationkey = 'n_nationkey)) AND ('n_name = ROMANIA))
+   :        +- 'Join Inner
+   :           :- 'Join Inner
+   :           :  :- 'UnresolvedRelation [partsupp], [], false
+   :           :  +- 'UnresolvedRelation [supplier], [], false
+   :           +- 'UnresolvedRelation [nation], [], false
+   +- 'Aggregate ['ps_partkey], ['ps_partkey, 'sum(('ps_supplycost * 'ps_availqty)) AS value#16175]
+      +- 'Filter ((('ps_suppkey = 's_suppkey) AND ('s_nationkey = 'n_nationkey)) AND ('n_name = ROMANIA))
+         +- 'Join Inner
+            :- 'Join Inner
+            :  :- 'UnresolvedRelation [partsupp], [], false
+            :  +- 'UnresolvedRelation [supplier], [], false
+            +- 'UnresolvedRelation [nation], [], false
+
+== Analyzed Logical Plan ==
+ps_partkey: bigint, value: double
+Sort [value#16175 DESC NULLS LAST], true
++- Filter (value#16175 > scalar-subquery#16176 [])
+   :  +- Aggregate [(sum((ps_supplycost#16218 * cast(ps_availqty#16217L as double))) * cast(0.0001000000 as double)) AS (sum((ps_supplycost * ps_availqty)) * 0.0001000000)#16247]
+   :     +- Filter (((ps_suppkey#16216L = s_suppkey#16220L) AND (s_nationkey#16223L = n_nationkey#16227L)) AND (n_name#16228 = ROMANIA))
+   :        +- Join Inner
+   :           :- Join Inner
+   :           :  :- SubqueryAlias spark_catalog.tpch_iceberg_10g.partsupp
+   :           :  :  +- RelationV2[ps_partkey#16215L, ps_suppkey#16216L, ps_availqty#16217L, ps_supplycost#16218, ps_comment#16219] spark_catalog.tpch_iceberg_10g.partsupp
+   :           :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.supplier
+   :           :     +- RelationV2[s_suppkey#16220L, s_name#16221, s_address#16222, s_nationkey#16223L, s_phone#16224, s_acctbal#16225, s_comment#16226] spark_catalog.tpch_iceberg_10g.supplier
+   :           +- SubqueryAlias spark_catalog.tpch_iceberg_10g.nation
+   :              +- RelationV2[n_nationkey#16227L, n_name#16228, n_regionkey#16229L, n_comment#16230] spark_catalog.tpch_iceberg_10g.nation
+   +- Aggregate [ps_partkey#16183L], [ps_partkey#16183L, sum((ps_supplycost#16186 * cast(ps_availqty#16185L as double))) AS value#16175]
+      +- Filter (((ps_suppkey#16184L = s_suppkey#16188L) AND (s_nationkey#16191L = n_nationkey#16195L)) AND (n_name#16196 = ROMANIA))
+         +- Join Inner
+            :- Join Inner
+            :  :- SubqueryAlias spark_catalog.tpch_iceberg_10g.partsupp
+            :  :  +- RelationV2[ps_partkey#16183L, ps_suppkey#16184L, ps_availqty#16185L, ps_supplycost#16186, ps_comment#16187] spark_catalog.tpch_iceberg_10g.partsupp
+            :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.supplier
+            :     +- RelationV2[s_suppkey#16188L, s_name#16189, s_address#16190, s_nationkey#16191L, s_phone#16192, s_acctbal#16193, s_comment#16194] spark_catalog.tpch_iceberg_10g.supplier
+            +- SubqueryAlias spark_catalog.tpch_iceberg_10g.nation
+               +- RelationV2[n_nationkey#16195L, n_name#16196, n_regionkey#16197L, n_comment#16198] spark_catalog.tpch_iceberg_10g.nation
+
+== Optimized Logical Plan ==
+Sort [value#16175 DESC NULLS LAST], true
++- Filter (isnotnull(value#16175) AND (value#16175 > scalar-subquery#16176 []))
+   :  +- Aggregate [(sum((ps_supplycost#16218 * cast(ps_availqty#16217L as double))) * 1.0E-4) AS (sum((ps_supplycost * ps_availqty)) * 0.0001000000)#16247]
+   :     +- Project [ps_availqty#16217L, ps_supplycost#16218]
+   :        +- Join Inner, (s_nationkey#16223L = n_nationkey#16227L)
+   :           :- Project [ps_availqty#16217L, ps_supplycost#16218, s_nationkey#16223L]
+   :           :  +- Join Inner, (ps_suppkey#16216L = s_suppkey#16220L)
+   :           :     :- Filter isnotnull(ps_suppkey#16216L)
+   :           :     :  +- RelationV2[ps_suppkey#16216L, ps_availqty#16217L, ps_supplycost#16218] spark_catalog.tpch_iceberg_10g.partsupp
+   :           :     +- Filter ((isnotnull(s_suppkey#16220L) AND isnotnull(s_nationkey#16223L)) AND dynamicpruning#16259 [s_nationkey#16223L])
+   :           :        :  +- Project [n_nationkey#16227L]
+   :           :        :     +- Filter ((isnotnull(n_name#16228) AND (n_name#16228 = ROMANIA)) AND isnotnull(n_nationkey#16227L))
+   :           :        :        +- RelationV2[n_nationkey#16227L, n_name#16228] spark_catalog.tpch_iceberg_10g.nation
+   :           :        +- RelationV2[s_suppkey#16220L, s_nationkey#16223L] spark_catalog.tpch_iceberg_10g.supplier
+   :           +- Project [n_nationkey#16227L]
+   :              +- Filter ((isnotnull(n_name#16228) AND (n_name#16228 = ROMANIA)) AND isnotnull(n_nationkey#16227L))
+   :                 +- RelationV2[n_nationkey#16227L, n_name#16228] spark_catalog.tpch_iceberg_10g.nation
+   +- Aggregate [ps_partkey#16183L], [ps_partkey#16183L, sum((ps_supplycost#16186 * cast(ps_availqty#16185L as double))) AS value#16175]
+      +- Project [ps_partkey#16183L, ps_availqty#16185L, ps_supplycost#16186]
+         +- Join Inner, (s_nationkey#16191L = n_nationkey#16195L)
+            :- Project [ps_partkey#16183L, ps_availqty#16185L, ps_supplycost#16186, s_nationkey#16191L]
+            :  +- Join Inner, (ps_suppkey#16184L = s_suppkey#16188L)
+            :     :- Filter isnotnull(ps_suppkey#16184L)
+            :     :  +- RelationV2[ps_partkey#16183L, ps_suppkey#16184L, ps_availqty#16185L, ps_supplycost#16186] spark_catalog.tpch_iceberg_10g.partsupp
+            :     +- Filter ((isnotnull(s_suppkey#16188L) AND isnotnull(s_nationkey#16191L)) AND dynamicpruning#16268 [s_nationkey#16191L])
+            :        :  +- Project [n_nationkey#16195L]
+            :        :     +- Filter ((isnotnull(n_name#16196) AND (n_name#16196 = ROMANIA)) AND isnotnull(n_nationkey#16195L))
+            :        :        +- RelationV2[n_nationkey#16195L, n_name#16196] spark_catalog.tpch_iceberg_10g.nation
+            :        +- RelationV2[s_suppkey#16188L, s_nationkey#16191L] spark_catalog.tpch_iceberg_10g.supplier
+            +- Project [n_nationkey#16195L]
+               +- Filter ((isnotnull(n_name#16196) AND (n_name#16196 = ROMANIA)) AND isnotnull(n_nationkey#16195L))
+                  +- RelationV2[n_nationkey#16195L, n_name#16196] spark_catalog.tpch_iceberg_10g.nation
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [value#16175 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(value#16175 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=19464]
+      +- Filter (isnotnull(value#16175) AND (value#16175 > Subquery subquery#16176, [id=#19423]))
+         :  +- Subquery subquery#16176, [id=#19423]
+         :     +- AdaptiveSparkPlan isFinalPlan=false
+         :        +- HashAggregate(keys=[], functions=[sum((ps_supplycost#16218 * cast(ps_availqty#16217L as double)))], output=[(sum((ps_supplycost * ps_availqty)) * 0.0001000000)#16247])
+         :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=19421]
+         :              +- HashAggregate(keys=[], functions=[partial_sum((ps_supplycost#16218 * cast(ps_availqty#16217L as double)))], output=[sum#16272])
+         :                 +- Project [ps_availqty#16217L, ps_supplycost#16218]
+         :                    +- BroadcastHashJoin [s_nationkey#16223L], [n_nationkey#16227L], Inner, BuildRight, false
+         :                       :- Project [ps_availqty#16217L, ps_supplycost#16218, s_nationkey#16223L]
+         :                       :  +- BroadcastHashJoin [ps_suppkey#16216L], [s_suppkey#16220L], Inner, BuildRight, false
+         :                       :     :- Filter isnotnull(ps_suppkey#16216L)
+         :                       :     :  +- BatchScan[ps_suppkey#16216L, ps_availqty#16217L, ps_supplycost#16218] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_suppkey IS NOT NULL] RuntimeFilters: []
+         :                       :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=19412]
+         :                       :        +- Filter (isnotnull(s_suppkey#16220L) AND isnotnull(s_nationkey#16223L))
+         :                       :           +- BatchScan[s_suppkey#16220L, s_nationkey#16223L] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL, s_nationkey IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(s_nationkey#16223L IN dynamicpruning#16259)]
+         :                       :                 +- SubqueryAdaptiveBroadcast dynamicpruning#16259, 0, true, Project [n_nationkey#16227L], [n_nationkey#16227L]
+         :                       :                    +- AdaptiveSparkPlan isFinalPlan=false
+         :                       :                       +- Project [n_nationkey#16227L]
+         :                       :                          +- Filter ((isnotnull(n_name#16228) AND (n_name#16228 = ROMANIA)) AND isnotnull(n_nationkey#16227L))
+         :                       :                             +- BatchScan[n_nationkey#16227L, n_name#16228] spark_catalog.tpch_iceberg_10g.nation [filters=n_name IS NOT NULL, n_name = 'ROMANIA', n_nationkey IS NOT NULL] RuntimeFilters: []
+         :                       +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=19416]
+         :                          +- Project [n_nationkey#16227L]
+         :                             +- Filter ((isnotnull(n_name#16228) AND (n_name#16228 = ROMANIA)) AND isnotnull(n_nationkey#16227L))
+         :                                +- BatchScan[n_nationkey#16227L, n_name#16228] spark_catalog.tpch_iceberg_10g.nation [filters=n_name IS NOT NULL, n_name = 'ROMANIA', n_nationkey IS NOT NULL] RuntimeFilters: []
+         +- HashAggregate(keys=[ps_partkey#16183L], functions=[sum((ps_supplycost#16186 * cast(ps_availqty#16185L as double)))], output=[ps_partkey#16183L, value#16175])
+            +- Exchange hashpartitioning(ps_partkey#16183L, 200), ENSURE_REQUIREMENTS, [plan_id=19460]
+               +- HashAggregate(keys=[ps_partkey#16183L], functions=[partial_sum((ps_supplycost#16186 * cast(ps_availqty#16185L as double)))], output=[ps_partkey#16183L, sum#16270])
+                  +- Project [ps_partkey#16183L, ps_availqty#16185L, ps_supplycost#16186]
+                     +- BroadcastHashJoin [s_nationkey#16191L], [n_nationkey#16195L], Inner, BuildRight, false
+                        :- Project [ps_partkey#16183L, ps_availqty#16185L, ps_supplycost#16186, s_nationkey#16191L]
+                        :  +- BroadcastHashJoin [ps_suppkey#16184L], [s_suppkey#16188L], Inner, BuildRight, false
+                        :     :- Filter isnotnull(ps_suppkey#16184L)
+                        :     :  +- BatchScan[ps_partkey#16183L, ps_suppkey#16184L, ps_availqty#16185L, ps_supplycost#16186] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_suppkey IS NOT NULL] RuntimeFilters: []
+                        :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=19451]
+                        :        +- Filter (isnotnull(s_suppkey#16188L) AND isnotnull(s_nationkey#16191L))
+                        :           +- BatchScan[s_suppkey#16188L, s_nationkey#16191L] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL, s_nationkey IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(s_nationkey#16191L IN dynamicpruning#16268)]
+                        :                 +- SubqueryAdaptiveBroadcast dynamicpruning#16268, 0, true, Project [n_nationkey#16195L], [n_nationkey#16195L]
+                        :                    +- AdaptiveSparkPlan isFinalPlan=false
+                        :                       +- Project [n_nationkey#16195L]
+                        :                          +- Filter ((isnotnull(n_name#16196) AND (n_name#16196 = ROMANIA)) AND isnotnull(n_nationkey#16195L))
+                        :                             +- BatchScan[n_nationkey#16195L, n_name#16196] spark_catalog.tpch_iceberg_10g.nation [filters=n_name IS NOT NULL, n_name = 'ROMANIA', n_nationkey IS NOT NULL] RuntimeFilters: []
+                        +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=19455]
+                           +- Project [n_nationkey#16195L]
+                              +- Filter ((isnotnull(n_name#16196) AND (n_name#16196 = ROMANIA)) AND isnotnull(n_nationkey#16195L))
+                                 +- BatchScan[n_nationkey#16195L, n_name#16196] spark_catalog.tpch_iceberg_10g.nation [filters=n_name IS NOT NULL, n_name = 'ROMANIA', n_nationkey IS NOT NULL] RuntimeFilters: []

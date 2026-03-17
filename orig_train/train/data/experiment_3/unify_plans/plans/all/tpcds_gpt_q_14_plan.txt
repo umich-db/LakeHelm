@@ -1,0 +1,29 @@
+== Optimized Logical Plan ==
+Sort [d_year#8538 ASC NULLS FIRST], true
++- Aggregate [d_year#8538], [d_year#8538, count(1) AS total_transactions#8530L]
+   +- Project [d_year#8538]
+      +- Join LeftSemi, (d_date_sk#8532 = cs_sold_date_sk#8594)
+         :- RelationV2[d_date_sk#8532, d_year#8538] spark_catalog.tpcds_iceberg_10g.date_dim
+         +- Project [cs_sold_date_sk#8594]
+            +- Filter (isnotnull(cs_net_profit#8593) AND (cs_net_profit#8593 > 1000.00))
+               +- RelationV2[cs_net_profit#8593, cs_sold_date_sk#8594] spark_catalog.tpcds_iceberg_10g.catalog_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [d_year#8538 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(d_year#8538 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=6333]
+      +- HashAggregate(keys=[d_year#8538], functions=[count(1)], output=[d_year#8538, total_transactions#8530L])
+         +- Exchange hashpartitioning(d_year#8538, 200), ENSURE_REQUIREMENTS, [plan_id=6330]
+            +- HashAggregate(keys=[d_year#8538], functions=[partial_count(1)], output=[d_year#8538, count#8612L])
+               +- Project [d_year#8538]
+                  +- SortMergeJoin [d_date_sk#8532], [cs_sold_date_sk#8594], LeftSemi
+                     :- Sort [d_date_sk#8532 ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(d_date_sk#8532, 200), ENSURE_REQUIREMENTS, [plan_id=6323]
+                     :     +- BatchScan[d_date_sk#8532, d_year#8538] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+                     +- Sort [cs_sold_date_sk#8594 ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(cs_sold_date_sk#8594, 200), ENSURE_REQUIREMENTS, [plan_id=6322]
+                           +- Project [cs_sold_date_sk#8594]
+                              +- Filter (isnotnull(cs_net_profit#8593) AND (cs_net_profit#8593 > 1000.00))
+                                 +- BatchScan[cs_net_profit#8593, cs_sold_date_sk#8594] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_net_profit IS NOT NULL, cs_net_profit > 1000.00] RuntimeFilters: []
+

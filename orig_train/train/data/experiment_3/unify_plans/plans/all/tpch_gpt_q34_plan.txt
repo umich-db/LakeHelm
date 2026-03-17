@@ -1,0 +1,35 @@
+== Optimized Logical Plan ==
+Sort [num_suppliers#23479L DESC NULLS LAST], true
++- Aggregate [p_mfgr#23482], [p_mfgr#23482, count(distinct ps_suppkey#23490L) AS num_suppliers#23479L]
+   +- Project [p_mfgr#23482, ps_suppkey#23490L]
+      +- Join Inner, (p_partkey#23480L = ps_partkey#23489L)
+         :- Project [p_partkey#23480L, p_mfgr#23482]
+         :  +- Filter ((isnotnull(p_retailprice#23487) AND (p_retailprice#23487 > 1000.0)) AND isnotnull(p_partkey#23480L))
+         :     +- RelationV2[p_partkey#23480L, p_mfgr#23482, p_retailprice#23487] spark_catalog.tpch_iceberg_10g.part
+         +- Filter isnotnull(ps_partkey#23489L)
+            +- RelationV2[ps_partkey#23489L, ps_suppkey#23490L] spark_catalog.tpch_iceberg_10g.partsupp
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_suppliers#23479L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(num_suppliers#23479L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=27557]
+      +- HashAggregate(keys=[p_mfgr#23482], functions=[count(distinct ps_suppkey#23490L)], output=[p_mfgr#23482, num_suppliers#23479L])
+         +- Exchange hashpartitioning(p_mfgr#23482, 200), ENSURE_REQUIREMENTS, [plan_id=27554]
+            +- HashAggregate(keys=[p_mfgr#23482], functions=[partial_count(distinct ps_suppkey#23490L)], output=[p_mfgr#23482, count#23514L])
+               +- HashAggregate(keys=[p_mfgr#23482, ps_suppkey#23490L], functions=[], output=[p_mfgr#23482, ps_suppkey#23490L])
+                  +- Exchange hashpartitioning(p_mfgr#23482, ps_suppkey#23490L, 200), ENSURE_REQUIREMENTS, [plan_id=27550]
+                     +- HashAggregate(keys=[p_mfgr#23482, ps_suppkey#23490L], functions=[], output=[p_mfgr#23482, ps_suppkey#23490L])
+                        +- Project [p_mfgr#23482, ps_suppkey#23490L]
+                           +- SortMergeJoin [p_partkey#23480L], [ps_partkey#23489L], Inner
+                              :- Sort [p_partkey#23480L ASC NULLS FIRST], false, 0
+                              :  +- Exchange hashpartitioning(p_partkey#23480L, 200), ENSURE_REQUIREMENTS, [plan_id=27543]
+                              :     +- Project [p_partkey#23480L, p_mfgr#23482]
+                              :        +- Filter ((isnotnull(p_retailprice#23487) AND (p_retailprice#23487 > 1000.0)) AND isnotnull(p_partkey#23480L))
+                              :           +- BatchScan[p_partkey#23480L, p_mfgr#23482, p_retailprice#23487] spark_catalog.tpch_iceberg_10g.part [filters=p_retailprice IS NOT NULL, p_retailprice > 1000.0, p_partkey IS NOT NULL] RuntimeFilters: []
+                              +- Sort [ps_partkey#23489L ASC NULLS FIRST], false, 0
+                                 +- Exchange hashpartitioning(ps_partkey#23489L, 200), ENSURE_REQUIREMENTS, [plan_id=27542]
+                                    +- Filter isnotnull(ps_partkey#23489L)
+                                       +- BatchScan[ps_partkey#23489L, ps_suppkey#23490L] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_partkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

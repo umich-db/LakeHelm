@@ -1,0 +1,31 @@
+== Optimized Logical Plan ==
+Project [ws_order_number#7771L, ws_item_sk#7757, total_sales#7753, rank#7754]
++- Window [row_number() windowspecdefinition(ws_item_sk#7757, _w0#7814 DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS rank#7754], [ws_item_sk#7757], [_w0#7814 DESC NULLS LAST]
+   +- Aggregate [ws_order_number#7771L, ws_item_sk#7757], [ws_order_number#7771L, ws_item_sk#7757, MakeDecimal(sum(UnscaledValue(ws_sales_price#7775)),17,2) AS total_sales#7753, MakeDecimal(sum(UnscaledValue(ws_sales_price#7775)),17,2) AS _w0#7814]
+      +- Project [ws_item_sk#7757, ws_order_number#7771L, ws_sales_price#7775]
+         +- Join Inner, (ws_item_sk#7757 = i_item_sk#7789)
+            :- Filter isnotnull(ws_item_sk#7757)
+            :  +- RelationV2[ws_item_sk#7757, ws_order_number#7771L, ws_sales_price#7775] spark_catalog.tpcds_iceberg_10g.web_sales
+            +- Project [i_item_sk#7789]
+               +- Filter ((isnotnull(i_category#7801) AND (i_category#7801 = Books)) AND isnotnull(i_item_sk#7789))
+                  +- RelationV2[i_item_sk#7789, i_category#7801] spark_catalog.tpcds_iceberg_10g.item
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Project [ws_order_number#7771L, ws_item_sk#7757, total_sales#7753, rank#7754]
+   +- Window [row_number() windowspecdefinition(ws_item_sk#7757, _w0#7814 DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS rank#7754], [ws_item_sk#7757], [_w0#7814 DESC NULLS LAST]
+      +- Sort [ws_item_sk#7757 ASC NULLS FIRST, _w0#7814 DESC NULLS LAST], false, 0
+         +- Exchange hashpartitioning(ws_item_sk#7757, 200), ENSURE_REQUIREMENTS, [plan_id=5799]
+            +- HashAggregate(keys=[ws_order_number#7771L, ws_item_sk#7757], functions=[sum(UnscaledValue(ws_sales_price#7775))], output=[ws_order_number#7771L, ws_item_sk#7757, total_sales#7753, _w0#7814])
+               +- Exchange hashpartitioning(ws_order_number#7771L, ws_item_sk#7757, 200), ENSURE_REQUIREMENTS, [plan_id=5796]
+                  +- HashAggregate(keys=[ws_order_number#7771L, ws_item_sk#7757], functions=[partial_sum(UnscaledValue(ws_sales_price#7775))], output=[ws_order_number#7771L, ws_item_sk#7757, sum#7835L])
+                     +- Project [ws_item_sk#7757, ws_order_number#7771L, ws_sales_price#7775]
+                        +- BroadcastHashJoin [ws_item_sk#7757], [i_item_sk#7789], Inner, BuildRight, false
+                           :- Filter isnotnull(ws_item_sk#7757)
+                           :  +- BatchScan[ws_item_sk#7757, ws_order_number#7771L, ws_sales_price#7775] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_item_sk IS NOT NULL] RuntimeFilters: []
+                           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=5791]
+                              +- Project [i_item_sk#7789]
+                                 +- Filter ((isnotnull(i_category#7801) AND (i_category#7801 = Books)) AND isnotnull(i_item_sk#7789))
+                                    +- BatchScan[i_item_sk#7789, i_category#7801] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IS NOT NULL, i_category = 'Books', i_item_sk IS NOT NULL] RuntimeFilters: []
+

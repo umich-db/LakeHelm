@@ -1,0 +1,31 @@
+== Optimized Logical Plan ==
+Sort [avg_supply_cost#23127 ASC NULLS FIRST], true
++- Aggregate [p_name#23129, p_retailprice#23135], [p_name#23129, p_retailprice#23135, avg(ps_supplycost#23140) AS avg_supply_cost#23127]
+   +- Project [p_name#23129, p_retailprice#23135, ps_supplycost#23140]
+      +- Join Inner, (p_partkey#23128L = ps_partkey#23137L)
+         :- Project [p_partkey#23128L, p_name#23129, p_retailprice#23135]
+         :  +- Filter ((isnotnull(p_brand#23131) AND (p_brand#23131 = Brand#12)) AND isnotnull(p_partkey#23128L))
+         :     +- RelationV2[p_partkey#23128L, p_name#23129, p_brand#23131, p_retailprice#23135] spark_catalog.tpch_iceberg_10g.part
+         +- Filter isnotnull(ps_partkey#23137L)
+            +- RelationV2[ps_partkey#23137L, ps_supplycost#23140] spark_catalog.tpch_iceberg_10g.partsupp
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [avg_supply_cost#23127 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(avg_supply_cost#23127 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=27019]
+      +- HashAggregate(keys=[p_name#23129, p_retailprice#23135], functions=[avg(ps_supplycost#23140)], output=[p_name#23129, p_retailprice#23135, avg_supply_cost#23127])
+         +- Exchange hashpartitioning(p_name#23129, p_retailprice#23135, 200), ENSURE_REQUIREMENTS, [plan_id=27016]
+            +- HashAggregate(keys=[p_name#23129, knownfloatingpointnormalized(normalizenanandzero(p_retailprice#23135)) AS p_retailprice#23135], functions=[partial_avg(ps_supplycost#23140)], output=[p_name#23129, p_retailprice#23135, sum#23164, count#23165L])
+               +- Project [p_name#23129, p_retailprice#23135, ps_supplycost#23140]
+                  +- SortMergeJoin [p_partkey#23128L], [ps_partkey#23137L], Inner
+                     :- Sort [p_partkey#23128L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(p_partkey#23128L, 200), ENSURE_REQUIREMENTS, [plan_id=27009]
+                     :     +- Project [p_partkey#23128L, p_name#23129, p_retailprice#23135]
+                     :        +- Filter ((isnotnull(p_brand#23131) AND (p_brand#23131 = Brand#12)) AND isnotnull(p_partkey#23128L))
+                     :           +- BatchScan[p_partkey#23128L, p_name#23129, p_brand#23131, p_retailprice#23135] spark_catalog.tpch_iceberg_10g.part [filters=p_brand IS NOT NULL, p_brand = 'Brand#12', p_partkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [ps_partkey#23137L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(ps_partkey#23137L, 200), ENSURE_REQUIREMENTS, [plan_id=27008]
+                           +- Filter isnotnull(ps_partkey#23137L)
+                              +- BatchScan[ps_partkey#23137L, ps_supplycost#23140] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_partkey IS NOT NULL] RuntimeFilters: []
+

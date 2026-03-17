@@ -1,0 +1,99 @@
+== Parsed Logical Plan ==
+'Project ['MIN('mi_idx.info) AS rating#10800, 'MIN('t.title) AS movie_title#10801]
++- 'Filter ((((('it.info = rating) AND 'k.keyword LIKE %sequel%) AND ('mi_idx.info > 2.0)) AND (('t.production_year > 1990) AND ('t.id = 'mi_idx.movie_id))) AND ((('t.id = 'mk.movie_id) AND ('mk.movie_id = 'mi_idx.movie_id)) AND (('k.id = 'mk.keyword_id) AND ('it.id = 'mi_idx.info_type_id))))
+   +- 'Join Inner
+      :- 'Join Inner
+      :  :- 'Join Inner
+      :  :  :- 'Join Inner
+      :  :  :  :- 'SubqueryAlias it
+      :  :  :  :  +- 'UnresolvedRelation [info_type], [], false
+      :  :  :  +- 'SubqueryAlias k
+      :  :  :     +- 'UnresolvedRelation [keyword], [], false
+      :  :  +- 'SubqueryAlias mi_idx
+      :  :     +- 'UnresolvedRelation [movie_info_idx], [], false
+      :  +- 'SubqueryAlias mk
+      :     +- 'UnresolvedRelation [movie_keyword], [], false
+      +- 'SubqueryAlias t
+         +- 'UnresolvedRelation [title], [], false
+
+== Analyzed Logical Plan ==
+rating: string, movie_title: string
+Aggregate [min(info#10810) AS rating#10800, min(title#10816) AS movie_title#10801]
++- Filter (((((info#10803 = rating) AND keyword#10805 LIKE %sequel%) AND (info#10810 > 2.0)) AND ((production_year#10819L > cast(1990 as bigint)) AND (id#10815L = movie_id#10808L))) AND (((id#10815L = movie_id#10813L) AND (movie_id#10813L = movie_id#10808L)) AND ((id#10804L = keyword_id#10814L) AND (id#10802L = info_type_id#10809L))))
+   +- Join Inner
+      :- Join Inner
+      :  :- Join Inner
+      :  :  :- Join Inner
+      :  :  :  :- SubqueryAlias it
+      :  :  :  :  +- SubqueryAlias spark_catalog.job_iceberg_10g.info_type
+      :  :  :  :     +- RelationV2[id#10802L, info#10803] spark_catalog.job_iceberg_10g.info_type
+      :  :  :  +- SubqueryAlias k
+      :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.keyword
+      :  :  :        +- RelationV2[id#10804L, keyword#10805, phonetic_code#10806] spark_catalog.job_iceberg_10g.keyword
+      :  :  +- SubqueryAlias mi_idx
+      :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.movie_info_idx
+      :  :        +- RelationV2[id#10807L, movie_id#10808L, info_type_id#10809L, info#10810, note#10811] spark_catalog.job_iceberg_10g.movie_info_idx
+      :  +- SubqueryAlias mk
+      :     +- SubqueryAlias spark_catalog.job_iceberg_10g.movie_keyword
+      :        +- RelationV2[id#10812L, movie_id#10813L, keyword_id#10814L] spark_catalog.job_iceberg_10g.movie_keyword
+      +- SubqueryAlias t
+         +- SubqueryAlias spark_catalog.job_iceberg_10g.title
+            +- RelationV2[id#10815L, title#10816, imdb_index#10817, kind_id#10818L, production_year#10819L, imdb_id#10820L, phonetic_code#10821, episode_of_id#10822L, season_nr#10823L, episode_nr#10824L, series_years#10825, md5sum#10826] spark_catalog.job_iceberg_10g.title
+
+== Optimized Logical Plan ==
+Aggregate [min(info#10810) AS rating#10800, min(title#10816) AS movie_title#10801]
++- Project [info#10810, title#10816]
+   +- Join Inner, ((id#10815L = movie_id#10808L) AND (id#10815L = movie_id#10813L))
+      :- Project [movie_id#10808L, info#10810, movie_id#10813L]
+      :  +- Join Inner, (id#10804L = keyword_id#10814L)
+      :     :- Join Inner, (movie_id#10813L = movie_id#10808L)
+      :     :  :- Project [movie_id#10808L, info#10810]
+      :     :  :  +- Join Inner, (id#10802L = info_type_id#10809L)
+      :     :  :     :- Project [id#10802L]
+      :     :  :     :  +- Filter ((isnotnull(info#10803) AND (info#10803 = rating)) AND isnotnull(id#10802L))
+      :     :  :     :     +- RelationV2[id#10802L, info#10803] spark_catalog.job_iceberg_10g.info_type
+      :     :  :     +- Filter (((isnotnull(info#10810) AND (info#10810 > 2.0)) AND isnotnull(info_type_id#10809L)) AND isnotnull(movie_id#10808L))
+      :     :  :        +- RelationV2[movie_id#10808L, info_type_id#10809L, info#10810] spark_catalog.job_iceberg_10g.movie_info_idx
+      :     :  +- Filter (isnotnull(movie_id#10813L) AND isnotnull(keyword_id#10814L))
+      :     :     +- RelationV2[movie_id#10813L, keyword_id#10814L] spark_catalog.job_iceberg_10g.movie_keyword
+      :     +- Project [id#10804L]
+      :        +- Filter ((isnotnull(keyword#10805) AND Contains(keyword#10805, sequel)) AND isnotnull(id#10804L))
+      :           +- RelationV2[id#10804L, keyword#10805] spark_catalog.job_iceberg_10g.keyword
+      +- Project [id#10815L, title#10816]
+         +- Filter ((isnotnull(production_year#10819L) AND (production_year#10819L > 1990)) AND isnotnull(id#10815L))
+            +- RelationV2[id#10815L, title#10816, production_year#10819L] spark_catalog.job_iceberg_10g.title
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- SortAggregate(key=[], functions=[min(info#10810), min(title#10816)], output=[rating#10800, movie_title#10801])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=16719]
+      +- SortAggregate(key=[], functions=[partial_min(info#10810), partial_min(title#10816)], output=[min#10870, min#10871])
+         +- Project [info#10810, title#10816]
+            +- SortMergeJoin [movie_id#10808L, movie_id#10813L], [id#10815L, id#10815L], Inner
+               :- Sort [movie_id#10808L ASC NULLS FIRST, movie_id#10813L ASC NULLS FIRST], false, 0
+               :  +- Exchange hashpartitioning(movie_id#10808L, movie_id#10813L, 200), ENSURE_REQUIREMENTS, [plan_id=16711]
+               :     +- Project [movie_id#10808L, info#10810, movie_id#10813L]
+               :        +- BroadcastHashJoin [keyword_id#10814L], [id#10804L], Inner, BuildRight, false
+               :           :- SortMergeJoin [movie_id#10808L], [movie_id#10813L], Inner
+               :           :  :- Sort [movie_id#10808L ASC NULLS FIRST], false, 0
+               :           :  :  +- Project [movie_id#10808L, info#10810]
+               :           :  :     +- BroadcastHashJoin [id#10802L], [info_type_id#10809L], Inner, BuildLeft, false
+               :           :  :        :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=16697]
+               :           :  :        :  +- Project [id#10802L]
+               :           :  :        :     +- Filter ((isnotnull(info#10803) AND (info#10803 = rating)) AND isnotnull(id#10802L))
+               :           :  :        :        +- BatchScan[id#10802L, info#10803] spark_catalog.job_iceberg_10g.info_type [filters=info IS NOT NULL, info = 'rating', id IS NOT NULL] RuntimeFilters: []
+               :           :  :        +- Filter (((isnotnull(info#10810) AND (info#10810 > 2.0)) AND isnotnull(info_type_id#10809L)) AND isnotnull(movie_id#10808L))
+               :           :  :           +- BatchScan[movie_id#10808L, info_type_id#10809L, info#10810] spark_catalog.job_iceberg_10g.movie_info_idx [filters=info IS NOT NULL, info > '2.0', info_type_id IS NOT NULL, movie_id IS NOT NULL] RuntimeFilters: []
+               :           :  +- Sort [movie_id#10813L ASC NULLS FIRST], false, 0
+               :           :     +- Filter (isnotnull(movie_id#10813L) AND isnotnull(keyword_id#10814L))
+               :           :        +- BatchScan[movie_id#10813L, keyword_id#10814L] spark_catalog.job_iceberg_10g.movie_keyword [filters=movie_id IS NOT NULL, keyword_id IS NOT NULL] RuntimeFilters: []
+               :           +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=16706]
+               :              +- Project [id#10804L]
+               :                 +- Filter ((isnotnull(keyword#10805) AND Contains(keyword#10805, sequel)) AND isnotnull(id#10804L))
+               :                    +- BatchScan[id#10804L, keyword#10805] spark_catalog.job_iceberg_10g.keyword [filters=keyword IS NOT NULL, id IS NOT NULL] RuntimeFilters: []
+               +- Sort [id#10815L ASC NULLS FIRST, id#10815L ASC NULLS FIRST], false, 0
+                  +- Exchange hashpartitioning(id#10815L, id#10815L, 200), ENSURE_REQUIREMENTS, [plan_id=16712]
+                     +- Project [id#10815L, title#10816]
+                        +- Filter ((isnotnull(production_year#10819L) AND (production_year#10819L > 1990)) AND isnotnull(id#10815L))
+                           +- BatchScan[id#10815L, title#10816, production_year#10819L] spark_catalog.job_iceberg_10g.title [filters=production_year IS NOT NULL, production_year > 1990, id IS NOT NULL] RuntimeFilters: []
+

@@ -1,0 +1,26 @@
+== Optimized Logical Plan ==
+Sort [total_supply_cost#21835 DESC NULLS LAST], true
++- Aggregate [s_name#21837], [s_name#21837, sum((ps_supplycost#21846 * cast(ps_availqty#21845L as double))) AS total_supply_cost#21835]
+   +- Project [s_name#21837, ps_availqty#21845L, ps_supplycost#21846]
+      +- Join Inner, (s_suppkey#21836L = ps_suppkey#21844L)
+         :- Filter isnotnull(s_suppkey#21836L)
+         :  +- RelationV2[s_suppkey#21836L, s_name#21837] spark_catalog.tpch_iceberg_10g.supplier
+         +- Filter ((isnotnull(ps_availqty#21845L) AND (ps_availqty#21845L > 1000)) AND isnotnull(ps_suppkey#21844L))
+            +- RelationV2[ps_suppkey#21844L, ps_availqty#21845L, ps_supplycost#21846] spark_catalog.tpch_iceberg_10g.partsupp
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_supply_cost#21835 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_supply_cost#21835 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=25080]
+      +- HashAggregate(keys=[s_name#21837], functions=[sum((ps_supplycost#21846 * cast(ps_availqty#21845L as double)))], output=[s_name#21837, total_supply_cost#21835])
+         +- Exchange hashpartitioning(s_name#21837, 200), ENSURE_REQUIREMENTS, [plan_id=25077]
+            +- HashAggregate(keys=[s_name#21837], functions=[partial_sum((ps_supplycost#21846 * cast(ps_availqty#21845L as double)))], output=[s_name#21837, sum#21867])
+               +- Project [s_name#21837, ps_availqty#21845L, ps_supplycost#21846]
+                  +- BroadcastHashJoin [s_suppkey#21836L], [ps_suppkey#21844L], Inner, BuildLeft, false
+                     :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=25072]
+                     :  +- Filter isnotnull(s_suppkey#21836L)
+                     :     +- BatchScan[s_suppkey#21836L, s_name#21837] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL] RuntimeFilters: []
+                     +- Filter ((isnotnull(ps_availqty#21845L) AND (ps_availqty#21845L > 1000)) AND isnotnull(ps_suppkey#21844L))
+                        +- BatchScan[ps_suppkey#21844L, ps_availqty#21845L, ps_supplycost#21846] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_availqty IS NOT NULL, ps_availqty > 1000, ps_suppkey IS NOT NULL] RuntimeFilters: []
+

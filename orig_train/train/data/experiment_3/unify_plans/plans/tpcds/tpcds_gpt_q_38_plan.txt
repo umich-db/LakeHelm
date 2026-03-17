@@ -1,0 +1,13 @@
+== Optimized Logical Plan ==
+Filter (household_count#6005L > 50)
++- Aggregate [hd_buy_potential#6008], [hd_buy_potential#6008, count(1) AS household_count#6005L]
+   +- RelationV2[hd_buy_potential#6008] spark_catalog.tpcds_iceberg_10g.household_demographics
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Filter (household_count#6005L > 50)
+   +- HashAggregate(keys=[hd_buy_potential#6008], functions=[count(1)], output=[hd_buy_potential#6008, household_count#6005L])
+      +- HashAggregate(keys=[hd_buy_potential#6008], functions=[partial_count(1)], output=[hd_buy_potential#6008, count#6022L])
+         +- BatchScan[hd_buy_potential#6008] spark_catalog.tpcds_iceberg_10g.household_demographics [filters=] RuntimeFilters: []
+

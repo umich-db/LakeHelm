@@ -1,0 +1,25 @@
+== Parsed Logical Plan ==
+'Project ['d.d_date, 'd.d_year, 'd.d_month]
++- 'Filter ('d.d_year = 1997)
+   +- 'SubqueryAlias d
+      +- 'UnresolvedRelation [date], [], false
+
+== Analyzed Logical Plan ==
+d_date: string, d_year: int, d_month: string
+Project [d_date#16743, d_year#16747, d_month#16746]
++- Filter (d_year#16747 = 1997)
+   +- SubqueryAlias d
+      +- SubqueryAlias spark_catalog.ssb_iceberg_10g.date
+         +- RelationV2[d_date#16743, d_datekey#16744, d_dayofweek#16745, d_month#16746, d_year#16747, d_yearmonthnum#16748, d_yearmonth#16749, d_daynuminweek#16750, d_daynuminmonth#16751, d_daynuminyear#16752, d_monthnuminyear#16753, d_weeknuminyear#16754, d_sellingseason#16755, d_lastdayinweekfl#16756, d_lastdayinmonthfl#16757, d_holidayfl#16758, d_weekdayfl#16759] spark_catalog.ssb_iceberg_10g.date
+
+== Optimized Logical Plan ==
+Project [d_date#16743, d_year#16747, d_month#16746]
++- Filter (isnotnull(d_year#16747) AND (d_year#16747 = 1997))
+   +- RelationV2[d_date#16743, d_month#16746, d_year#16747] spark_catalog.ssb_iceberg_10g.date
+
+== Physical Plan ==
+*(1) Project [d_date#16743, d_year#16747, d_month#16746]
++- *(1) Filter (isnotnull(d_year#16747) AND (d_year#16747 = 1997))
+   +- *(1) ColumnarToRow
+      +- BatchScan[d_date#16743, d_month#16746, d_year#16747] spark_catalog.ssb_iceberg_10g.date [filters=d_year IS NOT NULL, d_year = 1997] RuntimeFilters: []
+

@@ -1,0 +1,19 @@
+== Parsed Logical Plan ==
+'Project ['s.s_name, 's.s_address, 's.s_phone]
++- 'SubqueryAlias s
+   +- 'UnresolvedRelation [supplier], [], false
+
+== Analyzed Logical Plan ==
+s_name: string, s_address: string, s_phone: string
+Project [s_name#16874, s_address#16875, s_phone#16879]
++- SubqueryAlias s
+   +- SubqueryAlias spark_catalog.ssb_iceberg_10g.supplier
+      +- RelationV2[s_suppkey#16873, s_name#16874, s_address#16875, s_city#16876, s_nation#16877, s_region#16878, s_phone#16879] spark_catalog.ssb_iceberg_10g.supplier
+
+== Optimized Logical Plan ==
+RelationV2[s_name#16874, s_address#16875, s_phone#16879] spark_catalog.ssb_iceberg_10g.supplier
+
+== Physical Plan ==
+*(1) ColumnarToRow
++- BatchScan[s_name#16874, s_address#16875, s_phone#16879] spark_catalog.ssb_iceberg_10g.supplier [filters=] RuntimeFilters: []
+

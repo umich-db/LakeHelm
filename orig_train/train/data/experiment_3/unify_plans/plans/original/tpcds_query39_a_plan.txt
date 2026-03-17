@@ -1,0 +1,113 @@
+=== Optimized Logical Plan ===
+Sort [w_warehouse_sk#18484 ASC NULLS FIRST, i_item_sk#18462 ASC NULLS FIRST, d_moy#18506 ASC NULLS FIRST, mean#18456 ASC NULLS FIRST, cov#18457 ASC NULLS FIRST, d_moy#18730 ASC NULLS FIRST, mean#18577 ASC NULLS FIRST, cov#18578 ASC NULLS FIRST], true
++- Join Inner, ((i_item_sk#18462 = i_item_sk#18686) AND (w_warehouse_sk#18484 = w_warehouse_sk#18708))
+   :- Project [w_warehouse_sk#18484, i_item_sk#18462, d_moy#18506, mean#18456, CASE WHEN (mean#18456 = 0.0) THEN null ELSE (stdev#18455 / mean#18456) END AS cov#18457]
+   :  +- Filter CASE WHEN (mean#18456 = 0.0) THEN false ELSE ((stdev#18455 / mean#18456) > 1.0) END
+   :     +- Aggregate [w_warehouse_name#18486, w_warehouse_sk#18484, i_item_sk#18462, d_moy#18506], [w_warehouse_sk#18484, i_item_sk#18462, d_moy#18506, stddev_samp(cast(inv_quantity_on_hand#18460 as double)) AS stdev#18455, avg(inv_quantity_on_hand#18460) AS mean#18456]
+   :        +- Project [inv_quantity_on_hand#18460, i_item_sk#18462, w_warehouse_sk#18484, w_warehouse_name#18486, d_moy#18506]
+   :           +- Join Inner, (inv_date_sk#18461 = d_date_sk#18498)
+   :              :- Project [inv_quantity_on_hand#18460, inv_date_sk#18461, i_item_sk#18462, w_warehouse_sk#18484, w_warehouse_name#18486]
+   :              :  +- Join Inner, (inv_warehouse_sk#18459 = w_warehouse_sk#18484)
+   :              :     :- Project [inv_warehouse_sk#18459, inv_quantity_on_hand#18460, inv_date_sk#18461, i_item_sk#18462]
+   :              :     :  +- Join Inner, (inv_item_sk#18458 = i_item_sk#18462)
+   :              :     :     :- Filter (((isnotnull(inv_item_sk#18458) AND isnotnull(inv_warehouse_sk#18459)) AND isnotnull(inv_date_sk#18461)) AND dynamicpruning#18787 [inv_date_sk#18461])
+   :              :     :     :  :  +- Project [d_date_sk#18498, d_moy#18506]
+   :              :     :     :  :     +- Filter ((((isnotnull(d_year#18504) AND isnotnull(d_moy#18506)) AND (d_year#18504 = 1998)) AND (d_moy#18506 = 4)) AND isnotnull(d_date_sk#18498))
+   :              :     :     :  :        +- RelationV2[d_date_sk#18498, d_year#18504, d_moy#18506] spark_catalog.tpcds_iceberg_10g.date_dim
+   :              :     :     :  +- RelationV2[inv_item_sk#18458, inv_warehouse_sk#18459, inv_quantity_on_hand#18460, inv_date_sk#18461] spark_catalog.tpcds_iceberg_10g.inventory
+   :              :     :     +- Filter isnotnull(i_item_sk#18462)
+   :              :     :        +- RelationV2[i_item_sk#18462] spark_catalog.tpcds_iceberg_10g.item
+   :              :     +- Filter isnotnull(w_warehouse_sk#18484)
+   :              :        +- RelationV2[w_warehouse_sk#18484, w_warehouse_name#18486] spark_catalog.tpcds_iceberg_10g.warehouse
+   :              +- Project [d_date_sk#18498, d_moy#18506]
+   :                 +- Filter ((((isnotnull(d_year#18504) AND isnotnull(d_moy#18506)) AND (d_year#18504 = 1998)) AND (d_moy#18506 = 4)) AND isnotnull(d_date_sk#18498))
+   :                    +- RelationV2[d_date_sk#18498, d_year#18504, d_moy#18506] spark_catalog.tpcds_iceberg_10g.date_dim
+   +- Project [w_warehouse_sk#18708, i_item_sk#18686, d_moy#18730, mean#18456 AS mean#18577, CASE WHEN (mean#18456 = 0.0) THEN null ELSE (stdev#18455 / mean#18456) END AS cov#18578]
+      +- Filter CASE WHEN (mean#18456 = 0.0) THEN false ELSE ((stdev#18455 / mean#18456) > 1.0) END
+         +- Aggregate [w_warehouse_name#18710, w_warehouse_sk#18708, i_item_sk#18686, d_moy#18730], [w_warehouse_sk#18708, i_item_sk#18686, d_moy#18730, stddev_samp(cast(inv_quantity_on_hand#18684 as double)) AS stdev#18455, avg(inv_quantity_on_hand#18684) AS mean#18456]
+            +- Project [inv_quantity_on_hand#18684, i_item_sk#18686, w_warehouse_sk#18708, w_warehouse_name#18710, d_moy#18730]
+               +- Join Inner, (inv_date_sk#18685 = d_date_sk#18722)
+                  :- Project [inv_quantity_on_hand#18684, inv_date_sk#18685, i_item_sk#18686, w_warehouse_sk#18708, w_warehouse_name#18710]
+                  :  +- Join Inner, (inv_warehouse_sk#18683 = w_warehouse_sk#18708)
+                  :     :- Project [inv_warehouse_sk#18683, inv_quantity_on_hand#18684, inv_date_sk#18685, i_item_sk#18686]
+                  :     :  +- Join Inner, (inv_item_sk#18682 = i_item_sk#18686)
+                  :     :     :- Filter (((isnotnull(inv_item_sk#18682) AND isnotnull(inv_warehouse_sk#18683)) AND isnotnull(inv_date_sk#18685)) AND dynamicpruning#18788 [inv_date_sk#18685])
+                  :     :     :  :  +- Project [d_date_sk#18722, d_moy#18730]
+                  :     :     :  :     +- Filter ((((isnotnull(d_year#18728) AND isnotnull(d_moy#18730)) AND (d_year#18728 = 1998)) AND (d_moy#18730 = 5)) AND isnotnull(d_date_sk#18722))
+                  :     :     :  :        +- RelationV2[d_date_sk#18722, d_year#18728, d_moy#18730] spark_catalog.tpcds_iceberg_10g.date_dim
+                  :     :     :  +- RelationV2[inv_item_sk#18682, inv_warehouse_sk#18683, inv_quantity_on_hand#18684, inv_date_sk#18685] spark_catalog.tpcds_iceberg_10g.inventory
+                  :     :     +- Filter isnotnull(i_item_sk#18686)
+                  :     :        +- RelationV2[i_item_sk#18686] spark_catalog.tpcds_iceberg_10g.item
+                  :     +- Filter isnotnull(w_warehouse_sk#18708)
+                  :        +- RelationV2[w_warehouse_sk#18708, w_warehouse_name#18710] spark_catalog.tpcds_iceberg_10g.warehouse
+                  +- Project [d_date_sk#18722, d_moy#18730]
+                     +- Filter ((((isnotnull(d_year#18728) AND isnotnull(d_moy#18730)) AND (d_year#18728 = 1998)) AND (d_moy#18730 = 5)) AND isnotnull(d_date_sk#18722))
+                        +- RelationV2[d_date_sk#18722, d_year#18728, d_moy#18730] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [w_warehouse_sk#18484 ASC NULLS FIRST, i_item_sk#18462 ASC NULLS FIRST, d_moy#18506 ASC NULLS FIRST, mean#18456 ASC NULLS FIRST, cov#18457 ASC NULLS FIRST, d_moy#18730 ASC NULLS FIRST, mean#18577 ASC NULLS FIRST, cov#18578 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(w_warehouse_sk#18484 ASC NULLS FIRST, i_item_sk#18462 ASC NULLS FIRST, d_moy#18506 ASC NULLS FIRST, mean#18456 ASC NULLS FIRST, cov#18457 ASC NULLS FIRST, d_moy#18730 ASC NULLS FIRST, mean#18577 ASC NULLS FIRST, cov#18578 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=16080]
+      +- SortMergeJoin [i_item_sk#18462, w_warehouse_sk#18484], [i_item_sk#18686, w_warehouse_sk#18708], Inner
+         :- Sort [i_item_sk#18462 ASC NULLS FIRST, w_warehouse_sk#18484 ASC NULLS FIRST], false, 0
+         :  +- Exchange hashpartitioning(i_item_sk#18462, w_warehouse_sk#18484, 200), ENSURE_REQUIREMENTS, [plan_id=16074]
+         :     +- Project [w_warehouse_sk#18484, i_item_sk#18462, d_moy#18506, mean#18456, CASE WHEN (mean#18456 = 0.0) THEN null ELSE (stdev#18455 / mean#18456) END AS cov#18457]
+         :        +- Filter CASE WHEN (mean#18456 = 0.0) THEN false ELSE ((stdev#18455 / mean#18456) > 1.0) END
+         :           +- HashAggregate(keys=[w_warehouse_name#18486, w_warehouse_sk#18484, i_item_sk#18462, d_moy#18506], functions=[stddev_samp(cast(inv_quantity_on_hand#18460 as double)), avg(inv_quantity_on_hand#18460)], output=[w_warehouse_sk#18484, i_item_sk#18462, d_moy#18506, stdev#18455, mean#18456])
+         :              +- Exchange hashpartitioning(w_warehouse_name#18486, w_warehouse_sk#18484, i_item_sk#18462, d_moy#18506, 200), ENSURE_REQUIREMENTS, [plan_id=16051]
+         :                 +- HashAggregate(keys=[w_warehouse_name#18486, w_warehouse_sk#18484, i_item_sk#18462, d_moy#18506], functions=[partial_stddev_samp(cast(inv_quantity_on_hand#18460 as double)), partial_avg(inv_quantity_on_hand#18460)], output=[w_warehouse_name#18486, w_warehouse_sk#18484, i_item_sk#18462, d_moy#18506, n#18569, avg#18570, m2#18571, sum#18791, count#18792L])
+         :                    +- Project [inv_quantity_on_hand#18460, i_item_sk#18462, w_warehouse_sk#18484, w_warehouse_name#18486, d_moy#18506]
+         :                       +- BroadcastHashJoin [inv_date_sk#18461], [d_date_sk#18498], Inner, BuildRight, false
+         :                          :- Project [inv_quantity_on_hand#18460, inv_date_sk#18461, i_item_sk#18462, w_warehouse_sk#18484, w_warehouse_name#18486]
+         :                          :  +- BroadcastHashJoin [inv_warehouse_sk#18459], [w_warehouse_sk#18484], Inner, BuildRight, false
+         :                          :     :- Project [inv_warehouse_sk#18459, inv_quantity_on_hand#18460, inv_date_sk#18461, i_item_sk#18462]
+         :                          :     :  +- BroadcastHashJoin [inv_item_sk#18458], [i_item_sk#18462], Inner, BuildRight, false
+         :                          :     :     :- Filter ((isnotnull(inv_item_sk#18458) AND isnotnull(inv_warehouse_sk#18459)) AND isnotnull(inv_date_sk#18461))
+         :                          :     :     :  +- BatchScan[inv_item_sk#18458, inv_warehouse_sk#18459, inv_quantity_on_hand#18460, inv_date_sk#18461] spark_catalog.tpcds_iceberg_10g.inventory [filters=inv_item_sk IS NOT NULL, inv_warehouse_sk IS NOT NULL, inv_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(inv_date_sk#18461 IN dynamicpruning#18787)]
+         :                          :     :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#18787, 0, true, Project [d_date_sk#18498, d_moy#18506], [d_date_sk#18498]
+         :                          :     :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :                          :     :     :              +- Project [d_date_sk#18498, d_moy#18506]
+         :                          :     :     :                 +- Filter ((((isnotnull(d_year#18504) AND isnotnull(d_moy#18506)) AND (d_year#18504 = 1998)) AND (d_moy#18506 = 4)) AND isnotnull(d_date_sk#18498))
+         :                          :     :     :                    +- BatchScan[d_date_sk#18498, d_year#18504, d_moy#18506] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1998, d_moy = 4, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                          :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=16038]
+         :                          :     :        +- Filter isnotnull(i_item_sk#18462)
+         :                          :     :           +- BatchScan[i_item_sk#18462] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL] RuntimeFilters: []
+         :                          :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=16042]
+         :                          :        +- Filter isnotnull(w_warehouse_sk#18484)
+         :                          :           +- BatchScan[w_warehouse_sk#18484, w_warehouse_name#18486] spark_catalog.tpcds_iceberg_10g.warehouse [filters=w_warehouse_sk IS NOT NULL] RuntimeFilters: []
+         :                          +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=16046]
+         :                             +- Project [d_date_sk#18498, d_moy#18506]
+         :                                +- Filter ((((isnotnull(d_year#18504) AND isnotnull(d_moy#18506)) AND (d_year#18504 = 1998)) AND (d_moy#18506 = 4)) AND isnotnull(d_date_sk#18498))
+         :                                   +- BatchScan[d_date_sk#18498, d_year#18504, d_moy#18506] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1998, d_moy = 4, d_date_sk IS NOT NULL] RuntimeFilters: []
+         +- Sort [i_item_sk#18686 ASC NULLS FIRST, w_warehouse_sk#18708 ASC NULLS FIRST], false, 0
+            +- Exchange hashpartitioning(i_item_sk#18686, w_warehouse_sk#18708, 200), ENSURE_REQUIREMENTS, [plan_id=16075]
+               +- Project [w_warehouse_sk#18708, i_item_sk#18686, d_moy#18730, mean#18456 AS mean#18577, CASE WHEN (mean#18456 = 0.0) THEN null ELSE (stdev#18455 / mean#18456) END AS cov#18578]
+                  +- Filter CASE WHEN (mean#18456 = 0.0) THEN false ELSE ((stdev#18455 / mean#18456) > 1.0) END
+                     +- HashAggregate(keys=[w_warehouse_name#18710, w_warehouse_sk#18708, i_item_sk#18686, d_moy#18730], functions=[stddev_samp(cast(inv_quantity_on_hand#18684 as double)), avg(inv_quantity_on_hand#18684)], output=[w_warehouse_sk#18708, i_item_sk#18686, d_moy#18730, stdev#18455, mean#18456])
+                        +- Exchange hashpartitioning(w_warehouse_name#18710, w_warehouse_sk#18708, i_item_sk#18686, d_moy#18730, 200), ENSURE_REQUIREMENTS, [plan_id=16068]
+                           +- HashAggregate(keys=[w_warehouse_name#18710, w_warehouse_sk#18708, i_item_sk#18686, d_moy#18730], functions=[partial_stddev_samp(cast(inv_quantity_on_hand#18684 as double)), partial_avg(inv_quantity_on_hand#18684)], output=[w_warehouse_name#18710, w_warehouse_sk#18708, i_item_sk#18686, d_moy#18730, n#18755, avg#18756, m2#18757, sum#18795, count#18796L])
+                              +- Project [inv_quantity_on_hand#18684, i_item_sk#18686, w_warehouse_sk#18708, w_warehouse_name#18710, d_moy#18730]
+                                 +- BroadcastHashJoin [inv_date_sk#18685], [d_date_sk#18722], Inner, BuildRight, false
+                                    :- Project [inv_quantity_on_hand#18684, inv_date_sk#18685, i_item_sk#18686, w_warehouse_sk#18708, w_warehouse_name#18710]
+                                    :  +- BroadcastHashJoin [inv_warehouse_sk#18683], [w_warehouse_sk#18708], Inner, BuildRight, false
+                                    :     :- Project [inv_warehouse_sk#18683, inv_quantity_on_hand#18684, inv_date_sk#18685, i_item_sk#18686]
+                                    :     :  +- BroadcastHashJoin [inv_item_sk#18682], [i_item_sk#18686], Inner, BuildRight, false
+                                    :     :     :- Filter ((isnotnull(inv_item_sk#18682) AND isnotnull(inv_warehouse_sk#18683)) AND isnotnull(inv_date_sk#18685))
+                                    :     :     :  +- BatchScan[inv_item_sk#18682, inv_warehouse_sk#18683, inv_quantity_on_hand#18684, inv_date_sk#18685] spark_catalog.tpcds_iceberg_10g.inventory [filters=inv_item_sk IS NOT NULL, inv_warehouse_sk IS NOT NULL, inv_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(inv_date_sk#18685 IN dynamicpruning#18788)]
+                                    :     :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#18788, 0, true, Project [d_date_sk#18722, d_moy#18730], [d_date_sk#18722]
+                                    :     :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                                    :     :     :              +- Project [d_date_sk#18722, d_moy#18730]
+                                    :     :     :                 +- Filter ((((isnotnull(d_year#18728) AND isnotnull(d_moy#18730)) AND (d_year#18728 = 1998)) AND (d_moy#18730 = 5)) AND isnotnull(d_date_sk#18722))
+                                    :     :     :                    +- BatchScan[d_date_sk#18722, d_year#18728, d_moy#18730] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1998, d_moy = 5, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                    :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=16055]
+                                    :     :        +- Filter isnotnull(i_item_sk#18686)
+                                    :     :           +- BatchScan[i_item_sk#18686] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL] RuntimeFilters: []
+                                    :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=16059]
+                                    :        +- Filter isnotnull(w_warehouse_sk#18708)
+                                    :           +- BatchScan[w_warehouse_sk#18708, w_warehouse_name#18710] spark_catalog.tpcds_iceberg_10g.warehouse [filters=w_warehouse_sk IS NOT NULL] RuntimeFilters: []
+                                    +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=16063]
+                                       +- Project [d_date_sk#18722, d_moy#18730]
+                                          +- Filter ((((isnotnull(d_year#18728) AND isnotnull(d_moy#18730)) AND (d_year#18728 = 1998)) AND (d_moy#18730 = 5)) AND isnotnull(d_date_sk#18722))
+                                             +- BatchScan[d_date_sk#18722, d_year#18728, d_moy#18730] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1998, d_moy = 5, d_date_sk IS NOT NULL] RuntimeFilters: []
+

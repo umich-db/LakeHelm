@@ -1,0 +1,48 @@
+== Parsed Logical Plan ==
+'Sort ['l_shipmode ASC NULLS FIRST], true
++- 'Aggregate ['l_shipmode], ['l_shipmode, 'sum(CASE WHEN (('o_orderpriority = 1-URGENT) OR ('o_orderpriority = 2-HIGH)) THEN 1 ELSE 0 END) AS high_line_count#15896, 'sum(CASE WHEN (NOT ('o_orderpriority = 1-URGENT) AND NOT ('o_orderpriority = 2-HIGH)) THEN 1 ELSE 0 END) AS low_line_count#15897]
+   +- 'Filter (((('o_orderkey = 'l_orderkey) AND 'l_shipmode IN (AIR,TRUCK)) AND ('l_commitdate < 'l_receiptdate)) AND ((('l_shipdate < 'l_commitdate) AND ('date('l_receiptdate) >= 1997-01-01)) AND ('date('l_receiptdate) < (1997-01-01 + INTERVAL '1' YEAR))))
+      +- 'Join Inner
+         :- 'UnresolvedRelation [orders], [], false
+         +- 'UnresolvedRelation [lineitem], [], false
+
+== Analyzed Logical Plan ==
+l_shipmode: string, high_line_count: bigint, low_line_count: bigint
+Sort [l_shipmode#15927 ASC NULLS FIRST], true
++- Aggregate [l_shipmode#15927], [l_shipmode#15927, sum(CASE WHEN ((o_orderpriority#15909 = 1-URGENT) OR (o_orderpriority#15909 = 2-HIGH)) THEN 1 ELSE 0 END) AS high_line_count#15896L, sum(CASE WHEN (NOT (o_orderpriority#15909 = 1-URGENT) AND NOT (o_orderpriority#15909 = 2-HIGH)) THEN 1 ELSE 0 END) AS low_line_count#15897L]
+   +- Filter ((((o_orderkey#15904L = l_orderkey#15913L) AND l_shipmode#15927 IN (AIR,TRUCK)) AND (l_commitdate#15924 < l_receiptdate#15925)) AND (((l_shipdate#15923 < l_commitdate#15924) AND (cast(l_receiptdate#15925 as date) >= 1997-01-01)) AND (cast(l_receiptdate#15925 as date) < 1997-01-01 + INTERVAL '1' YEAR)))
+      +- Join Inner
+         :- SubqueryAlias spark_catalog.tpch_iceberg_10g.orders
+         :  +- RelationV2[o_orderkey#15904L, o_custkey#15905L, o_orderstatus#15906, o_totalprice#15907, o_orderdate#15908, o_orderpriority#15909, o_clerk#15910, o_shippriority#15911L, o_comment#15912] spark_catalog.tpch_iceberg_10g.orders
+         +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+            +- RelationV2[l_orderkey#15913L, l_partkey#15914L, l_suppkey#15915L, l_linenumber#15916L, l_quantity#15917L, l_extendedprice#15918, l_discount#15919, l_tax#15920, l_returnflag#15921, l_linestatus#15922, l_shipdate#15923, l_commitdate#15924, l_receiptdate#15925, l_shipinstruct#15926, l_shipmode#15927, l_comment#15928] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Optimized Logical Plan ==
+Sort [l_shipmode#15927 ASC NULLS FIRST], true
++- Aggregate [l_shipmode#15927], [l_shipmode#15927, sum(CASE WHEN ((o_orderpriority#15909 = 1-URGENT) OR (o_orderpriority#15909 = 2-HIGH)) THEN 1 ELSE 0 END) AS high_line_count#15896L, sum(CASE WHEN (NOT (o_orderpriority#15909 = 1-URGENT) AND NOT (o_orderpriority#15909 = 2-HIGH)) THEN 1 ELSE 0 END) AS low_line_count#15897L]
+   +- Project [o_orderpriority#15909, l_shipmode#15927]
+      +- Join Inner, (o_orderkey#15904L = l_orderkey#15913L)
+         :- Filter isnotnull(o_orderkey#15904L)
+         :  +- RelationV2[o_orderkey#15904L, o_orderpriority#15909] spark_catalog.tpch_iceberg_10g.orders
+         +- Project [l_orderkey#15913L, l_shipmode#15927]
+            +- Filter (((((((((l_commitdate#15924 < l_receiptdate#15925) AND (l_shipdate#15923 < l_commitdate#15924)) AND (cast(l_receiptdate#15925 as date) >= 1997-01-01)) AND (cast(l_receiptdate#15925 as date) < 1998-01-01)) AND isnotnull(l_commitdate#15924)) AND isnotnull(l_receiptdate#15925)) AND isnotnull(l_shipdate#15923)) AND l_shipmode#15927 IN (AIR,TRUCK)) AND isnotnull(l_orderkey#15913L))
+               +- RelationV2[l_orderkey#15913L, l_shipdate#15923, l_commitdate#15924, l_receiptdate#15925, l_shipmode#15927] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [l_shipmode#15927 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(l_shipmode#15927 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=18990]
+      +- HashAggregate(keys=[l_shipmode#15927], functions=[sum(CASE WHEN ((o_orderpriority#15909 = 1-URGENT) OR (o_orderpriority#15909 = 2-HIGH)) THEN 1 ELSE 0 END), sum(CASE WHEN (NOT (o_orderpriority#15909 = 1-URGENT) AND NOT (o_orderpriority#15909 = 2-HIGH)) THEN 1 ELSE 0 END)], output=[l_shipmode#15927, high_line_count#15896L, low_line_count#15897L])
+         +- Exchange hashpartitioning(l_shipmode#15927, 200), ENSURE_REQUIREMENTS, [plan_id=18987]
+            +- HashAggregate(keys=[l_shipmode#15927], functions=[partial_sum(CASE WHEN ((o_orderpriority#15909 = 1-URGENT) OR (o_orderpriority#15909 = 2-HIGH)) THEN 1 ELSE 0 END), partial_sum(CASE WHEN (NOT (o_orderpriority#15909 = 1-URGENT) AND NOT (o_orderpriority#15909 = 2-HIGH)) THEN 1 ELSE 0 END)], output=[l_shipmode#15927, sum#15950L, sum#15951L])
+               +- Project [o_orderpriority#15909, l_shipmode#15927]
+                  +- SortMergeJoin [o_orderkey#15904L], [l_orderkey#15913L], Inner
+                     :- Sort [o_orderkey#15904L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(o_orderkey#15904L, 200), ENSURE_REQUIREMENTS, [plan_id=18979]
+                     :     +- Filter isnotnull(o_orderkey#15904L)
+                     :        +- BatchScan[o_orderkey#15904L, o_orderpriority#15909] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [l_orderkey#15913L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(l_orderkey#15913L, 200), ENSURE_REQUIREMENTS, [plan_id=18980]
+                           +- Project [l_orderkey#15913L, l_shipmode#15927]
+                              +- Filter (((((((((l_commitdate#15924 < l_receiptdate#15925) AND (l_shipdate#15923 < l_commitdate#15924)) AND (cast(l_receiptdate#15925 as date) >= 1997-01-01)) AND (cast(l_receiptdate#15925 as date) < 1998-01-01)) AND isnotnull(l_commitdate#15924)) AND isnotnull(l_receiptdate#15925)) AND isnotnull(l_shipdate#15923)) AND l_shipmode#15927 IN (AIR,TRUCK)) AND isnotnull(l_orderkey#15913L))
+                                 +- BatchScan[l_orderkey#15913L, l_shipdate#15923, l_commitdate#15924, l_receiptdate#15925, l_shipmode#15927] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_commitdate IS NOT NULL, l_receiptdate IS NOT NULL, l_shipdate IS NOT NULL, l_shipmode IN ('AIR', 'TRUCK'), l_orderkey IS NOT NULL] RuntimeFilters: []

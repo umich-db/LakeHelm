@@ -1,0 +1,46 @@
+== Optimized Logical Plan ==
+Sort [character_names#11075L DESC NULLS LAST], true
++- Aggregate [title#11077], [title#11077, count(distinct name#11096) AS character_names#11075L]
+   +- Project [title#11077, name#11096]
+      +- Join Inner, (person_role_id#11091L = id#11095L)
+         :- Project [title#11077, person_role_id#11091L]
+         :  +- Join Inner, (id#11076L = movie_id#11090L)
+         :     :- Filter isnotnull(id#11076L)
+         :     :  +- RelationV2[id#11076L, title#11077] spark_catalog.job_iceberg_10g.title
+         :     +- Filter (isnotnull(movie_id#11090L) AND isnotnull(person_role_id#11091L))
+         :        +- RelationV2[movie_id#11090L, person_role_id#11091L] spark_catalog.job_iceberg_10g.cast_info
+         +- Project [id#11095L, name#11096]
+            +- Filter (isnotnull(imdb_index#11097) AND isnotnull(id#11095L))
+               +- RelationV2[id#11095L, name#11096, imdb_index#11097] spark_catalog.job_iceberg_10g.char_name
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [character_names#11075L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(character_names#11075L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=8926]
+      +- HashAggregate(keys=[title#11077], functions=[count(distinct name#11096)], output=[title#11077, character_names#11075L])
+         +- Exchange hashpartitioning(title#11077, 200), ENSURE_REQUIREMENTS, [plan_id=8923]
+            +- HashAggregate(keys=[title#11077], functions=[partial_count(distinct name#11096)], output=[title#11077, count#11129L])
+               +- HashAggregate(keys=[title#11077, name#11096], functions=[], output=[title#11077, name#11096])
+                  +- Exchange hashpartitioning(title#11077, name#11096, 200), ENSURE_REQUIREMENTS, [plan_id=8919]
+                     +- HashAggregate(keys=[title#11077, name#11096], functions=[], output=[title#11077, name#11096])
+                        +- Project [title#11077, name#11096]
+                           +- SortMergeJoin [person_role_id#11091L], [id#11095L], Inner
+                              :- Sort [person_role_id#11091L ASC NULLS FIRST], false, 0
+                              :  +- Exchange hashpartitioning(person_role_id#11091L, 200), ENSURE_REQUIREMENTS, [plan_id=8911]
+                              :     +- Project [title#11077, person_role_id#11091L]
+                              :        +- SortMergeJoin [id#11076L], [movie_id#11090L], Inner
+                              :           :- Sort [id#11076L ASC NULLS FIRST], false, 0
+                              :           :  +- Exchange hashpartitioning(id#11076L, 200), ENSURE_REQUIREMENTS, [plan_id=8904]
+                              :           :     +- Filter isnotnull(id#11076L)
+                              :           :        +- BatchScan[id#11076L, title#11077] spark_catalog.job_iceberg_10g.title [filters=id IS NOT NULL] RuntimeFilters: []
+                              :           +- Sort [movie_id#11090L ASC NULLS FIRST], false, 0
+                              :              +- Exchange hashpartitioning(movie_id#11090L, 200), ENSURE_REQUIREMENTS, [plan_id=8903]
+                              :                 +- Filter (isnotnull(movie_id#11090L) AND isnotnull(person_role_id#11091L))
+                              :                    +- BatchScan[movie_id#11090L, person_role_id#11091L] spark_catalog.job_iceberg_10g.cast_info [filters=movie_id IS NOT NULL, person_role_id IS NOT NULL] RuntimeFilters: []
+                              +- Sort [id#11095L ASC NULLS FIRST], false, 0
+                                 +- Exchange hashpartitioning(id#11095L, 200), ENSURE_REQUIREMENTS, [plan_id=8912]
+                                    +- Project [id#11095L, name#11096]
+                                       +- Filter (isnotnull(imdb_index#11097) AND isnotnull(id#11095L))
+                                          +- BatchScan[id#11095L, name#11096, imdb_index#11097] spark_catalog.job_iceberg_10g.char_name [filters=imdb_index IS NOT NULL, id IS NOT NULL] RuntimeFilters: []
+

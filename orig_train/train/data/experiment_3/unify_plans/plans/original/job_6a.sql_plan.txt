@@ -1,0 +1,100 @@
+== Parsed Logical Plan ==
+'Project ['MIN('k.keyword) AS movie_keyword#13739, 'MIN('n.name) AS actor_name#13740, 'MIN('t.title) AS marvel_movie#13741]
++- 'Filter (((('k.keyword = marvel-cinematic-universe) AND 'n.name LIKE %Downey%Robert%) AND (('t.production_year > 2010) AND ('k.id = 'mk.keyword_id))) AND ((('t.id = 'mk.movie_id) AND ('t.id = 'ci.movie_id)) AND (('ci.movie_id = 'mk.movie_id) AND ('n.id = 'ci.person_id))))
+   +- 'Join Inner
+      :- 'Join Inner
+      :  :- 'Join Inner
+      :  :  :- 'Join Inner
+      :  :  :  :- 'SubqueryAlias ci
+      :  :  :  :  +- 'UnresolvedRelation [cast_info], [], false
+      :  :  :  +- 'SubqueryAlias k
+      :  :  :     +- 'UnresolvedRelation [keyword], [], false
+      :  :  +- 'SubqueryAlias mk
+      :  :     +- 'UnresolvedRelation [movie_keyword], [], false
+      :  +- 'SubqueryAlias n
+      :     +- 'UnresolvedRelation [name], [], false
+      +- 'SubqueryAlias t
+         +- 'UnresolvedRelation [title], [], false
+
+== Analyzed Logical Plan ==
+movie_keyword: string, actor_name: string, marvel_movie: string
+Aggregate [min(keyword#13750) AS movie_keyword#13739, min(name#13756) AS actor_name#13740, min(title#13765) AS marvel_movie#13741]
++- Filter ((((keyword#13750 = marvel-cinematic-universe) AND name#13756 LIKE %Downey%Robert%) AND ((production_year#13768L > cast(2010 as bigint)) AND (id#13749L = keyword_id#13754L))) AND (((id#13764L = movie_id#13753L) AND (id#13764L = movie_id#13744L)) AND ((movie_id#13744L = movie_id#13753L) AND (id#13755L = person_id#13743L))))
+   +- Join Inner
+      :- Join Inner
+      :  :- Join Inner
+      :  :  :- Join Inner
+      :  :  :  :- SubqueryAlias ci
+      :  :  :  :  +- SubqueryAlias spark_catalog.job_iceberg_10g.cast_info
+      :  :  :  :     +- RelationV2[id#13742L, person_id#13743L, movie_id#13744L, person_role_id#13745L, note#13746, nr_order#13747L, role_id#13748L] spark_catalog.job_iceberg_10g.cast_info
+      :  :  :  +- SubqueryAlias k
+      :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.keyword
+      :  :  :        +- RelationV2[id#13749L, keyword#13750, phonetic_code#13751] spark_catalog.job_iceberg_10g.keyword
+      :  :  +- SubqueryAlias mk
+      :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.movie_keyword
+      :  :        +- RelationV2[id#13752L, movie_id#13753L, keyword_id#13754L] spark_catalog.job_iceberg_10g.movie_keyword
+      :  +- SubqueryAlias n
+      :     +- SubqueryAlias spark_catalog.job_iceberg_10g.name
+      :        +- RelationV2[id#13755L, name#13756, imdb_index#13757, imdb_id#13758L, gender#13759, name_pcode_cf#13760, name_pcode_nf#13761, surname_pcode#13762, md5sum#13763] spark_catalog.job_iceberg_10g.name
+      +- SubqueryAlias t
+         +- SubqueryAlias spark_catalog.job_iceberg_10g.title
+            +- RelationV2[id#13764L, title#13765, imdb_index#13766, kind_id#13767L, production_year#13768L, imdb_id#13769L, phonetic_code#13770, episode_of_id#13771L, season_nr#13772L, episode_nr#13773L, series_years#13774, md5sum#13775] spark_catalog.job_iceberg_10g.title
+
+== Optimized Logical Plan ==
+Aggregate [min(keyword#13750) AS movie_keyword#13739, min(name#13756) AS actor_name#13740, min(title#13765) AS marvel_movie#13741]
++- Project [keyword#13750, name#13756, title#13765]
+   +- Join Inner, ((id#13764L = movie_id#13753L) AND (id#13764L = movie_id#13744L))
+      :- Project [movie_id#13744L, movie_id#13753L, keyword#13750, name#13756]
+      :  +- Join Inner, (id#13755L = person_id#13743L)
+      :     :- Project [person_id#13743L, movie_id#13744L, movie_id#13753L, keyword#13750]
+      :     :  +- Join Inner, (id#13749L = keyword_id#13754L)
+      :     :     :- Join Inner, (movie_id#13744L = movie_id#13753L)
+      :     :     :  :- Filter (isnotnull(movie_id#13744L) AND isnotnull(person_id#13743L))
+      :     :     :  :  +- RelationV2[person_id#13743L, movie_id#13744L] spark_catalog.job_iceberg_10g.cast_info
+      :     :     :  +- Filter (isnotnull(movie_id#13753L) AND isnotnull(keyword_id#13754L))
+      :     :     :     +- RelationV2[movie_id#13753L, keyword_id#13754L] spark_catalog.job_iceberg_10g.movie_keyword
+      :     :     +- Filter ((isnotnull(keyword#13750) AND (keyword#13750 = marvel-cinematic-universe)) AND isnotnull(id#13749L))
+      :     :        +- RelationV2[id#13749L, keyword#13750] spark_catalog.job_iceberg_10g.keyword
+      :     +- Filter ((name#13756 LIKE %Downey%Robert% AND isnotnull(name#13756)) AND isnotnull(id#13755L))
+      :        +- RelationV2[id#13755L, name#13756] spark_catalog.job_iceberg_10g.name
+      +- Project [id#13764L, title#13765]
+         +- Filter ((isnotnull(production_year#13768L) AND (production_year#13768L > 2010)) AND isnotnull(id#13764L))
+            +- RelationV2[id#13764L, title#13765, production_year#13768L] spark_catalog.job_iceberg_10g.title
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- SortAggregate(key=[], functions=[min(keyword#13750), min(name#13756), min(title#13765)], output=[movie_keyword#13739, actor_name#13740, marvel_movie#13741])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=21237]
+      +- SortAggregate(key=[], functions=[partial_min(keyword#13750), partial_min(name#13756), partial_min(title#13765)], output=[min#13821, min#13822, min#13823])
+         +- Project [keyword#13750, name#13756, title#13765]
+            +- SortMergeJoin [movie_id#13753L, movie_id#13744L], [id#13764L, id#13764L], Inner
+               :- Sort [movie_id#13753L ASC NULLS FIRST, movie_id#13744L ASC NULLS FIRST], false, 0
+               :  +- Exchange hashpartitioning(movie_id#13753L, movie_id#13744L, 200), ENSURE_REQUIREMENTS, [plan_id=21229]
+               :     +- Project [movie_id#13744L, movie_id#13753L, keyword#13750, name#13756]
+               :        +- SortMergeJoin [person_id#13743L], [id#13755L], Inner
+               :           :- Sort [person_id#13743L ASC NULLS FIRST], false, 0
+               :           :  +- Exchange hashpartitioning(person_id#13743L, 200), ENSURE_REQUIREMENTS, [plan_id=21221]
+               :           :     +- Project [person_id#13743L, movie_id#13744L, movie_id#13753L, keyword#13750]
+               :           :        +- BroadcastHashJoin [keyword_id#13754L], [id#13749L], Inner, BuildRight, false
+               :           :           :- SortMergeJoin [movie_id#13744L], [movie_id#13753L], Inner
+               :           :           :  :- Sort [movie_id#13744L ASC NULLS FIRST], false, 0
+               :           :           :  :  +- Exchange hashpartitioning(movie_id#13744L, 200), ENSURE_REQUIREMENTS, [plan_id=21210]
+               :           :           :  :     +- Filter (isnotnull(movie_id#13744L) AND isnotnull(person_id#13743L))
+               :           :           :  :        +- BatchScan[person_id#13743L, movie_id#13744L] spark_catalog.job_iceberg_10g.cast_info [filters=movie_id IS NOT NULL, person_id IS NOT NULL] RuntimeFilters: []
+               :           :           :  +- Sort [movie_id#13753L ASC NULLS FIRST], false, 0
+               :           :           :     +- Exchange hashpartitioning(movie_id#13753L, 200), ENSURE_REQUIREMENTS, [plan_id=21211]
+               :           :           :        +- Filter (isnotnull(movie_id#13753L) AND isnotnull(keyword_id#13754L))
+               :           :           :           +- BatchScan[movie_id#13753L, keyword_id#13754L] spark_catalog.job_iceberg_10g.movie_keyword [filters=movie_id IS NOT NULL, keyword_id IS NOT NULL] RuntimeFilters: []
+               :           :           +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=21216]
+               :           :              +- Filter ((isnotnull(keyword#13750) AND (keyword#13750 = marvel-cinematic-universe)) AND isnotnull(id#13749L))
+               :           :                 +- BatchScan[id#13749L, keyword#13750] spark_catalog.job_iceberg_10g.keyword [filters=keyword IS NOT NULL, keyword = 'marvel-cinematic-universe', id IS NOT NULL] RuntimeFilters: []
+               :           +- Sort [id#13755L ASC NULLS FIRST], false, 0
+               :              +- Exchange hashpartitioning(id#13755L, 200), ENSURE_REQUIREMENTS, [plan_id=21222]
+               :                 +- Filter ((name#13756 LIKE %Downey%Robert% AND isnotnull(name#13756)) AND isnotnull(id#13755L))
+               :                    +- BatchScan[id#13755L, name#13756] spark_catalog.job_iceberg_10g.name [filters=name IS NOT NULL, id IS NOT NULL] RuntimeFilters: []
+               +- Sort [id#13764L ASC NULLS FIRST, id#13764L ASC NULLS FIRST], false, 0
+                  +- Exchange hashpartitioning(id#13764L, id#13764L, 200), ENSURE_REQUIREMENTS, [plan_id=21230]
+                     +- Project [id#13764L, title#13765]
+                        +- Filter ((isnotnull(production_year#13768L) AND (production_year#13768L > 2010)) AND isnotnull(id#13764L))
+                           +- BatchScan[id#13764L, title#13765, production_year#13768L] spark_catalog.job_iceberg_10g.title [filters=production_year IS NOT NULL, production_year > 2010, id IS NOT NULL] RuntimeFilters: []
+

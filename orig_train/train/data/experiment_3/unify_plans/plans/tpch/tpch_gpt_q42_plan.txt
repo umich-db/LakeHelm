@@ -1,0 +1,35 @@
+== Optimized Logical Plan ==
+Project [c_name#26309, o_orderdate#26320, l_extendedprice#26330]
++- Join Inner, (o_orderkey#26316L = l_orderkey#26325L)
+   :- Project [c_name#26309, o_orderkey#26316L, o_orderdate#26320]
+   :  +- Join Inner, (c_custkey#26308L = o_custkey#26317L)
+   :     :- Project [c_custkey#26308L, c_name#26309]
+   :     :  +- Filter ((isnotnull(c_mktsegment#26314) AND (c_mktsegment#26314 = AUTOMOBILE)) AND isnotnull(c_custkey#26308L))
+   :     :     +- RelationV2[c_custkey#26308L, c_name#26309, c_mktsegment#26314] spark_catalog.tpch_iceberg_10g.customer
+   :     +- Filter (isnotnull(o_custkey#26317L) AND isnotnull(o_orderkey#26316L))
+   :        +- RelationV2[o_orderkey#26316L, o_custkey#26317L, o_orderdate#26320] spark_catalog.tpch_iceberg_10g.orders
+   +- Project [l_orderkey#26325L, l_extendedprice#26330]
+      +- Filter ((isnotnull(l_shipdate#26335) AND (l_shipdate#26335 > 2023-01-01)) AND isnotnull(l_orderkey#26325L))
+         +- RelationV2[l_orderkey#26325L, l_extendedprice#26330, l_shipdate#26335] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Project [c_name#26309, o_orderdate#26320, l_extendedprice#26330]
+   +- BroadcastHashJoin [o_orderkey#26316L], [l_orderkey#26325L], Inner, BuildRight, false
+      :- Project [c_name#26309, o_orderkey#26316L, o_orderdate#26320]
+      :  +- SortMergeJoin [c_custkey#26308L], [o_custkey#26317L], Inner
+      :     :- Sort [c_custkey#26308L ASC NULLS FIRST], false, 0
+      :     :  +- Exchange hashpartitioning(c_custkey#26308L, 200), ENSURE_REQUIREMENTS, [plan_id=31409]
+      :     :     +- Project [c_custkey#26308L, c_name#26309]
+      :     :        +- Filter ((isnotnull(c_mktsegment#26314) AND (c_mktsegment#26314 = AUTOMOBILE)) AND isnotnull(c_custkey#26308L))
+      :     :           +- BatchScan[c_custkey#26308L, c_name#26309, c_mktsegment#26314] spark_catalog.tpch_iceberg_10g.customer [filters=c_mktsegment IS NOT NULL, c_mktsegment = 'AUTOMOBILE', c_custkey IS NOT NULL] RuntimeFilters: []
+      :     +- Sort [o_custkey#26317L ASC NULLS FIRST], false, 0
+      :        +- Exchange hashpartitioning(o_custkey#26317L, 200), ENSURE_REQUIREMENTS, [plan_id=31408]
+      :           +- Filter (isnotnull(o_custkey#26317L) AND isnotnull(o_orderkey#26316L))
+      :              +- BatchScan[o_orderkey#26316L, o_custkey#26317L, o_orderdate#26320] spark_catalog.tpch_iceberg_10g.orders [filters=o_custkey IS NOT NULL, o_orderkey IS NOT NULL] RuntimeFilters: []
+      +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=31415]
+         +- Project [l_orderkey#26325L, l_extendedprice#26330]
+            +- Filter ((isnotnull(l_shipdate#26335) AND (l_shipdate#26335 > 2023-01-01)) AND isnotnull(l_orderkey#26325L))
+               +- BatchScan[l_orderkey#26325L, l_extendedprice#26330, l_shipdate#26335] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_shipdate > '2023-01-01', l_orderkey IS NOT NULL] RuntimeFilters: []
+

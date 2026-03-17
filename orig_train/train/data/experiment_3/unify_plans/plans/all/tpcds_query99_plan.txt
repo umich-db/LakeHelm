@@ -1,0 +1,56 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [substr(w_warehouse_name, 1, 20)#43995 ASC NULLS FIRST, sm_type#43927 ASC NULLS FIRST, cc_name#43937 ASC NULLS FIRST], true
+      +- Aggregate [_groupingexpression#44029, sm_type#43927, cc_name#43937], [_groupingexpression#44029 AS substr(w_warehouse_name, 1, 20)#43995, sm_type#43927, cc_name#43937, sum(CASE WHEN ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 30) THEN 1 ELSE 0 END) AS 30days#43872L, sum(CASE WHEN (((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 30) AND ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 60)) THEN 1 ELSE 0 END) AS 31_60days#43873L, sum(CASE WHEN (((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 60) AND ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 90)) THEN 1 ELSE 0 END) AS 61_90days#43874L, sum(CASE WHEN (((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 90) AND ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 120)) THEN 1 ELSE 0 END) AS 91_120days#43875L, sum(CASE WHEN ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 120) THEN 1 ELSE 0 END) AS dy120days#43876L]
+         +- Project [cs_ship_date_sk#43878, cs_sold_date_sk#43910, sm_type#43927, cc_name#43937, substr(w_warehouse_name#43913, 1, 20) AS _groupingexpression#44029]
+            +- Join Inner, (cs_ship_date_sk#43878 = d_date_sk#43962)
+               :- Project [cs_ship_date_sk#43878, cs_sold_date_sk#43910, w_warehouse_name#43913, sm_type#43927, cc_name#43937]
+               :  +- Join Inner, (cs_call_center_sk#43887 = cc_call_center_sk#43931)
+               :     :- Project [cs_ship_date_sk#43878, cs_call_center_sk#43887, cs_sold_date_sk#43910, w_warehouse_name#43913, sm_type#43927]
+               :     :  +- Join Inner, (cs_ship_mode_sk#43889 = sm_ship_mode_sk#43925)
+               :     :     :- Project [cs_ship_date_sk#43878, cs_call_center_sk#43887, cs_ship_mode_sk#43889, cs_sold_date_sk#43910, w_warehouse_name#43913]
+               :     :     :  +- Join Inner, (cs_warehouse_sk#43890 = w_warehouse_sk#43911)
+               :     :     :     :- Filter (((isnotnull(cs_warehouse_sk#43890) AND isnotnull(cs_ship_mode_sk#43889)) AND isnotnull(cs_call_center_sk#43887)) AND isnotnull(cs_ship_date_sk#43878))
+               :     :     :     :  +- RelationV2[cs_ship_date_sk#43878, cs_call_center_sk#43887, cs_ship_mode_sk#43889, cs_warehouse_sk#43890, cs_sold_date_sk#43910] spark_catalog.tpcds_iceberg_10g.catalog_sales
+               :     :     :     +- Filter isnotnull(w_warehouse_sk#43911)
+               :     :     :        +- RelationV2[w_warehouse_sk#43911, w_warehouse_name#43913] spark_catalog.tpcds_iceberg_10g.warehouse
+               :     :     +- Filter isnotnull(sm_ship_mode_sk#43925)
+               :     :        +- RelationV2[sm_ship_mode_sk#43925, sm_type#43927] spark_catalog.tpcds_iceberg_10g.ship_mode
+               :     +- Filter isnotnull(cc_call_center_sk#43931)
+               :        +- RelationV2[cc_call_center_sk#43931, cc_name#43937] spark_catalog.tpcds_iceberg_10g.call_center
+               +- Project [d_date_sk#43962]
+                  +- Filter (((isnotnull(d_month_seq#43965) AND (d_month_seq#43965 >= 1212)) AND (d_month_seq#43965 <= 1223)) AND isnotnull(d_date_sk#43962))
+                     +- RelationV2[d_date_sk#43962, d_month_seq#43965] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[substr(w_warehouse_name, 1, 20)#43995 ASC NULLS FIRST,sm_type#43927 ASC NULLS FIRST,cc_name#43937 ASC NULLS FIRST], output=[substr(w_warehouse_name, 1, 20)#43995,sm_type#43927,cc_name#43937,30days#43872L,31_60days#43873L,61_90days#43874L,91_120days#43875L,dy120days#43876L])
+   +- HashAggregate(keys=[_groupingexpression#44029, sm_type#43927, cc_name#43937], functions=[sum(CASE WHEN ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 30) THEN 1 ELSE 0 END), sum(CASE WHEN (((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 30) AND ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 60)) THEN 1 ELSE 0 END), sum(CASE WHEN (((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 60) AND ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 90)) THEN 1 ELSE 0 END), sum(CASE WHEN (((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 90) AND ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 120)) THEN 1 ELSE 0 END), sum(CASE WHEN ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 120) THEN 1 ELSE 0 END)], output=[substr(w_warehouse_name, 1, 20)#43995, sm_type#43927, cc_name#43937, 30days#43872L, 31_60days#43873L, 61_90days#43874L, 91_120days#43875L, dy120days#43876L])
+      +- Exchange hashpartitioning(_groupingexpression#44029, sm_type#43927, cc_name#43937, 200), ENSURE_REQUIREMENTS, [plan_id=32753]
+         +- HashAggregate(keys=[_groupingexpression#44029, sm_type#43927, cc_name#43937], functions=[partial_sum(CASE WHEN ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 30) THEN 1 ELSE 0 END), partial_sum(CASE WHEN (((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 30) AND ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 60)) THEN 1 ELSE 0 END), partial_sum(CASE WHEN (((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 60) AND ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 90)) THEN 1 ELSE 0 END), partial_sum(CASE WHEN (((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 90) AND ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) <= 120)) THEN 1 ELSE 0 END), partial_sum(CASE WHEN ((cs_ship_date_sk#43878 - cs_sold_date_sk#43910) > 120) THEN 1 ELSE 0 END)], output=[_groupingexpression#44029, sm_type#43927, cc_name#43937, sum#44048L, sum#44049L, sum#44050L, sum#44051L, sum#44052L])
+            +- Project [cs_ship_date_sk#43878, cs_sold_date_sk#43910, sm_type#43927, cc_name#43937, substr(w_warehouse_name#43913, 1, 20) AS _groupingexpression#44029]
+               +- BroadcastHashJoin [cs_ship_date_sk#43878], [d_date_sk#43962], Inner, BuildRight, false
+                  :- Project [cs_ship_date_sk#43878, cs_sold_date_sk#43910, w_warehouse_name#43913, sm_type#43927, cc_name#43937]
+                  :  +- BroadcastHashJoin [cs_call_center_sk#43887], [cc_call_center_sk#43931], Inner, BuildRight, false
+                  :     :- Project [cs_ship_date_sk#43878, cs_call_center_sk#43887, cs_sold_date_sk#43910, w_warehouse_name#43913, sm_type#43927]
+                  :     :  +- BroadcastHashJoin [cs_ship_mode_sk#43889], [sm_ship_mode_sk#43925], Inner, BuildRight, false
+                  :     :     :- Project [cs_ship_date_sk#43878, cs_call_center_sk#43887, cs_ship_mode_sk#43889, cs_sold_date_sk#43910, w_warehouse_name#43913]
+                  :     :     :  +- BroadcastHashJoin [cs_warehouse_sk#43890], [w_warehouse_sk#43911], Inner, BuildRight, false
+                  :     :     :     :- Filter (((isnotnull(cs_warehouse_sk#43890) AND isnotnull(cs_ship_mode_sk#43889)) AND isnotnull(cs_call_center_sk#43887)) AND isnotnull(cs_ship_date_sk#43878))
+                  :     :     :     :  +- BatchScan[cs_ship_date_sk#43878, cs_call_center_sk#43887, cs_ship_mode_sk#43889, cs_warehouse_sk#43890, cs_sold_date_sk#43910] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_warehouse_sk IS NOT NULL, cs_ship_mode_sk IS NOT NULL, cs_call_center_sk IS NOT NULL, cs_ship_date_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=32736]
+                  :     :     :        +- Filter isnotnull(w_warehouse_sk#43911)
+                  :     :     :           +- BatchScan[w_warehouse_sk#43911, w_warehouse_name#43913] spark_catalog.tpcds_iceberg_10g.warehouse [filters=w_warehouse_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=32740]
+                  :     :        +- Filter isnotnull(sm_ship_mode_sk#43925)
+                  :     :           +- BatchScan[sm_ship_mode_sk#43925, sm_type#43927] spark_catalog.tpcds_iceberg_10g.ship_mode [filters=sm_ship_mode_sk IS NOT NULL] RuntimeFilters: []
+                  :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=32744]
+                  :        +- Filter isnotnull(cc_call_center_sk#43931)
+                  :           +- BatchScan[cc_call_center_sk#43931, cc_name#43937] spark_catalog.tpcds_iceberg_10g.call_center [filters=cc_call_center_sk IS NOT NULL] RuntimeFilters: []
+                  +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=32748]
+                     +- Project [d_date_sk#43962]
+                        +- Filter (((isnotnull(d_month_seq#43965) AND (d_month_seq#43965 >= 1212)) AND (d_month_seq#43965 <= 1223)) AND isnotnull(d_date_sk#43962))
+                           +- BatchScan[d_date_sk#43962, d_month_seq#43965] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IS NOT NULL, d_month_seq >= 1212, d_month_seq <= 1223, d_date_sk IS NOT NULL] RuntimeFilters: []
+

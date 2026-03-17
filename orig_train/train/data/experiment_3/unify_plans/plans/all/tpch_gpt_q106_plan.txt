@@ -1,0 +1,32 @@
+== Optimized Logical Plan ==
+Sort [avg_discount#24605 DESC NULLS LAST], true
++- Aggregate [p_container#24612], [p_container#24612, avg(l_discount#24621) AS avg_discount#24605]
+   +- Project [p_container#24612, l_discount#24621]
+      +- Join Inner, (p_partkey#24606L = l_partkey#24616L)
+         :- Filter isnotnull(p_partkey#24606L)
+         :  +- RelationV2[p_partkey#24606L, p_container#24612] spark_catalog.tpch_iceberg_10g.part
+         +- Project [l_partkey#24616L, l_discount#24621]
+            +- Filter ((isnotnull(l_shipmode#24629) AND (l_shipmode#24629 = AIR)) AND isnotnull(l_partkey#24616L))
+               +- RelationV2[l_partkey#24616L, l_discount#24621, l_shipmode#24629] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [avg_discount#24605 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(avg_discount#24605 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=29124]
+      +- HashAggregate(keys=[p_container#24612], functions=[avg(l_discount#24621)], output=[p_container#24612, avg_discount#24605])
+         +- Exchange hashpartitioning(p_container#24612, 200), ENSURE_REQUIREMENTS, [plan_id=29121]
+            +- HashAggregate(keys=[p_container#24612], functions=[partial_avg(l_discount#24621)], output=[p_container#24612, sum#24651, count#24652L])
+               +- Project [p_container#24612, l_discount#24621]
+                  +- SortMergeJoin [p_partkey#24606L], [l_partkey#24616L], Inner
+                     :- Sort [p_partkey#24606L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(p_partkey#24606L, 200), ENSURE_REQUIREMENTS, [plan_id=29114]
+                     :     +- Filter isnotnull(p_partkey#24606L)
+                     :        +- BatchScan[p_partkey#24606L, p_container#24612] spark_catalog.tpch_iceberg_10g.part [filters=p_partkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [l_partkey#24616L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(l_partkey#24616L, 200), ENSURE_REQUIREMENTS, [plan_id=29113]
+                           +- Project [l_partkey#24616L, l_discount#24621]
+                              +- Filter ((isnotnull(l_shipmode#24629) AND (l_shipmode#24629 = AIR)) AND isnotnull(l_partkey#24616L))
+                                 +- BatchScan[l_partkey#24616L, l_discount#24621, l_shipmode#24629] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipmode IS NOT NULL, l_shipmode = 'AIR', l_partkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

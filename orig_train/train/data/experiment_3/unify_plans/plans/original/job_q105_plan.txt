@@ -1,0 +1,38 @@
+== Optimized Logical Plan ==
+Sort [companies#13987L DESC NULLS LAST], true
++- Aggregate [title#13989], [title#13989, count(distinct company_id#14002L) AS companies#13987L]
+   +- Project [title#13989, company_id#14002L]
+      +- Join Inner, (company_id#14002L = id#14005L)
+         :- Project [title#13989, company_id#14002L]
+         :  +- Join Inner, (id#13988L = movie_id#14001L)
+         :     :- Filter isnotnull(id#13988L)
+         :     :  +- RelationV2[id#13988L, title#13989] spark_catalog.job_iceberg_10g.title
+         :     +- Filter (isnotnull(movie_id#14001L) AND isnotnull(company_id#14002L))
+         :        +- RelationV2[movie_id#14001L, company_id#14002L] spark_catalog.job_iceberg_10g.movie_companies
+         +- Project [id#14005L]
+            +- Filter ((isnotnull(country_code#14007) AND (country_code#14007 = US)) AND isnotnull(id#14005L))
+               +- RelationV2[id#14005L, country_code#14007] spark_catalog.job_iceberg_10g.company_name
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [companies#13987L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[title#13989], functions=[count(distinct company_id#14002L)], output=[title#13989, companies#13987L])
+      +- HashAggregate(keys=[title#13989], functions=[partial_count(distinct company_id#14002L)], output=[title#13989, count#14038L])
+         +- HashAggregate(keys=[title#13989, company_id#14002L], functions=[], output=[title#13989, company_id#14002L])
+            +- HashAggregate(keys=[title#13989, company_id#14002L], functions=[], output=[title#13989, company_id#14002L])
+               +- Project [title#13989, company_id#14002L]
+                  +- BroadcastHashJoin [company_id#14002L], [id#14005L], Inner, BuildRight, false
+                     :- Project [title#13989, company_id#14002L]
+                     :  +- SortMergeJoin [id#13988L], [movie_id#14001L], Inner
+                     :     :- Sort [id#13988L ASC NULLS FIRST], false, 0
+                     :     :  +- Filter isnotnull(id#13988L)
+                     :     :     +- BatchScan[id#13988L, title#13989] spark_catalog.job_iceberg_10g.title [filters=id IS NOT NULL] RuntimeFilters: []
+                     :     +- Sort [movie_id#14001L ASC NULLS FIRST], false, 0
+                     :        +- Filter (isnotnull(movie_id#14001L) AND isnotnull(company_id#14002L))
+                     :           +- BatchScan[movie_id#14001L, company_id#14002L] spark_catalog.job_iceberg_10g.movie_companies [filters=movie_id IS NOT NULL, company_id IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=13553]
+                        +- Project [id#14005L]
+                           +- Filter ((isnotnull(country_code#14007) AND (country_code#14007 = US)) AND isnotnull(id#14005L))
+                              +- BatchScan[id#14005L, country_code#14007] spark_catalog.job_iceberg_10g.company_name [filters=country_code IS NOT NULL, country_code = 'US', id IS NOT NULL] RuntimeFilters: []
+

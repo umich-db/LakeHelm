@@ -1,0 +1,38 @@
+== Optimized Logical Plan ==
+Sort [total_revenue#22768 DESC NULLS LAST], true
++- Aggregate [s_name#22770], [s_name#22770, sum((l_extendedprice#22781 * (1.0 - l_discount#22782))) AS total_revenue#22768]
+   +- Project [s_name#22770, l_extendedprice#22781, l_discount#22782]
+      +- Join Inner, (l_orderkey#22776L = o_orderkey#22792L)
+         :- Project [s_name#22770, l_orderkey#22776L, l_extendedprice#22781, l_discount#22782]
+         :  +- Join Inner, (s_suppkey#22769L = l_suppkey#22778L)
+         :     :- Filter isnotnull(s_suppkey#22769L)
+         :     :  +- RelationV2[s_suppkey#22769L, s_name#22770] spark_catalog.tpch_iceberg_10g.supplier
+         :     +- Filter (isnotnull(l_suppkey#22778L) AND isnotnull(l_orderkey#22776L))
+         :        +- RelationV2[l_orderkey#22776L, l_suppkey#22778L, l_extendedprice#22781, l_discount#22782] spark_catalog.tpch_iceberg_10g.lineitem
+         +- Project [o_orderkey#22792L]
+            +- Filter (((isnotnull(o_orderdate#22796) AND (o_orderdate#22796 >= 2023-01-01)) AND (o_orderdate#22796 <= 2023-12-31)) AND isnotnull(o_orderkey#22792L))
+               +- RelationV2[o_orderkey#22792L, o_orderdate#22796] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_revenue#22768 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_revenue#22768 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=26575]
+      +- HashAggregate(keys=[s_name#22770], functions=[sum((l_extendedprice#22781 * (1.0 - l_discount#22782)))], output=[s_name#22770, total_revenue#22768])
+         +- Exchange hashpartitioning(s_name#22770, 200), ENSURE_REQUIREMENTS, [plan_id=26572]
+            +- HashAggregate(keys=[s_name#22770], functions=[partial_sum((l_extendedprice#22781 * (1.0 - l_discount#22782)))], output=[s_name#22770, sum#22828])
+               +- Project [s_name#22770, l_extendedprice#22781, l_discount#22782]
+                  +- BroadcastHashJoin [l_orderkey#22776L], [o_orderkey#22792L], Inner, BuildRight, false
+                     :- Project [s_name#22770, l_orderkey#22776L, l_extendedprice#22781, l_discount#22782]
+                     :  +- BroadcastHashJoin [s_suppkey#22769L], [l_suppkey#22778L], Inner, BuildLeft, false
+                     :     :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=26563]
+                     :     :  +- Filter isnotnull(s_suppkey#22769L)
+                     :     :     +- BatchScan[s_suppkey#22769L, s_name#22770] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL] RuntimeFilters: []
+                     :     +- Filter (isnotnull(l_suppkey#22778L) AND isnotnull(l_orderkey#22776L))
+                     :        +- BatchScan[l_orderkey#22776L, l_suppkey#22778L, l_extendedprice#22781, l_discount#22782] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_suppkey IS NOT NULL, l_orderkey IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=26567]
+                        +- Project [o_orderkey#22792L]
+                           +- Filter (((isnotnull(o_orderdate#22796) AND (o_orderdate#22796 >= 2023-01-01)) AND (o_orderdate#22796 <= 2023-12-31)) AND isnotnull(o_orderkey#22792L))
+                              +- BatchScan[o_orderkey#22792L, o_orderdate#22796] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderdate IS NOT NULL, o_orderdate >= '2023-01-01', o_orderdate <= '2023-12-31', o_orderkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

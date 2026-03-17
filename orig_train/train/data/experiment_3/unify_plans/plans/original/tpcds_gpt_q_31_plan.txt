@@ -1,0 +1,41 @@
+== Optimized Logical Plan ==
+Sort [total_sales#6384 DESC NULLS LAST], true
++- Aggregate [d_year#6414, ca_state#6444], [d_year#6414, ca_state#6444, MakeDecimal(sum(UnscaledValue(ss_sales_price#6397)),17,2) AS total_sales#6384]
+   +- Project [ss_sales_price#6397, d_year#6414, ca_state#6444]
+      +- Join Inner, (ss_addr_sk#6390 = ca_address_sk#6436)
+         :- Project [ss_addr_sk#6390, ss_sales_price#6397, d_year#6414]
+         :  +- Join Inner, (ss_sold_date_sk#6407 = d_date_sk#6408)
+         :     :- Filter ((isnotnull(ss_sold_date_sk#6407) AND isnotnull(ss_addr_sk#6390)) AND dynamicpruning#6475 [ss_sold_date_sk#6407])
+         :     :  :  +- Filter (((isnotnull(d_year#6414) AND (d_year#6414 >= 2000)) AND (d_year#6414 <= 2005)) AND isnotnull(d_date_sk#6408))
+         :     :  :     +- RelationV2[d_date_sk#6408, d_year#6414] spark_catalog.tpcds_iceberg_10g.date_dim
+         :     :  +- RelationV2[ss_addr_sk#6390, ss_sales_price#6397, ss_sold_date_sk#6407] spark_catalog.tpcds_iceberg_10g.store_sales
+         :     +- Filter (((isnotnull(d_year#6414) AND (d_year#6414 >= 2000)) AND (d_year#6414 <= 2005)) AND isnotnull(d_date_sk#6408))
+         :        +- RelationV2[d_date_sk#6408, d_year#6414] spark_catalog.tpcds_iceberg_10g.date_dim
+         +- Filter isnotnull(ca_address_sk#6436)
+            +- RelationV2[ca_address_sk#6436, ca_state#6444] spark_catalog.tpcds_iceberg_10g.customer_address
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_sales#6384 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_sales#6384 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=4907]
+      +- HashAggregate(keys=[d_year#6414, ca_state#6444], functions=[sum(UnscaledValue(ss_sales_price#6397))], output=[d_year#6414, ca_state#6444, total_sales#6384])
+         +- Exchange hashpartitioning(d_year#6414, ca_state#6444, 200), ENSURE_REQUIREMENTS, [plan_id=4904]
+            +- HashAggregate(keys=[d_year#6414, ca_state#6444], functions=[partial_sum(UnscaledValue(ss_sales_price#6397))], output=[d_year#6414, ca_state#6444, sum#6477L])
+               +- Project [ss_sales_price#6397, d_year#6414, ca_state#6444]
+                  +- BroadcastHashJoin [ss_addr_sk#6390], [ca_address_sk#6436], Inner, BuildRight, false
+                     :- Project [ss_addr_sk#6390, ss_sales_price#6397, d_year#6414]
+                     :  +- BroadcastHashJoin [ss_sold_date_sk#6407], [d_date_sk#6408], Inner, BuildRight, false
+                     :     :- Filter (isnotnull(ss_sold_date_sk#6407) AND isnotnull(ss_addr_sk#6390))
+                     :     :  +- BatchScan[ss_addr_sk#6390, ss_sales_price#6397, ss_sold_date_sk#6407] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sold_date_sk IS NOT NULL, ss_addr_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#6407 IN dynamicpruning#6475)]
+                     :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#6475, 0, true, Filter (((isnotnull(d_year#6414) AND (d_year#6414 >= 2000)) AND (d_year#6414 <= 2005)) AND isnotnull(d_date_sk#6408)), [d_date_sk#6408]
+                     :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                     :     :              +- Filter (((isnotnull(d_year#6414) AND (d_year#6414 >= 2000)) AND (d_year#6414 <= 2005)) AND isnotnull(d_date_sk#6408))
+                     :     :                 +- BatchScan[d_date_sk#6408, d_year#6414] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year >= 2000, d_year <= 2005, d_date_sk IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=4895]
+                     :        +- Filter (((isnotnull(d_year#6414) AND (d_year#6414 >= 2000)) AND (d_year#6414 <= 2005)) AND isnotnull(d_date_sk#6408))
+                     :           +- BatchScan[d_date_sk#6408, d_year#6414] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year >= 2000, d_year <= 2005, d_date_sk IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=4899]
+                        +- Filter isnotnull(ca_address_sk#6436)
+                           +- BatchScan[ca_address_sk#6436, ca_state#6444] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL] RuntimeFilters: []
+

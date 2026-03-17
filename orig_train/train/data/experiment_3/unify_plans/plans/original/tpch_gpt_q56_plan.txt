@@ -1,0 +1,52 @@
+== Optimized Logical Plan ==
+Sort [total_revenue#26157 DESC NULLS LAST], true
++- Aggregate [n_name#26159], [n_name#26159, sum((l_extendedprice#26179 * (1.0 - l_discount#26180))) AS total_revenue#26157]
+   +- Project [n_name#26159, l_extendedprice#26179, l_discount#26180]
+      +- Join Inner, ((ps_partkey#26169L = l_partkey#26175L) AND (ps_suppkey#26170L = l_suppkey#26176L))
+         :- Project [n_name#26159, ps_partkey#26169L, ps_suppkey#26170L]
+         :  +- Join Inner, (s_suppkey#26162L = ps_suppkey#26170L)
+         :     :- Project [n_name#26159, s_suppkey#26162L]
+         :     :  +- Join Inner, (n_nationkey#26158L = s_nationkey#26165L)
+         :     :     :- Filter isnotnull(n_nationkey#26158L)
+         :     :     :  +- RelationV2[n_nationkey#26158L, n_name#26159] spark_catalog.tpch_iceberg_10g.nation
+         :     :     +- Filter (isnotnull(s_nationkey#26165L) AND isnotnull(s_suppkey#26162L))
+         :     :        +- RelationV2[s_suppkey#26162L, s_nationkey#26165L] spark_catalog.tpch_iceberg_10g.supplier
+         :     +- Filter (isnotnull(ps_suppkey#26170L) AND isnotnull(ps_partkey#26169L))
+         :        +- RelationV2[ps_partkey#26169L, ps_suppkey#26170L] spark_catalog.tpch_iceberg_10g.partsupp
+         +- Project [l_partkey#26175L, l_suppkey#26176L, l_extendedprice#26179, l_discount#26180]
+            +- Filter ((((isnotnull(l_shipdate#26184) AND (l_shipdate#26184 >= 1996-01-01)) AND (l_shipdate#26184 <= 1996-12-31)) AND isnotnull(l_partkey#26175L)) AND isnotnull(l_suppkey#26176L))
+               +- RelationV2[l_partkey#26175L, l_suppkey#26176L, l_extendedprice#26179, l_discount#26180, l_shipdate#26184] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_revenue#26157 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_revenue#26157 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=31237]
+      +- HashAggregate(keys=[n_name#26159], functions=[sum((l_extendedprice#26179 * (1.0 - l_discount#26180)))], output=[n_name#26159, total_revenue#26157])
+         +- Exchange hashpartitioning(n_name#26159, 200), ENSURE_REQUIREMENTS, [plan_id=31234]
+            +- HashAggregate(keys=[n_name#26159], functions=[partial_sum((l_extendedprice#26179 * (1.0 - l_discount#26180)))], output=[n_name#26159, sum#26225])
+               +- Project [n_name#26159, l_extendedprice#26179, l_discount#26180]
+                  +- SortMergeJoin [ps_partkey#26169L, ps_suppkey#26170L], [l_partkey#26175L, l_suppkey#26176L], Inner
+                     :- Sort [ps_partkey#26169L ASC NULLS FIRST, ps_suppkey#26170L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(ps_partkey#26169L, ps_suppkey#26170L, 200), ENSURE_REQUIREMENTS, [plan_id=31227]
+                     :     +- Project [n_name#26159, ps_partkey#26169L, ps_suppkey#26170L]
+                     :        +- SortMergeJoin [s_suppkey#26162L], [ps_suppkey#26170L], Inner
+                     :           :- Sort [s_suppkey#26162L ASC NULLS FIRST], false, 0
+                     :           :  +- Exchange hashpartitioning(s_suppkey#26162L, 200), ENSURE_REQUIREMENTS, [plan_id=31219]
+                     :           :     +- Project [n_name#26159, s_suppkey#26162L]
+                     :           :        +- BroadcastHashJoin [n_nationkey#26158L], [s_nationkey#26165L], Inner, BuildLeft, false
+                     :           :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=31213]
+                     :           :           :  +- Filter isnotnull(n_nationkey#26158L)
+                     :           :           :     +- BatchScan[n_nationkey#26158L, n_name#26159] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL] RuntimeFilters: []
+                     :           :           +- Filter (isnotnull(s_nationkey#26165L) AND isnotnull(s_suppkey#26162L))
+                     :           :              +- BatchScan[s_suppkey#26162L, s_nationkey#26165L] spark_catalog.tpch_iceberg_10g.supplier [filters=s_nationkey IS NOT NULL, s_suppkey IS NOT NULL] RuntimeFilters: []
+                     :           +- Sort [ps_suppkey#26170L ASC NULLS FIRST], false, 0
+                     :              +- Exchange hashpartitioning(ps_suppkey#26170L, 200), ENSURE_REQUIREMENTS, [plan_id=31218]
+                     :                 +- Filter (isnotnull(ps_suppkey#26170L) AND isnotnull(ps_partkey#26169L))
+                     :                    +- BatchScan[ps_partkey#26169L, ps_suppkey#26170L] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_suppkey IS NOT NULL, ps_partkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [l_partkey#26175L ASC NULLS FIRST, l_suppkey#26176L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(l_partkey#26175L, l_suppkey#26176L, 200), ENSURE_REQUIREMENTS, [plan_id=31226]
+                           +- Project [l_partkey#26175L, l_suppkey#26176L, l_extendedprice#26179, l_discount#26180]
+                              +- Filter ((((isnotnull(l_shipdate#26184) AND (l_shipdate#26184 >= 1996-01-01)) AND (l_shipdate#26184 <= 1996-12-31)) AND isnotnull(l_partkey#26175L)) AND isnotnull(l_suppkey#26176L))
+                                 +- BatchScan[l_partkey#26175L, l_suppkey#26176L, l_extendedprice#26179, l_discount#26180, l_shipdate#26184] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_shipdate >= '1996-01-01', l_shipdate <= '1996-12-31', l_partkey IS NOT NULL, l_suppkey IS NOT NULL] RuntimeFilters: []
+

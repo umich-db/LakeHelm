@@ -1,0 +1,43 @@
+== Optimized Logical Plan ==
+Sort [total_value#27071 DESC NULLS LAST], true
++- Aggregate [c_name#27073, o_orderkey#27080L], [c_name#27073, o_orderkey#27080L, sum((l_extendedprice#27094 * (1.0 - l_discount#27095))) AS total_value#27071]
+   +- Project [c_name#27073, o_orderkey#27080L, l_extendedprice#27094, l_discount#27095]
+      +- Join Inner, (o_orderkey#27080L = l_orderkey#27089L)
+         :- Project [c_name#27073, o_orderkey#27080L]
+         :  +- Join Inner, (c_custkey#27072L = o_custkey#27081L)
+         :     :- Project [c_custkey#27072L, c_name#27073]
+         :     :  +- Filter ((isnotnull(c_mktsegment#27078) AND (c_mktsegment#27078 = BUILDING)) AND isnotnull(c_custkey#27072L))
+         :     :     +- RelationV2[c_custkey#27072L, c_name#27073, c_mktsegment#27078] spark_catalog.tpch_iceberg_10g.customer
+         :     +- Filter (isnotnull(o_custkey#27081L) AND isnotnull(o_orderkey#27080L))
+         :        +- RelationV2[o_orderkey#27080L, o_custkey#27081L] spark_catalog.tpch_iceberg_10g.orders
+         +- Filter isnotnull(l_orderkey#27089L)
+            +- RelationV2[l_orderkey#27089L, l_extendedprice#27094, l_discount#27095] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_value#27071 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_value#27071 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=32433]
+      +- HashAggregate(keys=[c_name#27073, o_orderkey#27080L], functions=[sum((l_extendedprice#27094 * (1.0 - l_discount#27095)))], output=[c_name#27073, o_orderkey#27080L, total_value#27071])
+         +- HashAggregate(keys=[c_name#27073, o_orderkey#27080L], functions=[partial_sum((l_extendedprice#27094 * (1.0 - l_discount#27095)))], output=[c_name#27073, o_orderkey#27080L, sum#27133])
+            +- Project [c_name#27073, o_orderkey#27080L, l_extendedprice#27094, l_discount#27095]
+               +- SortMergeJoin [o_orderkey#27080L], [l_orderkey#27089L], Inner
+                  :- Sort [o_orderkey#27080L ASC NULLS FIRST], false, 0
+                  :  +- Exchange hashpartitioning(o_orderkey#27080L, 200), ENSURE_REQUIREMENTS, [plan_id=32424]
+                  :     +- Project [c_name#27073, o_orderkey#27080L]
+                  :        +- SortMergeJoin [c_custkey#27072L], [o_custkey#27081L], Inner
+                  :           :- Sort [c_custkey#27072L ASC NULLS FIRST], false, 0
+                  :           :  +- Exchange hashpartitioning(c_custkey#27072L, 200), ENSURE_REQUIREMENTS, [plan_id=32417]
+                  :           :     +- Project [c_custkey#27072L, c_name#27073]
+                  :           :        +- Filter ((isnotnull(c_mktsegment#27078) AND (c_mktsegment#27078 = BUILDING)) AND isnotnull(c_custkey#27072L))
+                  :           :           +- BatchScan[c_custkey#27072L, c_name#27073, c_mktsegment#27078] spark_catalog.tpch_iceberg_10g.customer [filters=c_mktsegment IS NOT NULL, c_mktsegment = 'BUILDING', c_custkey IS NOT NULL] RuntimeFilters: []
+                  :           +- Sort [o_custkey#27081L ASC NULLS FIRST], false, 0
+                  :              +- Exchange hashpartitioning(o_custkey#27081L, 200), ENSURE_REQUIREMENTS, [plan_id=32416]
+                  :                 +- Filter (isnotnull(o_custkey#27081L) AND isnotnull(o_orderkey#27080L))
+                  :                    +- BatchScan[o_orderkey#27080L, o_custkey#27081L] spark_catalog.tpch_iceberg_10g.orders [filters=o_custkey IS NOT NULL, o_orderkey IS NOT NULL] RuntimeFilters: []
+                  +- Sort [l_orderkey#27089L ASC NULLS FIRST], false, 0
+                     +- Exchange hashpartitioning(l_orderkey#27089L, 200), ENSURE_REQUIREMENTS, [plan_id=32425]
+                        +- Filter isnotnull(l_orderkey#27089L)
+                           +- BatchScan[l_orderkey#27089L, l_extendedprice#27094, l_discount#27095] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_orderkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

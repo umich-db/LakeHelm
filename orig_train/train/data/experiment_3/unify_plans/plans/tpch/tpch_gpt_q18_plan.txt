@@ -1,0 +1,31 @@
+== Optimized Logical Plan ==
+Sort [total_quantity#20753L DESC NULLS LAST], true
++- Aggregate [p_brand#20757, p_type#20758], [p_brand#20757, p_type#20758, sum(l_quantity#20767L) AS total_quantity#20753L]
+   +- Project [p_brand#20757, p_type#20758, l_quantity#20767L]
+      +- Join Inner, (p_partkey#20754L = l_partkey#20764L)
+         :- Project [p_partkey#20754L, p_brand#20757, p_type#20758]
+         :  +- Filter (((((isnotnull(p_size#20759L) AND isnotnull(p_type#20758)) AND (p_size#20759L >= 1)) AND (p_size#20759L <= 10)) AND StartsWith(p_type#20758, ECONOMY)) AND isnotnull(p_partkey#20754L))
+         :     +- RelationV2[p_partkey#20754L, p_brand#20757, p_type#20758, p_size#20759L] spark_catalog.tpch_iceberg_10g.part
+         +- Filter isnotnull(l_partkey#20764L)
+            +- RelationV2[l_partkey#20764L, l_quantity#20767L] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_quantity#20753L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_quantity#20753L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=23525]
+      +- HashAggregate(keys=[p_brand#20757, p_type#20758], functions=[sum(l_quantity#20767L)], output=[p_brand#20757, p_type#20758, total_quantity#20753L])
+         +- Exchange hashpartitioning(p_brand#20757, p_type#20758, 200), ENSURE_REQUIREMENTS, [plan_id=23522]
+            +- HashAggregate(keys=[p_brand#20757, p_type#20758], functions=[partial_sum(l_quantity#20767L)], output=[p_brand#20757, p_type#20758, sum#20800L])
+               +- Project [p_brand#20757, p_type#20758, l_quantity#20767L]
+                  +- SortMergeJoin [p_partkey#20754L], [l_partkey#20764L], Inner
+                     :- Sort [p_partkey#20754L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(p_partkey#20754L, 200), ENSURE_REQUIREMENTS, [plan_id=23515]
+                     :     +- Project [p_partkey#20754L, p_brand#20757, p_type#20758]
+                     :        +- Filter (((((isnotnull(p_size#20759L) AND isnotnull(p_type#20758)) AND (p_size#20759L >= 1)) AND (p_size#20759L <= 10)) AND StartsWith(p_type#20758, ECONOMY)) AND isnotnull(p_partkey#20754L))
+                     :           +- BatchScan[p_partkey#20754L, p_brand#20757, p_type#20758, p_size#20759L] spark_catalog.tpch_iceberg_10g.part [filters=p_size IS NOT NULL, p_type IS NOT NULL, p_size >= 1, p_size <= 10, p_type LIKE '"ECONOMY"%', p_partkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [l_partkey#20764L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(l_partkey#20764L, 200), ENSURE_REQUIREMENTS, [plan_id=23514]
+                           +- Filter isnotnull(l_partkey#20764L)
+                              +- BatchScan[l_partkey#20764L, l_quantity#20767L] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_partkey IS NOT NULL] RuntimeFilters: []
+

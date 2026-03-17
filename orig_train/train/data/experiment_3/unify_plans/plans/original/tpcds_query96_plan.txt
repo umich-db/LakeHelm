@@ -1,0 +1,47 @@
+=== Optimized Logical Plan ===
+Aggregate [count(1) AS count(1)#43556L]
++- Project
+   +- Join Inner, (ss_store_sk#43493 = s_store_sk#43525)
+      :- Project [ss_store_sk#43493]
+      :  +- Join Inner, (ss_sold_time_sk#43487 = t_time_sk#43515)
+      :     :- Project [ss_sold_time_sk#43487, ss_store_sk#43493]
+      :     :  +- Join Inner, (ss_hdemo_sk#43491 = hd_demo_sk#43510)
+      :     :     :- Filter ((isnotnull(ss_hdemo_sk#43491) AND isnotnull(ss_sold_time_sk#43487)) AND isnotnull(ss_store_sk#43493))
+      :     :     :  +- RelationV2[ss_sold_time_sk#43487, ss_hdemo_sk#43491, ss_store_sk#43493] spark_catalog.tpcds_iceberg_10g.store_sales
+      :     :     +- Project [hd_demo_sk#43510]
+      :     :        +- Filter ((isnotnull(hd_dep_count#43513) AND (hd_dep_count#43513 = 5)) AND isnotnull(hd_demo_sk#43510))
+      :     :           +- RelationV2[hd_demo_sk#43510, hd_dep_count#43513] spark_catalog.tpcds_iceberg_10g.household_demographics
+      :     +- Project [t_time_sk#43515]
+      :        +- Filter ((((isnotnull(t_hour#43518) AND isnotnull(t_minute#43519)) AND (t_hour#43518 = 8)) AND (t_minute#43519 >= 30)) AND isnotnull(t_time_sk#43515))
+      :           +- RelationV2[t_time_sk#43515, t_hour#43518, t_minute#43519] spark_catalog.tpcds_iceberg_10g.time_dim
+      +- Project [s_store_sk#43525]
+         +- Filter ((isnotnull(s_store_name#43530) AND (s_store_name#43530 = ese)) AND isnotnull(s_store_sk#43525))
+            +- RelationV2[s_store_sk#43525, s_store_name#43530] spark_catalog.tpcds_iceberg_10g.store
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[count(1)], output=[count(1)#43556L])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=32393]
+      +- HashAggregate(keys=[], functions=[partial_count(1)], output=[count#43589L])
+         +- Project
+            +- BroadcastHashJoin [ss_store_sk#43493], [s_store_sk#43525], Inner, BuildRight, false
+               :- Project [ss_store_sk#43493]
+               :  +- BroadcastHashJoin [ss_sold_time_sk#43487], [t_time_sk#43515], Inner, BuildRight, false
+               :     :- Project [ss_sold_time_sk#43487, ss_store_sk#43493]
+               :     :  +- BroadcastHashJoin [ss_hdemo_sk#43491], [hd_demo_sk#43510], Inner, BuildRight, false
+               :     :     :- Filter ((isnotnull(ss_hdemo_sk#43491) AND isnotnull(ss_sold_time_sk#43487)) AND isnotnull(ss_store_sk#43493))
+               :     :     :  +- BatchScan[ss_sold_time_sk#43487, ss_hdemo_sk#43491, ss_store_sk#43493] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_hdemo_sk IS NOT NULL, ss_sold_time_sk IS NOT NULL, ss_store_sk IS NOT NULL] RuntimeFilters: []
+               :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=32380]
+               :     :        +- Project [hd_demo_sk#43510]
+               :     :           +- Filter ((isnotnull(hd_dep_count#43513) AND (hd_dep_count#43513 = 5)) AND isnotnull(hd_demo_sk#43510))
+               :     :              +- BatchScan[hd_demo_sk#43510, hd_dep_count#43513] spark_catalog.tpcds_iceberg_10g.household_demographics [filters=hd_dep_count IS NOT NULL, hd_dep_count = 5, hd_demo_sk IS NOT NULL] RuntimeFilters: []
+               :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=32384]
+               :        +- Project [t_time_sk#43515]
+               :           +- Filter ((((isnotnull(t_hour#43518) AND isnotnull(t_minute#43519)) AND (t_hour#43518 = 8)) AND (t_minute#43519 >= 30)) AND isnotnull(t_time_sk#43515))
+               :              +- BatchScan[t_time_sk#43515, t_hour#43518, t_minute#43519] spark_catalog.tpcds_iceberg_10g.time_dim [filters=t_hour IS NOT NULL, t_minute IS NOT NULL, t_hour = 8, t_minute >= 30, t_time_sk IS NOT NULL] RuntimeFilters: []
+               +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=32388]
+                  +- Project [s_store_sk#43525]
+                     +- Filter ((isnotnull(s_store_name#43530) AND (s_store_name#43530 = ese)) AND isnotnull(s_store_sk#43525))
+                        +- BatchScan[s_store_sk#43525, s_store_name#43530] spark_catalog.tpcds_iceberg_10g.store [filters=s_store_name IS NOT NULL, s_store_name = 'ese', s_store_sk IS NOT NULL] RuntimeFilters: []
+

@@ -1,0 +1,225 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [item_id#39396 ASC NULLS FIRST, sr_item_qty#39397L ASC NULLS FIRST], true
+      +- Project [item_id#39396, sr_item_qty#39397L, (((cast(sr_item_qty#39397L as double) / cast(((sr_item_qty#39397L + cr_item_qty#39401L) + wr_item_qty#39405L) as double)) / 3.0) * 100.0) AS sr_dev#39392, cr_item_qty#39401L, (((cast(cr_item_qty#39401L as double) / cast(((sr_item_qty#39397L + cr_item_qty#39401L) + wr_item_qty#39405L) as double)) / 3.0) * 100.0) AS cr_dev#39393, wr_item_qty#39405L, (((cast(wr_item_qty#39405L as double) / cast(((sr_item_qty#39397L + cr_item_qty#39401L) + wr_item_qty#39405L) as double)) / 3.0) * 100.0) AS wr_dev#39394, CheckOverflow((promote_precision(cast(((sr_item_qty#39397L + cr_item_qty#39401L) + wr_item_qty#39405L) as decimal(21,1))) / 3.0), DecimalType(27,6)) AS average#39395]
+         +- Join Inner, (item_id#39396 = item_id#39404)
+            :- Project [item_id#39396, sr_item_qty#39397L, cr_item_qty#39401L]
+            :  +- Join Inner, (item_id#39396 = item_id#39400)
+            :     :- Aggregate [i_item_id#39429], [i_item_id#39429 AS item_id#39396, sum(sr_return_quantity#39417) AS sr_item_qty#39397L]
+            :     :  +- Project [sr_return_quantity#39417, i_item_id#39429]
+            :     :     +- Join Inner, (sr_returned_date_sk#39427 = d_date_sk#39450)
+            :     :        :- Project [sr_return_quantity#39417, sr_returned_date_sk#39427, i_item_id#39429]
+            :     :        :  +- Join Inner, (sr_item_sk#39409 = i_item_sk#39428)
+            :     :        :     :- Filter ((isnotnull(sr_item_sk#39409) AND isnotnull(sr_returned_date_sk#39427)) AND dynamicpruning#39916 [sr_returned_date_sk#39427])
+            :     :        :     :  :  +- Project [d_date_sk#39450]
+            :     :        :     :  :     +- Join LeftSemi, (d_date#39452 = d_date#39631)
+            :     :        :     :  :        :- Filter isnotnull(d_date_sk#39450)
+            :     :        :     :  :        :  +- RelationV2[d_date_sk#39450, d_date#39452] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :        :     :  :        +- Project [d_date#39631]
+            :     :        :     :  :           +- Join LeftSemi, (d_week_seq#39633 = d_week_seq#39661)
+            :     :        :     :  :              :- RelationV2[d_date#39631, d_week_seq#39633] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :        :     :  :              +- Project [d_week_seq#39661]
+            :     :        :     :  :                 +- Filter cast(d_date#39659 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+            :     :        :     :  :                    +- RelationV2[d_date#39659, d_week_seq#39661] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :        :     :  +- RelationV2[sr_item_sk#39409, sr_return_quantity#39417, sr_returned_date_sk#39427] spark_catalog.tpcds_iceberg_10g.store_returns
+            :     :        :     +- Filter (isnotnull(i_item_sk#39428) AND isnotnull(i_item_id#39429))
+            :     :        :        +- RelationV2[i_item_sk#39428, i_item_id#39429] spark_catalog.tpcds_iceberg_10g.item
+            :     :        +- Project [d_date_sk#39450]
+            :     :           +- Join LeftSemi, (d_date#39452 = d_date#39631)
+            :     :              :- Filter isnotnull(d_date_sk#39450)
+            :     :              :  +- RelationV2[d_date_sk#39450, d_date#39452] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :              +- Project [d_date#39631]
+            :     :                 +- Join LeftSemi, (d_week_seq#39633 = d_week_seq#39661)
+            :     :                    :- RelationV2[d_date#39631, d_week_seq#39633] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :                    +- Project [d_week_seq#39661]
+            :     :                       +- Filter cast(d_date#39659 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+            :     :                          +- RelationV2[d_date#39659, d_week_seq#39661] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     +- Aggregate [i_item_id#39506], [i_item_id#39506 AS item_id#39400, sum(cr_return_quantity#39494) AS cr_item_qty#39401L]
+            :        +- Project [cr_return_quantity#39494, i_item_id#39506]
+            :           +- Join Inner, (cr_returned_date_sk#39504 = d_date_sk#39527)
+            :              :- Project [cr_return_quantity#39494, cr_returned_date_sk#39504, i_item_id#39506]
+            :              :  +- Join Inner, (cr_item_sk#39479 = i_item_sk#39505)
+            :              :     :- Filter ((isnotnull(cr_item_sk#39479) AND isnotnull(cr_returned_date_sk#39504)) AND dynamicpruning#39917 [cr_returned_date_sk#39504])
+            :              :     :  :  +- Project [d_date_sk#39527]
+            :              :     :  :     +- Join LeftSemi, (d_date#39529 = d_date#39697)
+            :              :     :  :        :- Filter isnotnull(d_date_sk#39527)
+            :              :     :  :        :  +- RelationV2[d_date_sk#39527, d_date#39529] spark_catalog.tpcds_iceberg_10g.date_dim
+            :              :     :  :        +- Project [d_date#39697]
+            :              :     :  :           +- Join LeftSemi, (d_week_seq#39699 = d_week_seq#39727)
+            :              :     :  :              :- RelationV2[d_date#39697, d_week_seq#39699] spark_catalog.tpcds_iceberg_10g.date_dim
+            :              :     :  :              +- Project [d_week_seq#39727]
+            :              :     :  :                 +- Filter cast(d_date#39725 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+            :              :     :  :                    +- RelationV2[d_date#39725, d_week_seq#39727] spark_catalog.tpcds_iceberg_10g.date_dim
+            :              :     :  +- RelationV2[cr_item_sk#39479, cr_return_quantity#39494, cr_returned_date_sk#39504] spark_catalog.tpcds_iceberg_10g.catalog_returns
+            :              :     +- Filter (isnotnull(i_item_sk#39505) AND isnotnull(i_item_id#39506))
+            :              :        +- RelationV2[i_item_sk#39505, i_item_id#39506] spark_catalog.tpcds_iceberg_10g.item
+            :              +- Project [d_date_sk#39527]
+            :                 +- Join LeftSemi, (d_date#39529 = d_date#39697)
+            :                    :- Filter isnotnull(d_date_sk#39527)
+            :                    :  +- RelationV2[d_date_sk#39527, d_date#39529] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                    +- Project [d_date#39697]
+            :                       +- Join LeftSemi, (d_week_seq#39699 = d_week_seq#39727)
+            :                          :- RelationV2[d_date#39697, d_week_seq#39699] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                          +- Project [d_week_seq#39727]
+            :                             +- Filter cast(d_date#39725 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+            :                                +- RelationV2[d_date#39725, d_week_seq#39727] spark_catalog.tpcds_iceberg_10g.date_dim
+            +- Aggregate [i_item_id#39580], [i_item_id#39580 AS item_id#39404, sum(wr_return_quantity#39568) AS wr_item_qty#39405L]
+               +- Project [wr_return_quantity#39568, i_item_id#39580]
+                  +- Join Inner, (wr_returned_date_sk#39578 = d_date_sk#39601)
+                     :- Project [wr_return_quantity#39568, wr_returned_date_sk#39578, i_item_id#39580]
+                     :  +- Join Inner, (wr_item_sk#39556 = i_item_sk#39579)
+                     :     :- Filter ((isnotnull(wr_item_sk#39556) AND isnotnull(wr_returned_date_sk#39578)) AND dynamicpruning#39918 [wr_returned_date_sk#39578])
+                     :     :  :  +- Project [d_date_sk#39601]
+                     :     :  :     +- Join LeftSemi, (d_date#39603 = d_date#39763)
+                     :     :  :        :- Filter isnotnull(d_date_sk#39601)
+                     :     :  :        :  +- RelationV2[d_date_sk#39601, d_date#39603] spark_catalog.tpcds_iceberg_10g.date_dim
+                     :     :  :        +- Project [d_date#39763]
+                     :     :  :           +- Join LeftSemi, (d_week_seq#39765 = d_week_seq#39793)
+                     :     :  :              :- RelationV2[d_date#39763, d_week_seq#39765] spark_catalog.tpcds_iceberg_10g.date_dim
+                     :     :  :              +- Project [d_week_seq#39793]
+                     :     :  :                 +- Filter cast(d_date#39791 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+                     :     :  :                    +- RelationV2[d_date#39791, d_week_seq#39793] spark_catalog.tpcds_iceberg_10g.date_dim
+                     :     :  +- RelationV2[wr_item_sk#39556, wr_return_quantity#39568, wr_returned_date_sk#39578] spark_catalog.tpcds_iceberg_10g.web_returns
+                     :     +- Filter (isnotnull(i_item_sk#39579) AND isnotnull(i_item_id#39580))
+                     :        +- RelationV2[i_item_sk#39579, i_item_id#39580] spark_catalog.tpcds_iceberg_10g.item
+                     +- Project [d_date_sk#39601]
+                        +- Join LeftSemi, (d_date#39603 = d_date#39763)
+                           :- Filter isnotnull(d_date_sk#39601)
+                           :  +- RelationV2[d_date_sk#39601, d_date#39603] spark_catalog.tpcds_iceberg_10g.date_dim
+                           +- Project [d_date#39763]
+                              +- Join LeftSemi, (d_week_seq#39765 = d_week_seq#39793)
+                                 :- RelationV2[d_date#39763, d_week_seq#39765] spark_catalog.tpcds_iceberg_10g.date_dim
+                                 +- Project [d_week_seq#39793]
+                                    +- Filter cast(d_date#39791 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+                                       +- RelationV2[d_date#39791, d_week_seq#39793] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[item_id#39396 ASC NULLS FIRST,sr_item_qty#39397L ASC NULLS FIRST], output=[item_id#39396,sr_item_qty#39397L,sr_dev#39392,cr_item_qty#39401L,cr_dev#39393,wr_item_qty#39405L,wr_dev#39394,average#39395])
+   +- Project [item_id#39396, sr_item_qty#39397L, (((cast(sr_item_qty#39397L as double) / cast(((sr_item_qty#39397L + cr_item_qty#39401L) + wr_item_qty#39405L) as double)) / 3.0) * 100.0) AS sr_dev#39392, cr_item_qty#39401L, (((cast(cr_item_qty#39401L as double) / cast(((sr_item_qty#39397L + cr_item_qty#39401L) + wr_item_qty#39405L) as double)) / 3.0) * 100.0) AS cr_dev#39393, wr_item_qty#39405L, (((cast(wr_item_qty#39405L as double) / cast(((sr_item_qty#39397L + cr_item_qty#39401L) + wr_item_qty#39405L) as double)) / 3.0) * 100.0) AS wr_dev#39394, CheckOverflow((promote_precision(cast(((sr_item_qty#39397L + cr_item_qty#39401L) + wr_item_qty#39405L) as decimal(21,1))) / 3.0), DecimalType(27,6)) AS average#39395]
+      +- SortMergeJoin [item_id#39396], [item_id#39404], Inner
+         :- Project [item_id#39396, sr_item_qty#39397L, cr_item_qty#39401L]
+         :  +- SortMergeJoin [item_id#39396], [item_id#39400], Inner
+         :     :- Sort [item_id#39396 ASC NULLS FIRST], false, 0
+         :     :  +- HashAggregate(keys=[i_item_id#39429], functions=[sum(sr_return_quantity#39417)], output=[item_id#39396, sr_item_qty#39397L])
+         :     :     +- Exchange hashpartitioning(i_item_id#39429, 200), ENSURE_REQUIREMENTS, [plan_id=29490]
+         :     :        +- HashAggregate(keys=[i_item_id#39429], functions=[partial_sum(sr_return_quantity#39417)], output=[i_item_id#39429, sum#39920L])
+         :     :           +- Project [sr_return_quantity#39417, i_item_id#39429]
+         :     :              +- BroadcastHashJoin [sr_returned_date_sk#39427], [d_date_sk#39450], Inner, BuildRight, false
+         :     :                 :- Project [sr_return_quantity#39417, sr_returned_date_sk#39427, i_item_id#39429]
+         :     :                 :  +- BroadcastHashJoin [sr_item_sk#39409], [i_item_sk#39428], Inner, BuildRight, false
+         :     :                 :     :- Filter (isnotnull(sr_item_sk#39409) AND isnotnull(sr_returned_date_sk#39427))
+         :     :                 :     :  +- BatchScan[sr_item_sk#39409, sr_return_quantity#39417, sr_returned_date_sk#39427] spark_catalog.tpcds_iceberg_10g.store_returns [filters=sr_item_sk IS NOT NULL, sr_returned_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(sr_returned_date_sk#39427 IN dynamicpruning#39916)]
+         :     :                 :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#39916, 0, true, Project [d_date_sk#39450], [d_date_sk#39450]
+         :     :                 :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :     :                 :     :              +- Project [d_date_sk#39450]
+         :     :                 :     :                 +- BroadcastHashJoin [d_date#39452], [d_date#39631], LeftSemi, BuildRight, false
+         :     :                 :     :                    :- Filter isnotnull(d_date_sk#39450)
+         :     :                 :     :                    :  +- BatchScan[d_date_sk#39450, d_date#39452] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     :                 :     :                    +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=29338]
+         :     :                 :     :                       +- Project [d_date#39631]
+         :     :                 :     :                          +- BroadcastHashJoin [d_week_seq#39633], [d_week_seq#39661], LeftSemi, BuildRight, false
+         :     :                 :     :                             :- BatchScan[d_date#39631, d_week_seq#39633] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+         :     :                 :     :                             +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29334]
+         :     :                 :     :                                +- Project [d_week_seq#39661]
+         :     :                 :     :                                   +- Filter cast(d_date#39659 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+         :     :                 :     :                                      +- BatchScan[d_date#39659, d_week_seq#39661] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+         :     :                 :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=29474]
+         :     :                 :        +- Filter (isnotnull(i_item_sk#39428) AND isnotnull(i_item_id#39429))
+         :     :                 :           +- BatchScan[i_item_sk#39428, i_item_id#39429] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL, i_item_id IS NOT NULL] RuntimeFilters: []
+         :     :                 +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29485]
+         :     :                    +- Project [d_date_sk#39450]
+         :     :                       +- BroadcastHashJoin [d_date#39452], [d_date#39631], LeftSemi, BuildRight, false
+         :     :                          :- Filter isnotnull(d_date_sk#39450)
+         :     :                          :  +- BatchScan[d_date_sk#39450, d_date#39452] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     :                          +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=29481]
+         :     :                             +- Project [d_date#39631]
+         :     :                                +- BroadcastHashJoin [d_week_seq#39633], [d_week_seq#39661], LeftSemi, BuildRight, false
+         :     :                                   :- BatchScan[d_date#39631, d_week_seq#39633] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+         :     :                                   +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29477]
+         :     :                                      +- Project [d_week_seq#39661]
+         :     :                                         +- Filter cast(d_date#39659 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+         :     :                                            +- BatchScan[d_date#39659, d_week_seq#39661] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+         :     +- Sort [item_id#39400 ASC NULLS FIRST], false, 0
+         :        +- HashAggregate(keys=[i_item_id#39506], functions=[sum(cr_return_quantity#39494)], output=[item_id#39400, cr_item_qty#39401L])
+         :           +- Exchange hashpartitioning(i_item_id#39506, 200), ENSURE_REQUIREMENTS, [plan_id=29508]
+         :              +- HashAggregate(keys=[i_item_id#39506], functions=[partial_sum(cr_return_quantity#39494)], output=[i_item_id#39506, sum#39922L])
+         :                 +- Project [cr_return_quantity#39494, i_item_id#39506]
+         :                    +- BroadcastHashJoin [cr_returned_date_sk#39504], [d_date_sk#39527], Inner, BuildRight, false
+         :                       :- Project [cr_return_quantity#39494, cr_returned_date_sk#39504, i_item_id#39506]
+         :                       :  +- BroadcastHashJoin [cr_item_sk#39479], [i_item_sk#39505], Inner, BuildRight, false
+         :                       :     :- Filter (isnotnull(cr_item_sk#39479) AND isnotnull(cr_returned_date_sk#39504))
+         :                       :     :  +- BatchScan[cr_item_sk#39479, cr_return_quantity#39494, cr_returned_date_sk#39504] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=cr_item_sk IS NOT NULL, cr_returned_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cr_returned_date_sk#39504 IN dynamicpruning#39917)]
+         :                       :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#39917, 0, true, Project [d_date_sk#39527], [d_date_sk#39527]
+         :                       :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :                       :     :              +- Project [d_date_sk#39527]
+         :                       :     :                 +- BroadcastHashJoin [d_date#39529], [d_date#39697], LeftSemi, BuildRight, false
+         :                       :     :                    :- Filter isnotnull(d_date_sk#39527)
+         :                       :     :                    :  +- BatchScan[d_date_sk#39527, d_date#39529] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                       :     :                    +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=29373]
+         :                       :     :                       +- Project [d_date#39697]
+         :                       :     :                          +- BroadcastHashJoin [d_week_seq#39699], [d_week_seq#39727], LeftSemi, BuildRight, false
+         :                       :     :                             :- BatchScan[d_date#39697, d_week_seq#39699] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+         :                       :     :                             +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29369]
+         :                       :     :                                +- Project [d_week_seq#39727]
+         :                       :     :                                   +- Filter cast(d_date#39725 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+         :                       :     :                                      +- BatchScan[d_date#39725, d_week_seq#39727] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+         :                       :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=29492]
+         :                       :        +- Filter (isnotnull(i_item_sk#39505) AND isnotnull(i_item_id#39506))
+         :                       :           +- BatchScan[i_item_sk#39505, i_item_id#39506] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL, i_item_id IS NOT NULL] RuntimeFilters: []
+         :                       +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29503]
+         :                          +- Project [d_date_sk#39527]
+         :                             +- BroadcastHashJoin [d_date#39529], [d_date#39697], LeftSemi, BuildRight, false
+         :                                :- Filter isnotnull(d_date_sk#39527)
+         :                                :  +- BatchScan[d_date_sk#39527, d_date#39529] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                                +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=29499]
+         :                                   +- Project [d_date#39697]
+         :                                      +- BroadcastHashJoin [d_week_seq#39699], [d_week_seq#39727], LeftSemi, BuildRight, false
+         :                                         :- BatchScan[d_date#39697, d_week_seq#39699] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+         :                                         +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29495]
+         :                                            +- Project [d_week_seq#39727]
+         :                                               +- Filter cast(d_date#39725 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+         :                                                  +- BatchScan[d_date#39725, d_week_seq#39727] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+         +- Sort [item_id#39404 ASC NULLS FIRST], false, 0
+            +- HashAggregate(keys=[i_item_id#39580], functions=[sum(wr_return_quantity#39568)], output=[item_id#39404, wr_item_qty#39405L])
+               +- Exchange hashpartitioning(i_item_id#39580, 200), ENSURE_REQUIREMENTS, [plan_id=29532]
+                  +- HashAggregate(keys=[i_item_id#39580], functions=[partial_sum(wr_return_quantity#39568)], output=[i_item_id#39580, sum#39924L])
+                     +- Project [wr_return_quantity#39568, i_item_id#39580]
+                        +- BroadcastHashJoin [wr_returned_date_sk#39578], [d_date_sk#39601], Inner, BuildRight, false
+                           :- Project [wr_return_quantity#39568, wr_returned_date_sk#39578, i_item_id#39580]
+                           :  +- BroadcastHashJoin [wr_item_sk#39556], [i_item_sk#39579], Inner, BuildRight, false
+                           :     :- Filter (isnotnull(wr_item_sk#39556) AND isnotnull(wr_returned_date_sk#39578))
+                           :     :  +- BatchScan[wr_item_sk#39556, wr_return_quantity#39568, wr_returned_date_sk#39578] spark_catalog.tpcds_iceberg_10g.web_returns [filters=wr_item_sk IS NOT NULL, wr_returned_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(wr_returned_date_sk#39578 IN dynamicpruning#39918)]
+                           :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#39918, 0, true, Project [d_date_sk#39601], [d_date_sk#39601]
+                           :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                           :     :              +- Project [d_date_sk#39601]
+                           :     :                 +- BroadcastHashJoin [d_date#39603], [d_date#39763], LeftSemi, BuildRight, false
+                           :     :                    :- Filter isnotnull(d_date_sk#39601)
+                           :     :                    :  +- BatchScan[d_date_sk#39601, d_date#39603] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+                           :     :                    +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=29408]
+                           :     :                       +- Project [d_date#39763]
+                           :     :                          +- BroadcastHashJoin [d_week_seq#39765], [d_week_seq#39793], LeftSemi, BuildRight, false
+                           :     :                             :- BatchScan[d_date#39763, d_week_seq#39765] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+                           :     :                             +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29404]
+                           :     :                                +- Project [d_week_seq#39793]
+                           :     :                                   +- Filter cast(d_date#39791 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+                           :     :                                      +- BatchScan[d_date#39791, d_week_seq#39793] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+                           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=29516]
+                           :        +- Filter (isnotnull(i_item_sk#39579) AND isnotnull(i_item_id#39580))
+                           :           +- BatchScan[i_item_sk#39579, i_item_id#39580] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL, i_item_id IS NOT NULL] RuntimeFilters: []
+                           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29527]
+                              +- Project [d_date_sk#39601]
+                                 +- BroadcastHashJoin [d_date#39603], [d_date#39763], LeftSemi, BuildRight, false
+                                    :- Filter isnotnull(d_date_sk#39601)
+                                    :  +- BatchScan[d_date_sk#39601, d_date#39603] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+                                    +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=29523]
+                                       +- Project [d_date#39763]
+                                          +- BroadcastHashJoin [d_week_seq#39765], [d_week_seq#39793], LeftSemi, BuildRight, false
+                                             :- BatchScan[d_date#39763, d_week_seq#39765] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+                                             +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29519]
+                                                +- Project [d_week_seq#39793]
+                                                   +- Filter cast(d_date#39791 as string) IN (1998-01-02,1998-10-15,1998-11-10)
+                                                      +- BatchScan[d_date#39791, d_week_seq#39793] spark_catalog.tpcds_iceberg_10g.date_dim [filters=] RuntimeFilters: []
+

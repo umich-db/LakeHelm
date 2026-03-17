@@ -1,0 +1,11 @@
+=== Optimized Logical Plan ===
+Sort [l_shipmode#20 ASC NULLS FIRST], true
++- Aggregate [l_shipmode#20], [l_shipmode#20, sum(CASE WHEN ((o_orderpriority#80 = 1-URGENT) OR (o_orderpriority#80 = 2-HIGH)) THEN 1 ELSE 0 END) AS high_line_count#68L, sum(CASE WHEN (NOT (o_orderpriority#80 = 1-URGENT) AND NOT (o_orderpriority#80 = 2-HIGH)) THEN 1 ELSE 0 END) AS low_line_count#69L]
+   +- Project [o_orderpriority#80, l_shipmode#20]
+      +- Join Inner, (o_orderkey#75L = l_orderkey#6L)
+         :- Project [o_orderkey#75L, o_orderpriority#80]
+         :  +- Filter isnotnull(o_orderkey#75L)
+         :     +- Relation tpch_hudi_10g.orders[_hoodie_commit_time#70,_hoodie_commit_seqno#71,_hoodie_record_key#72,_hoodie_partition_path#73,_hoodie_file_name#74,o_orderkey#75L,o_custkey#76L,o_orderstatus#77,o_totalprice#78,o_orderdate#79,o_orderpriority#80,o_clerk#81,o_shippriority#82L,o_comment#83] parquet
+         +- Project [l_orderkey#6L, l_shipmode#20]
+            +- Filter ((((isnotnull(l_commitdate#17) AND isnotnull(l_receiptdate#18)) AND isnotnull(l_shipdate#16)) AND ((((l_shipmode#20 IN (MAIL,RAIL) AND (l_commitdate#17 < l_receiptdate#18)) AND (l_shipdate#16 < l_commitdate#17)) AND (cast(l_receiptdate#18 as date) >= 1993-01-01)) AND (cast(l_receiptdate#18 as date) < 1994-01-01))) AND isnotnull(l_orderkey#6L))
+               +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet

@@ -1,0 +1,21 @@
+== Parsed Logical Plan ==
+'Project ['p.p_name, 'p.p_brand, 'p.p_category]
++- 'SubqueryAlias p
+   +- 'UnresolvedRelation [part], [], false
+
+== Analyzed Logical Plan ==
+p_name: string, p_brand: string, p_category: string
+Project [p_name#16158, p_brand#16161, p_category#16160]
++- SubqueryAlias p
+   +- SubqueryAlias spark_catalog.ssb_iceberg_10g.part
+      +- RelationV2[p_partkey#16157, p_name#16158, p_mfgr#16159, p_category#16160, p_brand#16161, p_color#16162, p_type#16163, p_size#16164, p_container#16165] spark_catalog.ssb_iceberg_10g.part
+
+== Optimized Logical Plan ==
+Project [p_name#16158, p_brand#16161, p_category#16160]
++- RelationV2[p_name#16158, p_category#16160, p_brand#16161] spark_catalog.ssb_iceberg_10g.part
+
+== Physical Plan ==
+*(1) Project [p_name#16158, p_brand#16161, p_category#16160]
++- *(1) ColumnarToRow
+   +- BatchScan[p_name#16158, p_category#16160, p_brand#16161] spark_catalog.ssb_iceberg_10g.part [filters=] RuntimeFilters: []
+

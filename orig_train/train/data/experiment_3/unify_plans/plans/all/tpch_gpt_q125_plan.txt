@@ -1,0 +1,36 @@
+== Optimized Logical Plan ==
+Sort [customer_count#26500L DESC NULLS LAST], true
++- Aggregate [r_name#26502], [r_name#26502, count(distinct c_custkey#26508L) AS customer_count#26500L]
+   +- Project [r_name#26502, c_custkey#26508L]
+      +- Join Inner, (n_nationkey#26504L = c_nationkey#26511L)
+         :- Project [r_name#26502, n_nationkey#26504L]
+         :  +- Join Inner, (r_regionkey#26501L = n_regionkey#26506L)
+         :     :- Filter ((isnotnull(r_name#26502) AND StartsWith(r_name#26502, A)) AND isnotnull(r_regionkey#26501L))
+         :     :  +- RelationV2[r_regionkey#26501L, r_name#26502] spark_catalog.tpch_iceberg_10g.region
+         :     +- Filter (isnotnull(n_regionkey#26506L) AND isnotnull(n_nationkey#26504L))
+         :        +- RelationV2[n_nationkey#26504L, n_regionkey#26506L] spark_catalog.tpch_iceberg_10g.nation
+         +- Filter isnotnull(c_nationkey#26511L)
+            +- RelationV2[c_custkey#26508L, c_nationkey#26511L] spark_catalog.tpch_iceberg_10g.customer
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [customer_count#26500L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[r_name#26502], functions=[count(distinct c_custkey#26508L)], output=[r_name#26502, customer_count#26500L])
+      +- HashAggregate(keys=[r_name#26502], functions=[partial_count(distinct c_custkey#26508L)], output=[r_name#26502, count#26542L])
+         +- HashAggregate(keys=[r_name#26502, c_custkey#26508L], functions=[], output=[r_name#26502, c_custkey#26508L])
+            +- HashAggregate(keys=[r_name#26502, c_custkey#26508L], functions=[], output=[r_name#26502, c_custkey#26508L])
+               +- Project [r_name#26502, c_custkey#26508L]
+                  +- BroadcastHashJoin [n_nationkey#26504L], [c_nationkey#26511L], Inner, BuildLeft, false
+                     :- BroadcastExchange HashedRelationBroadcastMode(List(input[1, bigint, true]),false), [plan_id=31655]
+                     :  +- Project [r_name#26502, n_nationkey#26504L]
+                     :     +- BroadcastHashJoin [r_regionkey#26501L], [n_regionkey#26506L], Inner, BuildLeft, false
+                     :        :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=31651]
+                     :        :  +- Filter ((isnotnull(r_name#26502) AND StartsWith(r_name#26502, A)) AND isnotnull(r_regionkey#26501L))
+                     :        :     +- BatchScan[r_regionkey#26501L, r_name#26502] spark_catalog.tpch_iceberg_10g.region [filters=r_name IS NOT NULL, r_name LIKE '"A"%', r_regionkey IS NOT NULL] RuntimeFilters: []
+                     :        +- Filter (isnotnull(n_regionkey#26506L) AND isnotnull(n_nationkey#26504L))
+                     :           +- BatchScan[n_nationkey#26504L, n_regionkey#26506L] spark_catalog.tpch_iceberg_10g.nation [filters=n_regionkey IS NOT NULL, n_nationkey IS NOT NULL] RuntimeFilters: []
+                     +- Filter isnotnull(c_nationkey#26511L)
+                        +- BatchScan[c_custkey#26508L, c_nationkey#26511L] spark_catalog.tpch_iceberg_10g.customer [filters=c_nationkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

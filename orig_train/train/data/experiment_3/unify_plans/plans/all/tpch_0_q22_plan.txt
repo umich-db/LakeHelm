@@ -1,0 +1,15 @@
+=== Optimized Logical Plan ===
+Sort [cntrycode#335 ASC NULLS FIRST], true
++- Aggregate [cntrycode#335], [cntrycode#335, count(1) AS numcust#338L, sum(c_acctbal#220) AS totacctbal#339]
+   +- Project [substring(c_phone#219, 1, 2) AS cntrycode#335, c_acctbal#220]
+      +- Join LeftAnti, (o_custkey#76L = c_custkey#215L)
+         :- Project [c_custkey#215L, c_phone#219, c_acctbal#220]
+         :  +- Filter ((isnotnull(c_acctbal#220) AND substring(c_phone#219, 1, 2) IN (25,27,18,24,23,16,31)) AND (c_acctbal#220 > scalar-subquery#336 []))
+         :     :  +- Aggregate [avg(c_acctbal#353) AS avg(c_acctbal)#342]
+         :     :     +- Project [c_acctbal#353]
+         :     :        +- Filter (isnotnull(c_acctbal#353) AND ((c_acctbal#353 > 0.0) AND substring(c_phone#352, 1, 2) IN (25,27,18,24,23,16,31)))
+         :     :           +- Relation tpch_hudi_10g.customer[_hoodie_commit_time#343,_hoodie_commit_seqno#344,_hoodie_record_key#345,_hoodie_partition_path#346,_hoodie_file_name#347,c_custkey#348L,c_name#349,c_address#350,c_nationkey#351L,c_phone#352,c_acctbal#353,c_mktsegment#354,c_comment#355] parquet
+         :     +- Relation tpch_hudi_10g.customer[_hoodie_commit_time#210,_hoodie_commit_seqno#211,_hoodie_record_key#212,_hoodie_partition_path#213,_hoodie_file_name#214,c_custkey#215L,c_name#216,c_address#217,c_nationkey#218L,c_phone#219,c_acctbal#220,c_mktsegment#221,c_comment#222] parquet
+         +- Project [o_custkey#76L]
+            +- Relation tpch_hudi_10g.orders[_hoodie_commit_time#70,_hoodie_commit_seqno#71,_hoodie_record_key#72,_hoodie_partition_path#73,_hoodie_file_name#74,o_orderkey#75L,o_custkey#76L,o_orderstatus#77,o_totalprice#78,o_orderdate#79,o_orderpriority#80,o_clerk#81,o_shippriority#82L,o_comment#83] parquet
+=== Physical Plan ===

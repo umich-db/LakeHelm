@@ -1,0 +1,29 @@
+== Optimized Logical Plan ==
+Sort [s_acctbal#19743 DESC NULLS LAST], true
++- Project [s_name#19739, s_acctbal#19743, n_name#19746]
+   +- Join Inner, (s_nationkey#19741L = n_nationkey#19745L)
+      :- Filter ((isnotnull(s_acctbal#19743) AND isnotnull(s_nationkey#19741L)) AND (s_acctbal#19743 > scalar-subquery#19737 []))
+      :  :  +- Aggregate [avg(s_acctbal#19754) AS avg(s_acctbal)#19757]
+      :  :     +- RelationV2[s_acctbal#19754] spark_catalog.tpch_iceberg_10g.supplier
+      :  +- RelationV2[s_name#19739, s_nationkey#19741L, s_acctbal#19743] spark_catalog.tpch_iceberg_10g.supplier
+      +- Filter isnotnull(n_nationkey#19745L)
+         +- RelationV2[n_nationkey#19745L, n_name#19746] spark_catalog.tpch_iceberg_10g.nation
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [s_acctbal#19743 DESC NULLS LAST], true, 0
+   +- Project [s_name#19739, s_acctbal#19743, n_name#19746]
+      +- BroadcastHashJoin [s_nationkey#19741L], [n_nationkey#19745L], Inner, BuildRight, false
+         :- Filter ((isnotnull(s_acctbal#19743) AND isnotnull(s_nationkey#19741L)) AND (s_acctbal#19743 > Subquery subquery#19737, [id=#22080]))
+         :  :  +- Subquery subquery#19737, [id=#22080]
+         :  :     +- AdaptiveSparkPlan isFinalPlan=false
+         :  :        +- HashAggregate(keys=[], functions=[avg(s_acctbal#19754)], output=[avg(s_acctbal)#19757])
+         :  :           +- HashAggregate(keys=[], functions=[partial_avg(s_acctbal#19754)], output=[sum#19784, count#19785L])
+         :  :              +- BatchScan[s_acctbal#19754] spark_catalog.tpch_iceberg_10g.supplier [filters=] RuntimeFilters: []
+         :  +- BatchScan[s_name#19739, s_nationkey#19741L, s_acctbal#19743] spark_catalog.tpch_iceberg_10g.supplier [filters=s_acctbal IS NOT NULL, s_nationkey IS NOT NULL] RuntimeFilters: []
+         +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=22090]
+            +- Filter isnotnull(n_nationkey#19745L)
+               +- BatchScan[n_nationkey#19745L, n_name#19746] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

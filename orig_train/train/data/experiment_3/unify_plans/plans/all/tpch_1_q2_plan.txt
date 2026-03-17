@@ -1,0 +1,48 @@
+=== Optimized Logical Plan ===
+Sort [s_acctbal#127 DESC NULLS LAST, n_name#145 ASC NULLS FIRST, s_name#123 ASC NULLS FIRST, p_partkey#27L ASC NULLS FIRST], true
++- Project [s_acctbal#127, s_name#123, n_name#145, p_partkey#27L, p_mfgr#29, s_address#124, s_phone#126, s_comment#128]
+   +- Join Inner, (n_regionkey#146L = r_regionkey#153L)
+      :- Project [p_partkey#27L, p_mfgr#29, s_name#123, s_address#124, s_phone#126, s_acctbal#127, s_comment#128, n_name#145, n_regionkey#146L]
+      :  +- Join Inner, (s_nationkey#125L = n_nationkey#144L)
+      :     :- Project [p_partkey#27L, p_mfgr#29, s_name#123, s_address#124, s_nationkey#125L, s_phone#126, s_acctbal#127, s_comment#128]
+      :     :  +- Join Inner, (s_suppkey#122L = ps_suppkey#135L)
+      :     :     :- Project [p_partkey#27L, p_mfgr#29, ps_suppkey#135L]
+      :     :     :  +- Join Inner, ((knownfloatingpointnormalized(normalizenanandzero(ps_supplycost#137)) = knownfloatingpointnormalized(normalizenanandzero(min(ps_supplycost)#975))) AND (p_partkey#27L = ps_partkey#981L))
+      :     :     :     :- Project [p_partkey#27L, p_mfgr#29, ps_suppkey#135L, ps_supplycost#137]
+      :     :     :     :  +- Join Inner, (p_partkey#27L = ps_partkey#134L)
+      :     :     :     :     :- Project [p_partkey#27L, p_mfgr#29]
+      :     :     :     :     :  +- Filter (((isnotnull(p_size#32L) AND isnotnull(p_type#31)) AND ((p_size#32L = 14) AND EndsWith(p_type#31, TIN))) AND isnotnull(p_partkey#27L))
+      :     :     :     :     :     +- Relation tpch_hudi_10g.part[_hoodie_commit_time#22,_hoodie_commit_seqno#23,_hoodie_record_key#24,_hoodie_partition_path#25,_hoodie_file_name#26,p_partkey#27L,p_name#28,p_mfgr#29,p_brand#30,p_type#31,p_size#32L,p_container#33,p_retailprice#34,p_comment#35] parquet
+      :     :     :     :     +- Project [ps_partkey#134L, ps_suppkey#135L, ps_supplycost#137]
+      :     :     :     :        +- Filter (isnotnull(ps_partkey#134L) AND (isnotnull(ps_supplycost#137) AND isnotnull(ps_suppkey#135L)))
+      :     :     :     :           +- Relation tpch_hudi_10g.partsupp[_hoodie_commit_time#129,_hoodie_commit_seqno#130,_hoodie_record_key#131,_hoodie_partition_path#132,_hoodie_file_name#133,ps_partkey#134L,ps_suppkey#135L,ps_availqty#136L,ps_supplycost#137,ps_comment#138] parquet
+      :     :     :     +- Filter isnotnull(min(ps_supplycost)#975)
+      :     :     :        +- Aggregate [ps_partkey#981L], [min(ps_supplycost#984) AS min(ps_supplycost)#975, ps_partkey#981L]
+      :     :     :           +- Project [ps_partkey#981L, ps_supplycost#984]
+      :     :     :              +- Join Inner, (n_regionkey#1005L = r_regionkey#1012L)
+      :     :     :                 :- Project [ps_partkey#981L, ps_supplycost#984, n_regionkey#1005L]
+      :     :     :                 :  +- Join Inner, (s_nationkey#994L = n_nationkey#1003L)
+      :     :     :                 :     :- Project [ps_partkey#981L, ps_supplycost#984, s_nationkey#994L]
+      :     :     :                 :     :  +- Join Inner, (s_suppkey#991L = ps_suppkey#982L)
+      :     :     :                 :     :     :- Project [ps_partkey#981L, ps_suppkey#982L, ps_supplycost#984]
+      :     :     :                 :     :     :  +- Filter (isnotnull(ps_suppkey#982L) AND isnotnull(ps_partkey#981L))
+      :     :     :                 :     :     :     +- Relation tpch_hudi_10g.partsupp[_hoodie_commit_time#976,_hoodie_commit_seqno#977,_hoodie_record_key#978,_hoodie_partition_path#979,_hoodie_file_name#980,ps_partkey#981L,ps_suppkey#982L,ps_availqty#983L,ps_supplycost#984,ps_comment#985] parquet
+      :     :     :                 :     :     +- Project [s_suppkey#991L, s_nationkey#994L]
+      :     :     :                 :     :        +- Filter (isnotnull(s_suppkey#991L) AND isnotnull(s_nationkey#994L))
+      :     :     :                 :     :           +- Relation tpch_hudi_10g.supplier[_hoodie_commit_time#986,_hoodie_commit_seqno#987,_hoodie_record_key#988,_hoodie_partition_path#989,_hoodie_file_name#990,s_suppkey#991L,s_name#992,s_address#993,s_nationkey#994L,s_phone#995,s_acctbal#996,s_comment#997] parquet
+      :     :     :                 :     +- Project [n_nationkey#1003L, n_regionkey#1005L]
+      :     :     :                 :        +- Filter (isnotnull(n_nationkey#1003L) AND isnotnull(n_regionkey#1005L))
+      :     :     :                 :           +- Relation tpch_hudi_10g.nation[_hoodie_commit_time#998,_hoodie_commit_seqno#999,_hoodie_record_key#1000,_hoodie_partition_path#1001,_hoodie_file_name#1002,n_nationkey#1003L,n_name#1004,n_regionkey#1005L,n_comment#1006] parquet
+      :     :     :                 +- Project [r_regionkey#1012L]
+      :     :     :                    +- Filter ((isnotnull(r_name#1013) AND (r_name#1013 = MIDDLE EAST)) AND isnotnull(r_regionkey#1012L))
+      :     :     :                       +- Relation tpch_hudi_10g.region[_hoodie_commit_time#1007,_hoodie_commit_seqno#1008,_hoodie_record_key#1009,_hoodie_partition_path#1010,_hoodie_file_name#1011,r_regionkey#1012L,r_name#1013,r_comment#1014] parquet
+      :     :     +- Project [s_suppkey#122L, s_name#123, s_address#124, s_nationkey#125L, s_phone#126, s_acctbal#127, s_comment#128]
+      :     :        +- Filter (isnotnull(s_suppkey#122L) AND isnotnull(s_nationkey#125L))
+      :     :           +- Relation tpch_hudi_10g.supplier[_hoodie_commit_time#117,_hoodie_commit_seqno#118,_hoodie_record_key#119,_hoodie_partition_path#120,_hoodie_file_name#121,s_suppkey#122L,s_name#123,s_address#124,s_nationkey#125L,s_phone#126,s_acctbal#127,s_comment#128] parquet
+      :     +- Project [n_nationkey#144L, n_name#145, n_regionkey#146L]
+      :        +- Filter (isnotnull(n_nationkey#144L) AND isnotnull(n_regionkey#146L))
+      :           +- Relation tpch_hudi_10g.nation[_hoodie_commit_time#139,_hoodie_commit_seqno#140,_hoodie_record_key#141,_hoodie_partition_path#142,_hoodie_file_name#143,n_nationkey#144L,n_name#145,n_regionkey#146L,n_comment#147] parquet
+      +- Project [r_regionkey#153L]
+         +- Filter ((isnotnull(r_name#154) AND (r_name#154 = MIDDLE EAST)) AND isnotnull(r_regionkey#153L))
+            +- Relation tpch_hudi_10g.region[_hoodie_commit_time#148,_hoodie_commit_seqno#149,_hoodie_record_key#150,_hoodie_partition_path#151,_hoodie_file_name#152,r_regionkey#153L,r_name#154,r_comment#155] parquet
+=== Physical Plan ===

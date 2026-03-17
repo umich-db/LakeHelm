@@ -1,0 +1,41 @@
+== Optimized Logical Plan ==
+Sort [num_orders#18605L DESC NULLS LAST], true
++- Aggregate [n_name#18607], [n_name#18607, count(distinct o_orderkey#18618L) AS num_orders#18605L]
+   +- Project [n_name#18607, o_orderkey#18618L]
+      +- Join Inner, (c_custkey#18610L = o_custkey#18619L)
+         :- Project [n_name#18607, c_custkey#18610L]
+         :  +- Join Inner, (n_nationkey#18606L = c_nationkey#18613L)
+         :     :- Filter ((isnotnull(n_name#18607) AND (n_name#18607 = FRANCE)) AND isnotnull(n_nationkey#18606L))
+         :     :  +- RelationV2[n_nationkey#18606L, n_name#18607] spark_catalog.tpch_iceberg_10g.nation
+         :     +- Filter (isnotnull(c_nationkey#18613L) AND isnotnull(c_custkey#18610L))
+         :        +- RelationV2[c_custkey#18610L, c_nationkey#18613L] spark_catalog.tpch_iceberg_10g.customer
+         +- Filter isnotnull(o_custkey#18619L)
+            +- RelationV2[o_orderkey#18618L, o_custkey#18619L] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_orders#18605L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(num_orders#18605L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=20539]
+      +- HashAggregate(keys=[n_name#18607], functions=[count(distinct o_orderkey#18618L)], output=[n_name#18607, num_orders#18605L])
+         +- Exchange hashpartitioning(n_name#18607, 200), ENSURE_REQUIREMENTS, [plan_id=20536]
+            +- HashAggregate(keys=[n_name#18607], functions=[partial_count(distinct o_orderkey#18618L)], output=[n_name#18607, count#18653L])
+               +- HashAggregate(keys=[n_name#18607, o_orderkey#18618L], functions=[], output=[n_name#18607, o_orderkey#18618L])
+                  +- Exchange hashpartitioning(n_name#18607, o_orderkey#18618L, 200), ENSURE_REQUIREMENTS, [plan_id=20532]
+                     +- HashAggregate(keys=[n_name#18607, o_orderkey#18618L], functions=[], output=[n_name#18607, o_orderkey#18618L])
+                        +- Project [n_name#18607, o_orderkey#18618L]
+                           +- SortMergeJoin [c_custkey#18610L], [o_custkey#18619L], Inner
+                              :- Sort [c_custkey#18610L ASC NULLS FIRST], false, 0
+                              :  +- Exchange hashpartitioning(c_custkey#18610L, 200), ENSURE_REQUIREMENTS, [plan_id=20525]
+                              :     +- Project [n_name#18607, c_custkey#18610L]
+                              :        +- BroadcastHashJoin [n_nationkey#18606L], [c_nationkey#18613L], Inner, BuildLeft, false
+                              :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=20519]
+                              :           :  +- Filter ((isnotnull(n_name#18607) AND (n_name#18607 = FRANCE)) AND isnotnull(n_nationkey#18606L))
+                              :           :     +- BatchScan[n_nationkey#18606L, n_name#18607] spark_catalog.tpch_iceberg_10g.nation [filters=n_name IS NOT NULL, n_name = 'FRANCE', n_nationkey IS NOT NULL] RuntimeFilters: []
+                              :           +- Filter (isnotnull(c_nationkey#18613L) AND isnotnull(c_custkey#18610L))
+                              :              +- BatchScan[c_custkey#18610L, c_nationkey#18613L] spark_catalog.tpch_iceberg_10g.customer [filters=c_nationkey IS NOT NULL, c_custkey IS NOT NULL] RuntimeFilters: []
+                              +- Sort [o_custkey#18619L ASC NULLS FIRST], false, 0
+                                 +- Exchange hashpartitioning(o_custkey#18619L, 200), ENSURE_REQUIREMENTS, [plan_id=20524]
+                                    +- Filter isnotnull(o_custkey#18619L)
+                                       +- BatchScan[o_orderkey#18618L, o_custkey#18619L] spark_catalog.tpch_iceberg_10g.orders [filters=o_custkey IS NOT NULL] RuntimeFilters: []
+

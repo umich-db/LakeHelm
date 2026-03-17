@@ -1,0 +1,46 @@
+== Optimized Logical Plan ==
+Sort [num_orders#19399L DESC NULLS LAST], true
++- Aggregate [p_brand#19403], [p_brand#19403, count(distinct l_orderkey#19409L) AS num_orders#19399L]
+   +- Project [p_brand#19403, l_orderkey#19409L]
+      +- Join Inner, (l_orderkey#19409L = o_orderkey#19425L)
+         :- Project [p_brand#19403, l_orderkey#19409L]
+         :  +- Join Inner, (p_partkey#19400L = l_partkey#19410L)
+         :     :- Filter isnotnull(p_partkey#19400L)
+         :     :  +- RelationV2[p_partkey#19400L, p_brand#19403] spark_catalog.tpch_iceberg_10g.part
+         :     +- Project [l_orderkey#19409L, l_partkey#19410L]
+         :        +- Filter (((isnotnull(l_shipmode#19423) AND (l_shipmode#19423 = RAIL)) AND isnotnull(l_partkey#19410L)) AND isnotnull(l_orderkey#19409L))
+         :           +- RelationV2[l_orderkey#19409L, l_partkey#19410L, l_shipmode#19423] spark_catalog.tpch_iceberg_10g.lineitem
+         +- Filter isnotnull(o_orderkey#19425L)
+            +- RelationV2[o_orderkey#19425L] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_orders#19399L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(num_orders#19399L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=21662]
+      +- HashAggregate(keys=[p_brand#19403], functions=[count(distinct l_orderkey#19409L)], output=[p_brand#19403, num_orders#19399L])
+         +- Exchange hashpartitioning(p_brand#19403, 200), ENSURE_REQUIREMENTS, [plan_id=21659]
+            +- HashAggregate(keys=[p_brand#19403], functions=[partial_count(distinct l_orderkey#19409L)], output=[p_brand#19403, count#19460L])
+               +- HashAggregate(keys=[p_brand#19403, l_orderkey#19409L], functions=[], output=[p_brand#19403, l_orderkey#19409L])
+                  +- HashAggregate(keys=[p_brand#19403, l_orderkey#19409L], functions=[], output=[p_brand#19403, l_orderkey#19409L])
+                     +- Project [p_brand#19403, l_orderkey#19409L]
+                        +- SortMergeJoin [l_orderkey#19409L], [o_orderkey#19425L], Inner
+                           :- Sort [l_orderkey#19409L ASC NULLS FIRST], false, 0
+                           :  +- Exchange hashpartitioning(l_orderkey#19409L, 200), ENSURE_REQUIREMENTS, [plan_id=21649]
+                           :     +- Project [p_brand#19403, l_orderkey#19409L]
+                           :        +- SortMergeJoin [p_partkey#19400L], [l_partkey#19410L], Inner
+                           :           :- Sort [p_partkey#19400L ASC NULLS FIRST], false, 0
+                           :           :  +- Exchange hashpartitioning(p_partkey#19400L, 200), ENSURE_REQUIREMENTS, [plan_id=21642]
+                           :           :     +- Filter isnotnull(p_partkey#19400L)
+                           :           :        +- BatchScan[p_partkey#19400L, p_brand#19403] spark_catalog.tpch_iceberg_10g.part [filters=p_partkey IS NOT NULL] RuntimeFilters: []
+                           :           +- Sort [l_partkey#19410L ASC NULLS FIRST], false, 0
+                           :              +- Exchange hashpartitioning(l_partkey#19410L, 200), ENSURE_REQUIREMENTS, [plan_id=21641]
+                           :                 +- Project [l_orderkey#19409L, l_partkey#19410L]
+                           :                    +- Filter (((isnotnull(l_shipmode#19423) AND (l_shipmode#19423 = RAIL)) AND isnotnull(l_partkey#19410L)) AND isnotnull(l_orderkey#19409L))
+                           :                       +- BatchScan[l_orderkey#19409L, l_partkey#19410L, l_shipmode#19423] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipmode IS NOT NULL, l_shipmode = 'RAIL', l_partkey IS NOT NULL, l_orderkey IS NOT NULL] RuntimeFilters: []
+                           +- Sort [o_orderkey#19425L ASC NULLS FIRST], false, 0
+                              +- Exchange hashpartitioning(o_orderkey#19425L, 200), ENSURE_REQUIREMENTS, [plan_id=21650]
+                                 +- Filter isnotnull(o_orderkey#19425L)
+                                    +- BatchScan[o_orderkey#19425L] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

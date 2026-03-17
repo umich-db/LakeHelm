@@ -1,0 +1,5 @@
+=== Optimized Logical Plan ===
+Aggregate [sum((l_extendedprice#11 * l_discount#12)) AS revenue#1102]
++- Project [l_extendedprice#11, l_discount#12]
+   +- Filter (((isnotnull(l_shipdate#16) AND isnotnull(l_discount#12)) AND isnotnull(l_quantity#10L)) AND (((cast(l_shipdate#16 as date) >= 1996-01-01) AND (cast(l_shipdate#16 as date) < 1997-01-01)) AND (((l_discount#12 >= 0.02) AND (l_discount#12 <= 0.04)) AND (l_quantity#10L < 25))))
+      +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet

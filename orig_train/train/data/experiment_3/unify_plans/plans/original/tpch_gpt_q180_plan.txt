@@ -1,0 +1,28 @@
+== Optimized Logical Plan ==
+Sort [num_orders#23024L DESC NULLS LAST], true
++- Aggregate [c_mktsegment#23031], [c_mktsegment#23031, count(distinct o_orderkey#23033L) AS num_orders#23024L]
+   +- Project [c_mktsegment#23031, o_orderkey#23033L]
+      +- Join Inner, (c_custkey#23025L = o_custkey#23034L)
+         :- Filter isnotnull(c_custkey#23025L)
+         :  +- RelationV2[c_custkey#23025L, c_mktsegment#23031] spark_catalog.tpch_iceberg_10g.customer
+         +- Project [o_orderkey#23033L, o_custkey#23034L]
+            +- Filter ((isnotnull(o_orderdate#23037) AND (o_orderdate#23037 > 2023-06-01)) AND isnotnull(o_custkey#23034L))
+               +- RelationV2[o_orderkey#23033L, o_custkey#23034L, o_orderdate#23037] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_orders#23024L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[c_mktsegment#23031], functions=[count(distinct o_orderkey#23033L)], output=[c_mktsegment#23031, num_orders#23024L])
+      +- HashAggregate(keys=[c_mktsegment#23031], functions=[partial_count(distinct o_orderkey#23033L)], output=[c_mktsegment#23031, count#23062L])
+         +- HashAggregate(keys=[c_mktsegment#23031, o_orderkey#23033L], functions=[], output=[c_mktsegment#23031, o_orderkey#23033L])
+            +- HashAggregate(keys=[c_mktsegment#23031, o_orderkey#23033L], functions=[], output=[c_mktsegment#23031, o_orderkey#23033L])
+               +- Project [c_mktsegment#23031, o_orderkey#23033L]
+                  +- BroadcastHashJoin [c_custkey#23025L], [o_custkey#23034L], Inner, BuildRight, false
+                     :- Filter isnotnull(c_custkey#23025L)
+                     :  +- BatchScan[c_custkey#23025L, c_mktsegment#23031] spark_catalog.tpch_iceberg_10g.customer [filters=c_custkey IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[1, bigint, true]),false), [plan_id=26879]
+                        +- Project [o_orderkey#23033L, o_custkey#23034L]
+                           +- Filter ((isnotnull(o_orderdate#23037) AND (o_orderdate#23037 > 2023-06-01)) AND isnotnull(o_custkey#23034L))
+                              +- BatchScan[o_orderkey#23033L, o_custkey#23034L, o_orderdate#23037] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderdate IS NOT NULL, o_orderdate > '2023-06-01', o_custkey IS NOT NULL] RuntimeFilters: []
+

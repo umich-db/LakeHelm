@@ -1,0 +1,60 @@
+== Optimized Logical Plan ==
+Sort [company_type_count#15640L DESC NULLS LAST], true
++- Aggregate [name#15642, kind#15663], [name#15642, kind#15663, count(id#15657L) AS company_type_count#15640L]
+   +- Project [name#15642, id#15657L, kind#15663]
+      +- Join Inner, (movie_id#15658L = id#15664L)
+         :- Project [name#15642, id#15657L, movie_id#15658L, kind#15663]
+         :  +- Join Inner, (company_type_id#15660L = id#15662L)
+         :     :- Project [name#15642, id#15657L, movie_id#15658L, company_type_id#15660L]
+         :     :  +- Join Inner, (movie_id#15652L = movie_id#15658L)
+         :     :     :- Project [name#15642, movie_id#15652L]
+         :     :     :  +- Join Inner, (id#15641L = person_id#15651L)
+         :     :     :     :- Project [id#15641L, name#15642]
+         :     :     :     :  +- Filter ((isnotnull(gender#15645) AND (gender#15645 = F)) AND isnotnull(id#15641L))
+         :     :     :     :     +- RelationV2[id#15641L, name#15642, gender#15645] spark_catalog.job_iceberg_10g.name
+         :     :     :     +- Filter (isnotnull(person_id#15651L) AND isnotnull(movie_id#15652L))
+         :     :     :        +- RelationV2[person_id#15651L, movie_id#15652L] spark_catalog.job_iceberg_10g.cast_info
+         :     :     +- Filter (isnotnull(movie_id#15658L) AND isnotnull(company_type_id#15660L))
+         :     :        +- RelationV2[id#15657L, movie_id#15658L, company_type_id#15660L] spark_catalog.job_iceberg_10g.movie_companies
+         :     +- Filter ((isnotnull(kind#15663) AND (kind#15663 = Distributor)) AND isnotnull(id#15662L))
+         :        +- RelationV2[id#15662L, kind#15663] spark_catalog.job_iceberg_10g.company_type
+         +- Filter isnotnull(id#15664L)
+            +- RelationV2[id#15664L] spark_catalog.job_iceberg_10g.title
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [company_type_count#15640L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(company_type_count#15640L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=16207]
+      +- HashAggregate(keys=[name#15642, kind#15663], functions=[count(id#15657L)], output=[name#15642, kind#15663, company_type_count#15640L])
+         +- Exchange hashpartitioning(name#15642, kind#15663, 200), ENSURE_REQUIREMENTS, [plan_id=16204]
+            +- HashAggregate(keys=[name#15642, kind#15663], functions=[partial_count(id#15657L)], output=[name#15642, kind#15663, count#15717L])
+               +- Project [name#15642, id#15657L, kind#15663]
+                  +- SortMergeJoin [movie_id#15658L], [id#15664L], Inner
+                     :- Project [name#15642, id#15657L, movie_id#15658L, kind#15663]
+                     :  +- BroadcastHashJoin [company_type_id#15660L], [id#15662L], Inner, BuildRight, false
+                     :     :- Project [name#15642, id#15657L, movie_id#15658L, company_type_id#15660L]
+                     :     :  +- SortMergeJoin [movie_id#15652L], [movie_id#15658L], Inner
+                     :     :     :- Sort [movie_id#15652L ASC NULLS FIRST], false, 0
+                     :     :     :  +- Exchange hashpartitioning(movie_id#15652L, 200), ENSURE_REQUIREMENTS, [plan_id=16186]
+                     :     :     :     +- Project [name#15642, movie_id#15652L]
+                     :     :     :        +- BroadcastHashJoin [id#15641L], [person_id#15651L], Inner, BuildLeft, false
+                     :     :     :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=16181]
+                     :     :     :           :  +- Project [id#15641L, name#15642]
+                     :     :     :           :     +- Filter ((isnotnull(gender#15645) AND (gender#15645 = F)) AND isnotnull(id#15641L))
+                     :     :     :           :        +- BatchScan[id#15641L, name#15642, gender#15645] spark_catalog.job_iceberg_10g.name [filters=gender IS NOT NULL, gender = 'F', id IS NOT NULL] RuntimeFilters: []
+                     :     :     :           +- Filter (isnotnull(person_id#15651L) AND isnotnull(movie_id#15652L))
+                     :     :     :              +- BatchScan[person_id#15651L, movie_id#15652L] spark_catalog.job_iceberg_10g.cast_info [filters=person_id IS NOT NULL, movie_id IS NOT NULL] RuntimeFilters: []
+                     :     :     +- Sort [movie_id#15658L ASC NULLS FIRST], false, 0
+                     :     :        +- Exchange hashpartitioning(movie_id#15658L, 200), ENSURE_REQUIREMENTS, [plan_id=16187]
+                     :     :           +- Filter (isnotnull(movie_id#15658L) AND isnotnull(company_type_id#15660L))
+                     :     :              +- BatchScan[id#15657L, movie_id#15658L, company_type_id#15660L] spark_catalog.job_iceberg_10g.movie_companies [filters=movie_id IS NOT NULL, company_type_id IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=16193]
+                     :        +- Project [id#15662L, kind#15663]
+                     :           +- Filter ((isnotnull(kind#15663) AND (kind#15663 = Distributor)) AND isnotnull(id#15662L))
+                     :              +- BatchScan[id#15662L, kind#15663] spark_catalog.job_iceberg_10g.company_type [filters=kind IS NOT NULL, kind = 'Distributor', id IS NOT NULL] RuntimeFilters: []
+                     +- Sort [id#15664L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(id#15664L, 200), ENSURE_REQUIREMENTS, [plan_id=16198]
+                           +- Filter isnotnull(id#15664L)
+                              +- BatchScan[id#15664L] spark_catalog.job_iceberg_10g.title [filters=id IS NOT NULL] RuntimeFilters: []
+

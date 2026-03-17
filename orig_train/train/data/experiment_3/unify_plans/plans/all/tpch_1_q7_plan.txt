@@ -1,0 +1,32 @@
+=== Optimized Logical Plan ===
+Sort [supp_nation#1105 ASC NULLS FIRST, cust_nation#1106 ASC NULLS FIRST, l_year#1107 ASC NULLS FIRST], true
++- Aggregate [supp_nation#1105, cust_nation#1106, l_year#1107], [supp_nation#1105, cust_nation#1106, l_year#1107, sum(volume#1108) AS revenue#1109]
+   +- Project [n_name#145 AS supp_nation#1105, n_name#1116 AS cust_nation#1106, year(cast(l_shipdate#16 as date)) AS l_year#1107, (l_extendedprice#11 * (1.0 - l_discount#12)) AS volume#1108]
+      +- Join Inner, ((c_nationkey#218L = n_nationkey#1115L) AND (((n_name#145 = SAUDI ARABIA) AND (n_name#1116 = GERMANY)) OR ((n_name#145 = GERMANY) AND (n_name#1116 = SAUDI ARABIA))))
+         :- Project [l_extendedprice#11, l_discount#12, l_shipdate#16, c_nationkey#218L, n_name#145]
+         :  +- Join Inner, (s_nationkey#125L = n_nationkey#144L)
+         :     :- Project [s_nationkey#125L, l_extendedprice#11, l_discount#12, l_shipdate#16, c_nationkey#218L]
+         :     :  +- Join Inner, (c_custkey#215L = o_custkey#76L)
+         :     :     :- Project [s_nationkey#125L, l_extendedprice#11, l_discount#12, l_shipdate#16, o_custkey#76L]
+         :     :     :  +- Join Inner, (o_orderkey#75L = l_orderkey#6L)
+         :     :     :     :- Project [s_nationkey#125L, l_orderkey#6L, l_extendedprice#11, l_discount#12, l_shipdate#16]
+         :     :     :     :  +- Join Inner, (s_suppkey#122L = l_suppkey#8L)
+         :     :     :     :     :- Project [s_suppkey#122L, s_nationkey#125L]
+         :     :     :     :     :  +- Filter (isnotnull(s_suppkey#122L) AND isnotnull(s_nationkey#125L))
+         :     :     :     :     :     +- Relation tpch_hudi_10g.supplier[_hoodie_commit_time#117,_hoodie_commit_seqno#118,_hoodie_record_key#119,_hoodie_partition_path#120,_hoodie_file_name#121,s_suppkey#122L,s_name#123,s_address#124,s_nationkey#125L,s_phone#126,s_acctbal#127,s_comment#128] parquet
+         :     :     :     :     +- Project [l_orderkey#6L, l_suppkey#8L, l_extendedprice#11, l_discount#12, l_shipdate#16]
+         :     :     :     :        +- Filter ((isnotnull(l_shipdate#16) AND ((cast(l_shipdate#16 as date) >= 1995-01-01) AND (cast(l_shipdate#16 as date) <= 1996-12-31))) AND (isnotnull(l_suppkey#8L) AND isnotnull(l_orderkey#6L)))
+         :     :     :     :           +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+         :     :     :     +- Project [o_orderkey#75L, o_custkey#76L]
+         :     :     :        +- Filter (isnotnull(o_orderkey#75L) AND isnotnull(o_custkey#76L))
+         :     :     :           +- Relation tpch_hudi_10g.orders[_hoodie_commit_time#70,_hoodie_commit_seqno#71,_hoodie_record_key#72,_hoodie_partition_path#73,_hoodie_file_name#74,o_orderkey#75L,o_custkey#76L,o_orderstatus#77,o_totalprice#78,o_orderdate#79,o_orderpriority#80,o_clerk#81,o_shippriority#82L,o_comment#83] parquet
+         :     :     +- Project [c_custkey#215L, c_nationkey#218L]
+         :     :        +- Filter (isnotnull(c_custkey#215L) AND isnotnull(c_nationkey#218L))
+         :     :           +- Relation tpch_hudi_10g.customer[_hoodie_commit_time#210,_hoodie_commit_seqno#211,_hoodie_record_key#212,_hoodie_partition_path#213,_hoodie_file_name#214,c_custkey#215L,c_name#216,c_address#217,c_nationkey#218L,c_phone#219,c_acctbal#220,c_mktsegment#221,c_comment#222] parquet
+         :     +- Project [n_nationkey#144L, n_name#145]
+         :        +- Filter (isnotnull(n_nationkey#144L) AND ((n_name#145 = SAUDI ARABIA) OR (n_name#145 = GERMANY)))
+         :           +- Relation tpch_hudi_10g.nation[_hoodie_commit_time#139,_hoodie_commit_seqno#140,_hoodie_record_key#141,_hoodie_partition_path#142,_hoodie_file_name#143,n_nationkey#144L,n_name#145,n_regionkey#146L,n_comment#147] parquet
+         +- Project [n_nationkey#1115L, n_name#1116]
+            +- Filter (isnotnull(n_nationkey#1115L) AND ((n_name#1116 = GERMANY) OR (n_name#1116 = SAUDI ARABIA)))
+               +- Relation tpch_hudi_10g.nation[_hoodie_commit_time#1110,_hoodie_commit_seqno#1111,_hoodie_record_key#1112,_hoodie_partition_path#1113,_hoodie_file_name#1114,n_nationkey#1115L,n_name#1116,n_regionkey#1117L,n_comment#1118] parquet
+=== Physical Plan ===

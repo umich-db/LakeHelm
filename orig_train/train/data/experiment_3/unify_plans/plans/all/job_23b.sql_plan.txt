@@ -1,0 +1,203 @@
+== Parsed Logical Plan ==
+'Project ['MIN('kt.kind) AS movie_kind#13068, 'MIN('t.title) AS complete_nerdy_internet_movie#13069]
++- 'Filter (((((('cct1.kind = complete+verified) AND ('cn.country_code = [us])) AND ('it1.info = release dates)) AND (('k.keyword IN (nerd,loner,alienation,dignity) AND 'kt.kind IN (movie)) AND 'mi.note LIKE %internet%)) AND ((('mi.info LIKE USA:% 200% AND ('t.production_year > 2000)) AND ('kt.id = 't.kind_id)) AND ((('t.id = 'mi.movie_id) AND ('t.id = 'mk.movie_id)) AND ('t.id = 'mc.movie_id)))) AND ((((('t.id = 'cc.movie_id) AND ('mk.movie_id = 'mi.movie_id)) AND ('mk.movie_id = 'mc.movie_id)) AND ((('mk.movie_id = 'cc.movie_id) AND ('mi.movie_id = 'mc.movie_id)) AND ('mi.movie_id = 'cc.movie_id))) AND (((('mc.movie_id = 'cc.movie_id) AND ('k.id = 'mk.keyword_id)) AND ('it1.id = 'mi.info_type_id)) AND ((('cn.id = 'mc.company_id) AND ('ct.id = 'mc.company_type_id)) AND ('cct1.id = 'cc.status_id)))))
+   +- 'Join Inner
+      :- 'Join Inner
+      :  :- 'Join Inner
+      :  :  :- 'Join Inner
+      :  :  :  :- 'Join Inner
+      :  :  :  :  :- 'Join Inner
+      :  :  :  :  :  :- 'Join Inner
+      :  :  :  :  :  :  :- 'Join Inner
+      :  :  :  :  :  :  :  :- 'Join Inner
+      :  :  :  :  :  :  :  :  :- 'Join Inner
+      :  :  :  :  :  :  :  :  :  :- 'SubqueryAlias cc
+      :  :  :  :  :  :  :  :  :  :  +- 'UnresolvedRelation [complete_cast], [], false
+      :  :  :  :  :  :  :  :  :  +- 'SubqueryAlias cct1
+      :  :  :  :  :  :  :  :  :     +- 'UnresolvedRelation [comp_cast_type], [], false
+      :  :  :  :  :  :  :  :  +- 'SubqueryAlias cn
+      :  :  :  :  :  :  :  :     +- 'UnresolvedRelation [company_name], [], false
+      :  :  :  :  :  :  :  +- 'SubqueryAlias ct
+      :  :  :  :  :  :  :     +- 'UnresolvedRelation [company_type], [], false
+      :  :  :  :  :  :  +- 'SubqueryAlias it1
+      :  :  :  :  :  :     +- 'UnresolvedRelation [info_type], [], false
+      :  :  :  :  :  +- 'SubqueryAlias k
+      :  :  :  :  :     +- 'UnresolvedRelation [keyword], [], false
+      :  :  :  :  +- 'SubqueryAlias kt
+      :  :  :  :     +- 'UnresolvedRelation [kind_type], [], false
+      :  :  :  +- 'SubqueryAlias mc
+      :  :  :     +- 'UnresolvedRelation [movie_companies], [], false
+      :  :  +- 'SubqueryAlias mi
+      :  :     +- 'UnresolvedRelation [movie_info], [], false
+      :  +- 'SubqueryAlias mk
+      :     +- 'UnresolvedRelation [movie_keyword], [], false
+      +- 'SubqueryAlias t
+         +- 'UnresolvedRelation [title], [], false
+
+== Analyzed Logical Plan ==
+movie_kind: string, complete_nerdy_internet_movie: string
+Aggregate [min(kind#13091) AS movie_kind#13068, min(title#13106) AS complete_nerdy_internet_movie#13069]
++- Filter ((((((kind#13075 = complete+verified) AND (country_code#13078 = [us])) AND (info#13086 = release dates)) AND ((keyword#13088 IN (nerd,loner,alienation,dignity) AND kind#13091 IN (movie)) AND note#13101 LIKE %internet%)) AND (((info#13100 LIKE USA:% 200% AND (production_year#13109L > cast(2000 as bigint))) AND (id#13090L = kind_id#13108L)) AND (((id#13105L = movie_id#13098L) AND (id#13105L = movie_id#13103L)) AND (id#13105L = movie_id#13093L)))) AND (((((id#13105L = movie_id#13071L) AND (movie_id#13103L = movie_id#13098L)) AND (movie_id#13103L = movie_id#13093L)) AND (((movie_id#13103L = movie_id#13071L) AND (movie_id#13098L = movie_id#13093L)) AND (movie_id#13098L = movie_id#13071L))) AND ((((movie_id#13093L = movie_id#13071L) AND (id#13087L = keyword_id#13104L)) AND (id#13085L = info_type_id#13099L)) AND (((id#13076L = company_id#13094L) AND (id#13083L = company_type_id#13095L)) AND (id#13074L = status_id#13073L)))))
+   +- Join Inner
+      :- Join Inner
+      :  :- Join Inner
+      :  :  :- Join Inner
+      :  :  :  :- Join Inner
+      :  :  :  :  :- Join Inner
+      :  :  :  :  :  :- Join Inner
+      :  :  :  :  :  :  :- Join Inner
+      :  :  :  :  :  :  :  :- Join Inner
+      :  :  :  :  :  :  :  :  :- Join Inner
+      :  :  :  :  :  :  :  :  :  :- SubqueryAlias cc
+      :  :  :  :  :  :  :  :  :  :  +- SubqueryAlias spark_catalog.job_iceberg_10g.complete_cast
+      :  :  :  :  :  :  :  :  :  :     +- RelationV2[id#13070L, movie_id#13071L, subject_id#13072L, status_id#13073L] spark_catalog.job_iceberg_10g.complete_cast
+      :  :  :  :  :  :  :  :  :  +- SubqueryAlias cct1
+      :  :  :  :  :  :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.comp_cast_type
+      :  :  :  :  :  :  :  :  :        +- RelationV2[id#13074L, kind#13075] spark_catalog.job_iceberg_10g.comp_cast_type
+      :  :  :  :  :  :  :  :  +- SubqueryAlias cn
+      :  :  :  :  :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.company_name
+      :  :  :  :  :  :  :  :        +- RelationV2[id#13076L, name#13077, country_code#13078, imdb_id#13079L, name_pcode_nf#13080, name_pcode_sf#13081, md5sum#13082] spark_catalog.job_iceberg_10g.company_name
+      :  :  :  :  :  :  :  +- SubqueryAlias ct
+      :  :  :  :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.company_type
+      :  :  :  :  :  :  :        +- RelationV2[id#13083L, kind#13084] spark_catalog.job_iceberg_10g.company_type
+      :  :  :  :  :  :  +- SubqueryAlias it1
+      :  :  :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.info_type
+      :  :  :  :  :  :        +- RelationV2[id#13085L, info#13086] spark_catalog.job_iceberg_10g.info_type
+      :  :  :  :  :  +- SubqueryAlias k
+      :  :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.keyword
+      :  :  :  :  :        +- RelationV2[id#13087L, keyword#13088, phonetic_code#13089] spark_catalog.job_iceberg_10g.keyword
+      :  :  :  :  +- SubqueryAlias kt
+      :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.kind_type
+      :  :  :  :        +- RelationV2[id#13090L, kind#13091] spark_catalog.job_iceberg_10g.kind_type
+      :  :  :  +- SubqueryAlias mc
+      :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.movie_companies
+      :  :  :        +- RelationV2[id#13092L, movie_id#13093L, company_id#13094L, company_type_id#13095L, note#13096] spark_catalog.job_iceberg_10g.movie_companies
+      :  :  +- SubqueryAlias mi
+      :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.movie_info
+      :  :        +- RelationV2[id#13097L, movie_id#13098L, info_type_id#13099L, info#13100, note#13101] spark_catalog.job_iceberg_10g.movie_info
+      :  +- SubqueryAlias mk
+      :     +- SubqueryAlias spark_catalog.job_iceberg_10g.movie_keyword
+      :        +- RelationV2[id#13102L, movie_id#13103L, keyword_id#13104L] spark_catalog.job_iceberg_10g.movie_keyword
+      +- SubqueryAlias t
+         +- SubqueryAlias spark_catalog.job_iceberg_10g.title
+            +- RelationV2[id#13105L, title#13106, imdb_index#13107, kind_id#13108L, production_year#13109L, imdb_id#13110L, phonetic_code#13111, episode_of_id#13112L, season_nr#13113L, episode_nr#13114L, series_years#13115, md5sum#13116] spark_catalog.job_iceberg_10g.title
+
+== Optimized Logical Plan ==
+Aggregate [min(kind#13091) AS movie_kind#13068, min(title#13106) AS complete_nerdy_internet_movie#13069]
++- Project [kind#13091, title#13106]
+   +- Join Inner, (id#13090L = kind_id#13108L)
+      :- Project [title#13106, kind_id#13108L]
+      :  +- Join Inner, ((((id#13105L = movie_id#13098L) AND (id#13105L = movie_id#13103L)) AND (id#13105L = movie_id#13093L)) AND (id#13105L = movie_id#13071L))
+      :     :- Project [movie_id#13071L, movie_id#13093L, movie_id#13098L, movie_id#13103L]
+      :     :  +- Join Inner, (id#13087L = keyword_id#13104L)
+      :     :     :- Join Inner, (((movie_id#13103L = movie_id#13098L) AND (movie_id#13103L = movie_id#13093L)) AND (movie_id#13103L = movie_id#13071L))
+      :     :     :  :- Project [movie_id#13071L, movie_id#13093L, movie_id#13098L]
+      :     :     :  :  +- Join Inner, (id#13085L = info_type_id#13099L)
+      :     :     :  :     :- Join Inner, ((movie_id#13098L = movie_id#13093L) AND (movie_id#13098L = movie_id#13071L))
+      :     :     :  :     :  :- Project [movie_id#13071L, movie_id#13093L]
+      :     :     :  :     :  :  +- Join Inner, (id#13083L = company_type_id#13095L)
+      :     :     :  :     :  :     :- Project [movie_id#13071L, movie_id#13093L, company_type_id#13095L]
+      :     :     :  :     :  :     :  +- Join Inner, (id#13076L = company_id#13094L)
+      :     :     :  :     :  :     :     :- Join Inner, (movie_id#13093L = movie_id#13071L)
+      :     :     :  :     :  :     :     :  :- Project [movie_id#13071L]
+      :     :     :  :     :  :     :     :  :  +- Join Inner, (id#13074L = status_id#13073L)
+      :     :     :  :     :  :     :     :  :     :- Filter (isnotnull(status_id#13073L) AND isnotnull(movie_id#13071L))
+      :     :     :  :     :  :     :     :  :     :  +- RelationV2[movie_id#13071L, status_id#13073L] spark_catalog.job_iceberg_10g.complete_cast
+      :     :     :  :     :  :     :     :  :     +- Project [id#13074L]
+      :     :     :  :     :  :     :     :  :        +- Filter ((isnotnull(kind#13075) AND (kind#13075 = complete+verified)) AND isnotnull(id#13074L))
+      :     :     :  :     :  :     :     :  :           +- RelationV2[id#13074L, kind#13075] spark_catalog.job_iceberg_10g.comp_cast_type
+      :     :     :  :     :  :     :     :  +- Filter ((isnotnull(movie_id#13093L) AND isnotnull(company_type_id#13095L)) AND isnotnull(company_id#13094L))
+      :     :     :  :     :  :     :     :     +- RelationV2[movie_id#13093L, company_id#13094L, company_type_id#13095L] spark_catalog.job_iceberg_10g.movie_companies
+      :     :     :  :     :  :     :     +- Project [id#13076L]
+      :     :     :  :     :  :     :        +- Filter ((isnotnull(country_code#13078) AND (country_code#13078 = [us])) AND isnotnull(id#13076L))
+      :     :     :  :     :  :     :           +- RelationV2[id#13076L, country_code#13078] spark_catalog.job_iceberg_10g.company_name
+      :     :     :  :     :  :     +- Filter isnotnull(id#13083L)
+      :     :     :  :     :  :        +- RelationV2[id#13083L] spark_catalog.job_iceberg_10g.company_type
+      :     :     :  :     :  +- Project [movie_id#13098L, info_type_id#13099L]
+      :     :     :  :     :     +- Filter (((((info#13100 LIKE USA:% 200% AND isnotnull(note#13101)) AND isnotnull(info#13100)) AND Contains(note#13101, internet)) AND isnotnull(movie_id#13098L)) AND isnotnull(info_type_id#13099L))
+      :     :     :  :     :        +- RelationV2[movie_id#13098L, info_type_id#13099L, info#13100, note#13101] spark_catalog.job_iceberg_10g.movie_info
+      :     :     :  :     +- Project [id#13085L]
+      :     :     :  :        +- Filter ((isnotnull(info#13086) AND (info#13086 = release dates)) AND isnotnull(id#13085L))
+      :     :     :  :           +- RelationV2[id#13085L, info#13086] spark_catalog.job_iceberg_10g.info_type
+      :     :     :  +- Filter (isnotnull(movie_id#13103L) AND isnotnull(keyword_id#13104L))
+      :     :     :     +- RelationV2[movie_id#13103L, keyword_id#13104L] spark_catalog.job_iceberg_10g.movie_keyword
+      :     :     +- Project [id#13087L]
+      :     :        +- Filter (keyword#13088 IN (nerd,loner,alienation,dignity) AND isnotnull(id#13087L))
+      :     :           +- RelationV2[id#13087L, keyword#13088] spark_catalog.job_iceberg_10g.keyword
+      :     +- Project [id#13105L, title#13106, kind_id#13108L]
+      :        +- Filter (((isnotnull(production_year#13109L) AND (production_year#13109L > 2000)) AND isnotnull(id#13105L)) AND isnotnull(kind_id#13108L))
+      :           +- RelationV2[id#13105L, title#13106, kind_id#13108L, production_year#13109L] spark_catalog.job_iceberg_10g.title
+      +- Filter ((isnotnull(kind#13091) AND (kind#13091 = movie)) AND isnotnull(id#13090L))
+         +- RelationV2[id#13090L, kind#13091] spark_catalog.job_iceberg_10g.kind_type
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- SortAggregate(key=[], functions=[min(kind#13091), min(title#13106)], output=[movie_kind#13068, complete_nerdy_internet_movie#13069])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=20356]
+      +- SortAggregate(key=[], functions=[partial_min(kind#13091), partial_min(title#13106)], output=[min#13204, min#13205])
+         +- Project [kind#13091, title#13106]
+            +- BroadcastHashJoin [kind_id#13108L], [id#13090L], Inner, BuildRight, false
+               :- Project [title#13106, kind_id#13108L]
+               :  +- SortMergeJoin [movie_id#13098L, movie_id#13103L, movie_id#13093L, movie_id#13071L], [id#13105L, id#13105L, id#13105L, id#13105L], Inner
+               :     :- Sort [movie_id#13098L ASC NULLS FIRST, movie_id#13103L ASC NULLS FIRST, movie_id#13093L ASC NULLS FIRST, movie_id#13071L ASC NULLS FIRST], false, 0
+               :     :  +- Exchange hashpartitioning(movie_id#13098L, movie_id#13103L, movie_id#13093L, movie_id#13071L, 200), ENSURE_REQUIREMENTS, [plan_id=20344]
+               :     :     +- Project [movie_id#13071L, movie_id#13093L, movie_id#13098L, movie_id#13103L]
+               :     :        +- BroadcastHashJoin [keyword_id#13104L], [id#13087L], Inner, BuildRight, false
+               :     :           :- SortMergeJoin [movie_id#13098L, movie_id#13093L, movie_id#13071L], [movie_id#13103L, movie_id#13103L, movie_id#13103L], Inner
+               :     :           :  :- Sort [movie_id#13098L ASC NULLS FIRST, movie_id#13093L ASC NULLS FIRST, movie_id#13071L ASC NULLS FIRST], false, 0
+               :     :           :  :  +- Exchange hashpartitioning(movie_id#13098L, movie_id#13093L, movie_id#13071L, 200), ENSURE_REQUIREMENTS, [plan_id=20333]
+               :     :           :  :     +- Project [movie_id#13071L, movie_id#13093L, movie_id#13098L]
+               :     :           :  :        +- BroadcastHashJoin [info_type_id#13099L], [id#13085L], Inner, BuildRight, false
+               :     :           :  :           :- SortMergeJoin [movie_id#13093L, movie_id#13071L], [movie_id#13098L, movie_id#13098L], Inner
+               :     :           :  :           :  :- Sort [movie_id#13093L ASC NULLS FIRST, movie_id#13071L ASC NULLS FIRST], false, 0
+               :     :           :  :           :  :  +- Exchange hashpartitioning(movie_id#13093L, movie_id#13093L, 200), ENSURE_REQUIREMENTS, [plan_id=20323]
+               :     :           :  :           :  :     +- Project [movie_id#13071L, movie_id#13093L]
+               :     :           :  :           :  :        +- BroadcastHashJoin [company_type_id#13095L], [id#13083L], Inner, BuildRight, false
+               :     :           :  :           :  :           :- Project [movie_id#13071L, movie_id#13093L, company_type_id#13095L]
+               :     :           :  :           :  :           :  +- BroadcastHashJoin [company_id#13094L], [id#13076L], Inner, BuildRight, false
+               :     :           :  :           :  :           :     :- SortMergeJoin [movie_id#13071L], [movie_id#13093L], Inner
+               :     :           :  :           :  :           :     :  :- Sort [movie_id#13071L ASC NULLS FIRST], false, 0
+               :     :           :  :           :  :           :     :  :  +- Project [movie_id#13071L]
+               :     :           :  :           :  :           :     :  :     +- BroadcastHashJoin [status_id#13073L], [id#13074L], Inner, BuildRight, false
+               :     :           :  :           :  :           :     :  :        :- Filter (isnotnull(status_id#13073L) AND isnotnull(movie_id#13071L))
+               :     :           :  :           :  :           :     :  :        :  +- BatchScan[movie_id#13071L, status_id#13073L] spark_catalog.job_iceberg_10g.complete_cast [filters=status_id IS NOT NULL, movie_id IS NOT NULL] RuntimeFilters: []
+               :     :           :  :           :  :           :     :  :        +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=20304]
+               :     :           :  :           :  :           :     :  :           +- Project [id#13074L]
+               :     :           :  :           :  :           :     :  :              +- Filter ((isnotnull(kind#13075) AND (kind#13075 = complete+verified)) AND isnotnull(id#13074L))
+               :     :           :  :           :  :           :     :  :                 +- BatchScan[id#13074L, kind#13075] spark_catalog.job_iceberg_10g.comp_cast_type [filters=kind IS NOT NULL, kind = 'complete+verified', id IS NOT NULL] RuntimeFilters: []
+               :     :           :  :           :  :           :     :  +- Sort [movie_id#13093L ASC NULLS FIRST], false, 0
+               :     :           :  :           :  :           :     :     +- Filter ((isnotnull(movie_id#13093L) AND isnotnull(company_type_id#13095L)) AND isnotnull(company_id#13094L))
+               :     :           :  :           :  :           :     :        +- BatchScan[movie_id#13093L, company_id#13094L, company_type_id#13095L] spark_catalog.job_iceberg_10g.movie_companies [filters=movie_id IS NOT NULL, company_type_id IS NOT NULL, company_id IS NOT NULL] RuntimeFilters: []
+               :     :           :  :           :  :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=20313]
+               :     :           :  :           :  :           :        +- Project [id#13076L]
+               :     :           :  :           :  :           :           +- Filter ((isnotnull(country_code#13078) AND (country_code#13078 = [us])) AND isnotnull(id#13076L))
+               :     :           :  :           :  :           :              +- BatchScan[id#13076L, country_code#13078] spark_catalog.job_iceberg_10g.company_name [filters=country_code IS NOT NULL, country_code = '[us]', id IS NOT NULL] RuntimeFilters: []
+               :     :           :  :           :  :           +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=20317]
+               :     :           :  :           :  :              +- Filter isnotnull(id#13083L)
+               :     :           :  :           :  :                 +- BatchScan[id#13083L] spark_catalog.job_iceberg_10g.company_type [filters=id IS NOT NULL] RuntimeFilters: []
+               :     :           :  :           :  +- Sort [movie_id#13098L ASC NULLS FIRST, movie_id#13098L ASC NULLS FIRST], false, 0
+               :     :           :  :           :     +- Exchange hashpartitioning(movie_id#13098L, movie_id#13098L, 200), ENSURE_REQUIREMENTS, [plan_id=20322]
+               :     :           :  :           :        +- Project [movie_id#13098L, info_type_id#13099L]
+               :     :           :  :           :           +- Filter (((((info#13100 LIKE USA:% 200% AND isnotnull(note#13101)) AND isnotnull(info#13100)) AND Contains(note#13101, internet)) AND isnotnull(movie_id#13098L)) AND isnotnull(info_type_id#13099L))
+               :     :           :  :           :              +- BatchScan[movie_id#13098L, info_type_id#13099L, info#13100, note#13101] spark_catalog.job_iceberg_10g.movie_info [filters=note IS NOT NULL, info IS NOT NULL, movie_id IS NOT NULL, info_type_id IS NOT NULL] RuntimeFilters: []
+               :     :           :  :           +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=20328]
+               :     :           :  :              +- Project [id#13085L]
+               :     :           :  :                 +- Filter ((isnotnull(info#13086) AND (info#13086 = release dates)) AND isnotnull(id#13085L))
+               :     :           :  :                    +- BatchScan[id#13085L, info#13086] spark_catalog.job_iceberg_10g.info_type [filters=info IS NOT NULL, info = 'release dates', id IS NOT NULL] RuntimeFilters: []
+               :     :           :  +- Sort [movie_id#13103L ASC NULLS FIRST, movie_id#13103L ASC NULLS FIRST, movie_id#13103L ASC NULLS FIRST], false, 0
+               :     :           :     +- Exchange hashpartitioning(movie_id#13103L, movie_id#13103L, movie_id#13103L, 200), ENSURE_REQUIREMENTS, [plan_id=20334]
+               :     :           :        +- Filter (isnotnull(movie_id#13103L) AND isnotnull(keyword_id#13104L))
+               :     :           :           +- BatchScan[movie_id#13103L, keyword_id#13104L] spark_catalog.job_iceberg_10g.movie_keyword [filters=movie_id IS NOT NULL, keyword_id IS NOT NULL] RuntimeFilters: []
+               :     :           +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=20339]
+               :     :              +- Project [id#13087L]
+               :     :                 +- Filter (keyword#13088 IN (nerd,loner,alienation,dignity) AND isnotnull(id#13087L))
+               :     :                    +- BatchScan[id#13087L, keyword#13088] spark_catalog.job_iceberg_10g.keyword [filters=keyword IN ('nerd', 'loner', 'alienation', 'dignity'), id IS NOT NULL] RuntimeFilters: []
+               :     +- Sort [id#13105L ASC NULLS FIRST, id#13105L ASC NULLS FIRST, id#13105L ASC NULLS FIRST, id#13105L ASC NULLS FIRST], false, 0
+               :        +- Exchange hashpartitioning(id#13105L, id#13105L, id#13105L, id#13105L, 200), ENSURE_REQUIREMENTS, [plan_id=20345]
+               :           +- Project [id#13105L, title#13106, kind_id#13108L]
+               :              +- Filter (((isnotnull(production_year#13109L) AND (production_year#13109L > 2000)) AND isnotnull(id#13105L)) AND isnotnull(kind_id#13108L))
+               :                 +- BatchScan[id#13105L, title#13106, kind_id#13108L, production_year#13109L] spark_catalog.job_iceberg_10g.title [filters=production_year IS NOT NULL, production_year > 2000, id IS NOT NULL, kind_id IS NOT NULL] RuntimeFilters: []
+               +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=20351]
+                  +- Filter ((isnotnull(kind#13091) AND (kind#13091 = movie)) AND isnotnull(id#13090L))
+                     +- BatchScan[id#13090L, kind#13091] spark_catalog.job_iceberg_10g.kind_type [filters=kind IS NOT NULL, kind = 'movie', id IS NOT NULL] RuntimeFilters: []
+

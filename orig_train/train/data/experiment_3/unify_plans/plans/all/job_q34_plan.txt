@@ -1,0 +1,55 @@
+== Optimized Logical Plan ==
+Sort [movie_count#16231L DESC NULLS LAST], true
++- Filter (movie_count#16231L > 5)
+   +- Aggregate [name#16233], [name#16233, count(distinct id#16248L) AS movie_count#16231L]
+      +- Project [name#16233, id#16248L]
+         +- Join Inner, (kind_id#16251L = id#16260L)
+            :- Project [name#16233, id#16248L, kind_id#16251L]
+            :  +- Join Inner, (movie_id#16243L = id#16248L)
+            :     :- Project [name#16233, movie_id#16243L]
+            :     :  +- Join Inner, (id#16232L = person_id#16242L)
+            :     :     :- Project [id#16232L, name#16233]
+            :     :     :  +- Filter ((isnotnull(gender#16236) AND (gender#16236 = M)) AND isnotnull(id#16232L))
+            :     :     :     +- RelationV2[id#16232L, name#16233, gender#16236] spark_catalog.job_iceberg_10g.name
+            :     :     +- Filter (isnotnull(person_id#16242L) AND isnotnull(movie_id#16243L))
+            :     :        +- RelationV2[person_id#16242L, movie_id#16243L] spark_catalog.job_iceberg_10g.cast_info
+            :     +- Filter (isnotnull(id#16248L) AND isnotnull(kind_id#16251L))
+            :        +- RelationV2[id#16248L, kind_id#16251L] spark_catalog.job_iceberg_10g.title
+            +- Project [id#16260L]
+               +- Filter ((isnotnull(kind#16261) AND (kind#16261 = documentary)) AND isnotnull(id#16260L))
+                  +- RelationV2[id#16260L, kind#16261] spark_catalog.job_iceberg_10g.kind_type
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [movie_count#16231L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(movie_count#16231L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=16975]
+      +- Filter (movie_count#16231L > 5)
+         +- HashAggregate(keys=[name#16233], functions=[count(distinct id#16248L)], output=[name#16233, movie_count#16231L])
+            +- Exchange hashpartitioning(name#16233, 200), ENSURE_REQUIREMENTS, [plan_id=16971]
+               +- HashAggregate(keys=[name#16233], functions=[partial_count(distinct id#16248L)], output=[name#16233, count#16296L])
+                  +- HashAggregate(keys=[name#16233, id#16248L], functions=[], output=[name#16233, id#16248L])
+                     +- HashAggregate(keys=[name#16233, id#16248L], functions=[], output=[name#16233, id#16248L])
+                        +- Project [name#16233, id#16248L]
+                           +- BroadcastHashJoin [kind_id#16251L], [id#16260L], Inner, BuildRight, false
+                              :- Project [name#16233, id#16248L, kind_id#16251L]
+                              :  +- SortMergeJoin [movie_id#16243L], [id#16248L], Inner
+                              :     :- Sort [movie_id#16243L ASC NULLS FIRST], false, 0
+                              :     :  +- Exchange hashpartitioning(movie_id#16243L, 200), ENSURE_REQUIREMENTS, [plan_id=16957]
+                              :     :     +- Project [name#16233, movie_id#16243L]
+                              :     :        +- BroadcastHashJoin [id#16232L], [person_id#16242L], Inner, BuildLeft, false
+                              :     :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=16952]
+                              :     :           :  +- Project [id#16232L, name#16233]
+                              :     :           :     +- Filter ((isnotnull(gender#16236) AND (gender#16236 = M)) AND isnotnull(id#16232L))
+                              :     :           :        +- BatchScan[id#16232L, name#16233, gender#16236] spark_catalog.job_iceberg_10g.name [filters=gender IS NOT NULL, gender = 'M', id IS NOT NULL] RuntimeFilters: []
+                              :     :           +- Filter (isnotnull(person_id#16242L) AND isnotnull(movie_id#16243L))
+                              :     :              +- BatchScan[person_id#16242L, movie_id#16243L] spark_catalog.job_iceberg_10g.cast_info [filters=person_id IS NOT NULL, movie_id IS NOT NULL] RuntimeFilters: []
+                              :     +- Sort [id#16248L ASC NULLS FIRST], false, 0
+                              :        +- Exchange hashpartitioning(id#16248L, 200), ENSURE_REQUIREMENTS, [plan_id=16958]
+                              :           +- Filter (isnotnull(id#16248L) AND isnotnull(kind_id#16251L))
+                              :              +- BatchScan[id#16248L, kind_id#16251L] spark_catalog.job_iceberg_10g.title [filters=id IS NOT NULL, kind_id IS NOT NULL] RuntimeFilters: []
+                              +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=16964]
+                                 +- Project [id#16260L]
+                                    +- Filter ((isnotnull(kind#16261) AND (kind#16261 = documentary)) AND isnotnull(id#16260L))
+                                       +- BatchScan[id#16260L, kind#16261] spark_catalog.job_iceberg_10g.kind_type [filters=kind IS NOT NULL, kind = 'documentary', id IS NOT NULL] RuntimeFilters: []
+

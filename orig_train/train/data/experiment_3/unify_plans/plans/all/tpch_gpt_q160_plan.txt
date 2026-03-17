@@ -1,0 +1,36 @@
+== Optimized Logical Plan ==
+Sort [num_customers#18983L DESC NULLS LAST], true
++- Aggregate [r_name#18985, n_name#18988], [r_name#18985, n_name#18988, count(distinct c_custkey#18991L) AS num_customers#18983L]
+   +- Project [r_name#18985, n_name#18988, c_custkey#18991L]
+      +- Join Inner, (n_nationkey#18987L = c_nationkey#18994L)
+         :- Project [r_name#18985, n_nationkey#18987L, n_name#18988]
+         :  +- Join Inner, (r_regionkey#18984L = n_regionkey#18989L)
+         :     :- Filter ((isnotnull(r_name#18985) AND (r_name#18985 = EUROPE)) AND isnotnull(r_regionkey#18984L))
+         :     :  +- RelationV2[r_regionkey#18984L, r_name#18985] spark_catalog.tpch_iceberg_10g.region
+         :     +- Filter (isnotnull(n_regionkey#18989L) AND isnotnull(n_nationkey#18987L))
+         :        +- RelationV2[n_nationkey#18987L, n_name#18988, n_regionkey#18989L] spark_catalog.tpch_iceberg_10g.nation
+         +- Filter isnotnull(c_nationkey#18994L)
+            +- RelationV2[c_custkey#18991L, c_nationkey#18994L] spark_catalog.tpch_iceberg_10g.customer
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_customers#18983L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[r_name#18985, n_name#18988], functions=[count(distinct c_custkey#18991L)], output=[r_name#18985, n_name#18988, num_customers#18983L])
+      +- HashAggregate(keys=[r_name#18985, n_name#18988], functions=[partial_count(distinct c_custkey#18991L)], output=[r_name#18985, n_name#18988, count#19027L])
+         +- HashAggregate(keys=[r_name#18985, n_name#18988, c_custkey#18991L], functions=[], output=[r_name#18985, n_name#18988, c_custkey#18991L])
+            +- HashAggregate(keys=[r_name#18985, n_name#18988, c_custkey#18991L], functions=[], output=[r_name#18985, n_name#18988, c_custkey#18991L])
+               +- Project [r_name#18985, n_name#18988, c_custkey#18991L]
+                  +- BroadcastHashJoin [n_nationkey#18987L], [c_nationkey#18994L], Inner, BuildLeft, false
+                     :- BroadcastExchange HashedRelationBroadcastMode(List(input[1, bigint, true]),false), [plan_id=21051]
+                     :  +- Project [r_name#18985, n_nationkey#18987L, n_name#18988]
+                     :     +- BroadcastHashJoin [r_regionkey#18984L], [n_regionkey#18989L], Inner, BuildLeft, false
+                     :        :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=21047]
+                     :        :  +- Filter ((isnotnull(r_name#18985) AND (r_name#18985 = EUROPE)) AND isnotnull(r_regionkey#18984L))
+                     :        :     +- BatchScan[r_regionkey#18984L, r_name#18985] spark_catalog.tpch_iceberg_10g.region [filters=r_name IS NOT NULL, r_name = 'EUROPE', r_regionkey IS NOT NULL] RuntimeFilters: []
+                     :        +- Filter (isnotnull(n_regionkey#18989L) AND isnotnull(n_nationkey#18987L))
+                     :           +- BatchScan[n_nationkey#18987L, n_name#18988, n_regionkey#18989L] spark_catalog.tpch_iceberg_10g.nation [filters=n_regionkey IS NOT NULL, n_nationkey IS NOT NULL] RuntimeFilters: []
+                     +- Filter isnotnull(c_nationkey#18994L)
+                        +- BatchScan[c_custkey#18991L, c_nationkey#18994L] spark_catalog.tpch_iceberg_10g.customer [filters=c_nationkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

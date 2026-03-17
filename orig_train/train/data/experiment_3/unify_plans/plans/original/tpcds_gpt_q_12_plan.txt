@@ -1,0 +1,45 @@
+== Optimized Logical Plan ==
+Project [ws_order_number#6569L, ws_item_sk#6555, sales_rank#6550]
++- Window [rank(ws_sales_price#6573) windowspecdefinition(ws_order_number#6569L, ws_sales_price#6573 DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS sales_rank#6550], [ws_order_number#6569L], [ws_sales_price#6573 DESC NULLS LAST]
+   +- Project [ws_order_number#6569L, ws_item_sk#6555, ws_sales_price#6573]
+      +- Filter (isnotnull(ws_sales_price#6573) AND (cast(ws_sales_price#6573 as decimal(11,6)) > scalar-subquery#6552 []))
+         :  +- Aggregate [cast((avg(UnscaledValue(ws_sales_price#6609)) / 100.0) as decimal(11,6)) AS avg(ws_sales_price)#6662]
+         :     +- Project [ws_sales_price#6609]
+         :        +- Join LeftSemi, (ws_sold_date_sk#6622 = d_date_sk#6623)
+         :           :- Filter dynamicpruning#6681 [ws_sold_date_sk#6622]
+         :           :  :  +- Project [d_date_sk#6623]
+         :           :  :     +- Filter (isnotnull(d_year#6629) AND (d_year#6629 = 2001))
+         :           :  :        +- RelationV2[d_date_sk#6623, d_year#6629] spark_catalog.tpcds_iceberg_10g.date_dim
+         :           :  +- RelationV2[ws_sales_price#6609, ws_sold_date_sk#6622] spark_catalog.tpcds_iceberg_10g.web_sales
+         :           +- Project [d_date_sk#6623]
+         :              +- Filter (isnotnull(d_year#6629) AND (d_year#6629 = 2001))
+         :                 +- RelationV2[d_date_sk#6623, d_year#6629] spark_catalog.tpcds_iceberg_10g.date_dim
+         +- RelationV2[ws_item_sk#6555, ws_order_number#6569L, ws_sales_price#6573] spark_catalog.tpcds_iceberg_10g.web_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Project [ws_order_number#6569L, ws_item_sk#6555, sales_rank#6550]
+   +- Window [rank(ws_sales_price#6573) windowspecdefinition(ws_order_number#6569L, ws_sales_price#6573 DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS sales_rank#6550], [ws_order_number#6569L], [ws_sales_price#6573 DESC NULLS LAST]
+      +- Sort [ws_order_number#6569L ASC NULLS FIRST, ws_sales_price#6573 DESC NULLS LAST], false, 0
+         +- Exchange hashpartitioning(ws_order_number#6569L, 200), ENSURE_REQUIREMENTS, [plan_id=5011]
+            +- Filter (isnotnull(ws_sales_price#6573) AND (cast(ws_sales_price#6573 as decimal(11,6)) > Subquery subquery#6552, [id=#5003]))
+               :  +- Subquery subquery#6552, [id=#5003]
+               :     +- AdaptiveSparkPlan isFinalPlan=false
+               :        +- HashAggregate(keys=[], functions=[avg(UnscaledValue(ws_sales_price#6609))], output=[avg(ws_sales_price)#6662])
+               :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=5001]
+               :              +- HashAggregate(keys=[], functions=[partial_avg(UnscaledValue(ws_sales_price#6609))], output=[sum#6687, count#6688L])
+               :                 +- Project [ws_sales_price#6609]
+               :                    +- BroadcastHashJoin [ws_sold_date_sk#6622], [d_date_sk#6623], LeftSemi, BuildRight, false
+               :                       :- BatchScan[ws_sales_price#6609, ws_sold_date_sk#6622] spark_catalog.tpcds_iceberg_10g.web_sales [filters=] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#6622 IN dynamicpruning#6681)]
+               :                       :     +- SubqueryAdaptiveBroadcast dynamicpruning#6681, 0, true, Project [d_date_sk#6623], [d_date_sk#6623]
+               :                       :        +- AdaptiveSparkPlan isFinalPlan=false
+               :                       :           +- Project [d_date_sk#6623]
+               :                       :              +- Filter (isnotnull(d_year#6629) AND (d_year#6629 = 2001))
+               :                       :                 +- BatchScan[d_date_sk#6623, d_year#6629] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001] RuntimeFilters: []
+               :                       +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=4996]
+               :                          +- Project [d_date_sk#6623]
+               :                             +- Filter (isnotnull(d_year#6629) AND (d_year#6629 = 2001))
+               :                                +- BatchScan[d_date_sk#6623, d_year#6629] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001] RuntimeFilters: []
+               +- BatchScan[ws_item_sk#6555, ws_order_number#6569L, ws_sales_price#6573] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sales_price IS NOT NULL] RuntimeFilters: []
+

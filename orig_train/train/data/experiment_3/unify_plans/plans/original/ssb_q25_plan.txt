@@ -1,0 +1,23 @@
+== Parsed Logical Plan ==
+'Project ['p.p_name, 'p.p_category, 'p.p_size]
++- 'Filter (('p.p_size >= 1) AND ('p.p_size <= 10))
+   +- 'SubqueryAlias p
+      +- 'UnresolvedRelation [part], [], false
+
+== Analyzed Logical Plan ==
+p_name: string, p_category: string, p_size: int
+Project [p_name#16669, p_category#16671, p_size#16675]
++- Filter ((p_size#16675 >= 1) AND (p_size#16675 <= 10))
+   +- SubqueryAlias p
+      +- SubqueryAlias spark_catalog.ssb_iceberg_10g.part
+         +- RelationV2[p_partkey#16668, p_name#16669, p_mfgr#16670, p_category#16671, p_brand#16672, p_color#16673, p_type#16674, p_size#16675, p_container#16676] spark_catalog.ssb_iceberg_10g.part
+
+== Optimized Logical Plan ==
+Filter ((isnotnull(p_size#16675) AND (p_size#16675 >= 1)) AND (p_size#16675 <= 10))
++- RelationV2[p_name#16669, p_category#16671, p_size#16675] spark_catalog.ssb_iceberg_10g.part
+
+== Physical Plan ==
+*(1) Filter ((isnotnull(p_size#16675) AND (p_size#16675 >= 1)) AND (p_size#16675 <= 10))
++- *(1) ColumnarToRow
+   +- BatchScan[p_name#16669, p_category#16671, p_size#16675] spark_catalog.ssb_iceberg_10g.part [filters=p_size IS NOT NULL, p_size >= 1, p_size <= 10] RuntimeFilters: []
+

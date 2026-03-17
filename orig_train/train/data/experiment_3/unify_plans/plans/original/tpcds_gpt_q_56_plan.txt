@@ -1,0 +1,26 @@
+== Optimized Logical Plan ==
+Sort [total_sales#6766 DESC NULLS LAST], true
++- Aggregate [ca_state#6798], [ca_state#6798, MakeDecimal(sum(UnscaledValue(ss_sales_price#6779)),17,2) AS total_sales#6766]
+   +- Project [ss_sales_price#6779, ca_state#6798]
+      +- Join Inner, (ss_addr_sk#6772 = ca_address_sk#6790)
+         :- Filter isnotnull(ss_addr_sk#6772)
+         :  +- RelationV2[ss_addr_sk#6772, ss_sales_price#6779] spark_catalog.tpcds_iceberg_10g.store_sales
+         +- Filter isnotnull(ca_address_sk#6790)
+            +- RelationV2[ca_address_sk#6790, ca_state#6798] spark_catalog.tpcds_iceberg_10g.customer_address
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_sales#6766 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_sales#6766 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=5111]
+      +- HashAggregate(keys=[ca_state#6798], functions=[sum(UnscaledValue(ss_sales_price#6779))], output=[ca_state#6798, total_sales#6766])
+         +- Exchange hashpartitioning(ca_state#6798, 200), ENSURE_REQUIREMENTS, [plan_id=5108]
+            +- HashAggregate(keys=[ca_state#6798], functions=[partial_sum(UnscaledValue(ss_sales_price#6779))], output=[ca_state#6798, sum#6821L])
+               +- Project [ss_sales_price#6779, ca_state#6798]
+                  +- BroadcastHashJoin [ss_addr_sk#6772], [ca_address_sk#6790], Inner, BuildRight, false
+                     :- Filter isnotnull(ss_addr_sk#6772)
+                     :  +- BatchScan[ss_addr_sk#6772, ss_sales_price#6779] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_addr_sk IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=5103]
+                        +- Filter isnotnull(ca_address_sk#6790)
+                           +- BatchScan[ca_address_sk#6790, ca_state#6798] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL] RuntimeFilters: []
+

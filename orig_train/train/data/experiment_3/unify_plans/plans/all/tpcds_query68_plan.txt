@@ -1,0 +1,89 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [c_last_name#32544 ASC NULLS FIRST, ss_ticket_number#32445L ASC NULLS FIRST], true
+      +- Project [c_last_name#32544, c_first_name#32543, ca_city#32559, bought_city#32433, ss_ticket_number#32445L, extended_price#32434, extended_tax#32436, list_price#32435]
+         +- Join Inner, ((c_current_addr_sk#32539 = ca_address_sk#32553) AND NOT (ca_city#32559 = bought_city#32433))
+            :- Project [ss_ticket_number#32445L, bought_city#32433, extended_price#32434, list_price#32435, extended_tax#32436, c_current_addr_sk#32539, c_first_name#32543, c_last_name#32544]
+            :  +- Join Inner, (ss_customer_sk#32439 = c_customer_sk#32535)
+            :     :- Aggregate [ss_ticket_number#32445L, ss_customer_sk#32439, ss_addr_sk#32442, ca_city#32528], [ss_ticket_number#32445L, ss_customer_sk#32439, ca_city#32528 AS bought_city#32433, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#32451)),17,2) AS extended_price#32434, MakeDecimal(sum(UnscaledValue(ss_ext_list_price#32453)),17,2) AS list_price#32435, MakeDecimal(sum(UnscaledValue(ss_ext_tax#32454)),17,2) AS extended_tax#32436]
+            :     :  +- Project [ss_customer_sk#32439, ss_addr_sk#32442, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454, ca_city#32528]
+            :     :     +- Join Inner, (ss_addr_sk#32442 = ca_address_sk#32522)
+            :     :        :- Project [ss_customer_sk#32439, ss_addr_sk#32442, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454]
+            :     :        :  +- Join Inner, (ss_hdemo_sk#32441 = hd_demo_sk#32517)
+            :     :        :     :- Project [ss_customer_sk#32439, ss_hdemo_sk#32441, ss_addr_sk#32442, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454]
+            :     :        :     :  +- Join Inner, (ss_store_sk#32443 = s_store_sk#32488)
+            :     :        :     :     :- Project [ss_customer_sk#32439, ss_hdemo_sk#32441, ss_addr_sk#32442, ss_store_sk#32443, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454]
+            :     :        :     :     :  +- Join Inner, (ss_sold_date_sk#32459 = d_date_sk#32460)
+            :     :        :     :     :     :- Filter (((((isnotnull(ss_sold_date_sk#32459) AND isnotnull(ss_store_sk#32443)) AND isnotnull(ss_hdemo_sk#32441)) AND isnotnull(ss_addr_sk#32442)) AND isnotnull(ss_customer_sk#32439)) AND dynamicpruning#32637 [ss_sold_date_sk#32459])
+            :     :        :     :     :     :  :  +- Project [d_date_sk#32460]
+            :     :        :     :     :     :  :     +- Filter ((((isnotnull(d_dom#32469) AND (d_dom#32469 >= 1)) AND (d_dom#32469 <= 2)) AND d_year#32466 IN (1998,1999,2000)) AND isnotnull(d_date_sk#32460))
+            :     :        :     :     :     :  :        +- RelationV2[d_date_sk#32460, d_year#32466, d_dom#32469] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :        :     :     :     :  +- RelationV2[ss_customer_sk#32439, ss_hdemo_sk#32441, ss_addr_sk#32442, ss_store_sk#32443, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454, ss_sold_date_sk#32459] spark_catalog.tpcds_iceberg_10g.store_sales
+            :     :        :     :     :     +- Project [d_date_sk#32460]
+            :     :        :     :     :        +- Filter ((((isnotnull(d_dom#32469) AND (d_dom#32469 >= 1)) AND (d_dom#32469 <= 2)) AND d_year#32466 IN (1998,1999,2000)) AND isnotnull(d_date_sk#32460))
+            :     :        :     :     :           +- RelationV2[d_date_sk#32460, d_year#32466, d_dom#32469] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :        :     :     +- Project [s_store_sk#32488]
+            :     :        :     :        +- Filter (s_city#32510 IN (Cedar Grove,Wildwood) AND isnotnull(s_store_sk#32488))
+            :     :        :     :           +- RelationV2[s_store_sk#32488, s_city#32510] spark_catalog.tpcds_iceberg_10g.store
+            :     :        :     +- Project [hd_demo_sk#32517]
+            :     :        :        +- Filter (((hd_dep_count#32520 = 2) OR (hd_vehicle_count#32521 = 1)) AND isnotnull(hd_demo_sk#32517))
+            :     :        :           +- RelationV2[hd_demo_sk#32517, hd_dep_count#32520, hd_vehicle_count#32521] spark_catalog.tpcds_iceberg_10g.household_demographics
+            :     :        +- Filter (isnotnull(ca_address_sk#32522) AND isnotnull(ca_city#32528))
+            :     :           +- RelationV2[ca_address_sk#32522, ca_city#32528] spark_catalog.tpcds_iceberg_10g.customer_address
+            :     +- Filter (isnotnull(c_customer_sk#32535) AND isnotnull(c_current_addr_sk#32539))
+            :        +- RelationV2[c_customer_sk#32535, c_current_addr_sk#32539, c_first_name#32543, c_last_name#32544] spark_catalog.tpcds_iceberg_10g.customer
+            +- Filter (isnotnull(ca_address_sk#32553) AND isnotnull(ca_city#32559))
+               +- RelationV2[ca_address_sk#32553, ca_city#32559] spark_catalog.tpcds_iceberg_10g.customer_address
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[c_last_name#32544 ASC NULLS FIRST,ss_ticket_number#32445L ASC NULLS FIRST], output=[c_last_name#32544,c_first_name#32543,ca_city#32559,bought_city#32433,ss_ticket_number#32445L,extended_price#32434,extended_tax#32436,list_price#32435])
+   +- Project [c_last_name#32544, c_first_name#32543, ca_city#32559, bought_city#32433, ss_ticket_number#32445L, extended_price#32434, extended_tax#32436, list_price#32435]
+      +- BroadcastHashJoin [c_current_addr_sk#32539], [ca_address_sk#32553], Inner, BuildRight, NOT (ca_city#32559 = bought_city#32433), false
+         :- Project [ss_ticket_number#32445L, bought_city#32433, extended_price#32434, list_price#32435, extended_tax#32436, c_current_addr_sk#32539, c_first_name#32543, c_last_name#32544]
+         :  +- SortMergeJoin [ss_customer_sk#32439], [c_customer_sk#32535], Inner
+         :     :- Sort [ss_customer_sk#32439 ASC NULLS FIRST], false, 0
+         :     :  +- Exchange hashpartitioning(ss_customer_sk#32439, 200), ENSURE_REQUIREMENTS, [plan_id=24567]
+         :     :     +- HashAggregate(keys=[ss_ticket_number#32445L, ss_customer_sk#32439, ss_addr_sk#32442, ca_city#32528], functions=[sum(UnscaledValue(ss_ext_sales_price#32451)), sum(UnscaledValue(ss_ext_list_price#32453)), sum(UnscaledValue(ss_ext_tax#32454))], output=[ss_ticket_number#32445L, ss_customer_sk#32439, bought_city#32433, extended_price#32434, list_price#32435, extended_tax#32436])
+         :     :        +- Exchange hashpartitioning(ss_ticket_number#32445L, ss_customer_sk#32439, ss_addr_sk#32442, ca_city#32528, 200), ENSURE_REQUIREMENTS, [plan_id=24563]
+         :     :           +- HashAggregate(keys=[ss_ticket_number#32445L, ss_customer_sk#32439, ss_addr_sk#32442, ca_city#32528], functions=[partial_sum(UnscaledValue(ss_ext_sales_price#32451)), partial_sum(UnscaledValue(ss_ext_list_price#32453)), partial_sum(UnscaledValue(ss_ext_tax#32454))], output=[ss_ticket_number#32445L, ss_customer_sk#32439, ss_addr_sk#32442, ca_city#32528, sum#32641L, sum#32642L, sum#32643L])
+         :     :              +- Project [ss_customer_sk#32439, ss_addr_sk#32442, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454, ca_city#32528]
+         :     :                 +- BroadcastHashJoin [ss_addr_sk#32442], [ca_address_sk#32522], Inner, BuildRight, false
+         :     :                    :- Project [ss_customer_sk#32439, ss_addr_sk#32442, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454]
+         :     :                    :  +- BroadcastHashJoin [ss_hdemo_sk#32441], [hd_demo_sk#32517], Inner, BuildRight, false
+         :     :                    :     :- Project [ss_customer_sk#32439, ss_hdemo_sk#32441, ss_addr_sk#32442, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454]
+         :     :                    :     :  +- BroadcastHashJoin [ss_store_sk#32443], [s_store_sk#32488], Inner, BuildRight, false
+         :     :                    :     :     :- Project [ss_customer_sk#32439, ss_hdemo_sk#32441, ss_addr_sk#32442, ss_store_sk#32443, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454]
+         :     :                    :     :     :  +- BroadcastHashJoin [ss_sold_date_sk#32459], [d_date_sk#32460], Inner, BuildRight, false
+         :     :                    :     :     :     :- Filter ((((isnotnull(ss_sold_date_sk#32459) AND isnotnull(ss_store_sk#32443)) AND isnotnull(ss_hdemo_sk#32441)) AND isnotnull(ss_addr_sk#32442)) AND isnotnull(ss_customer_sk#32439))
+         :     :                    :     :     :     :  +- BatchScan[ss_customer_sk#32439, ss_hdemo_sk#32441, ss_addr_sk#32442, ss_store_sk#32443, ss_ticket_number#32445L, ss_ext_sales_price#32451, ss_ext_list_price#32453, ss_ext_tax#32454, ss_sold_date_sk#32459] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sold_date_sk IS NOT NULL, ss_store_sk IS NOT NULL, ss_hdemo_sk IS NOT NULL, ss_addr_sk IS NOT NULL, ss_customer_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#32459 IN dynamicpruning#32637)]
+         :     :                    :     :     :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#32637, 0, true, Project [d_date_sk#32460], [d_date_sk#32460]
+         :     :                    :     :     :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :     :                    :     :     :     :              +- Project [d_date_sk#32460]
+         :     :                    :     :     :     :                 +- Filter ((((isnotnull(d_dom#32469) AND (d_dom#32469 >= 1)) AND (d_dom#32469 <= 2)) AND d_year#32466 IN (1998,1999,2000)) AND isnotnull(d_date_sk#32460))
+         :     :                    :     :     :     :                    +- BatchScan[d_date_sk#32460, d_year#32466, d_dom#32469] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_dom IS NOT NULL, d_dom >= 1, d_dom <= 2, d_year IN (1998, 1999, 2000), d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     :                    :     :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=24546]
+         :     :                    :     :     :        +- Project [d_date_sk#32460]
+         :     :                    :     :     :           +- Filter ((((isnotnull(d_dom#32469) AND (d_dom#32469 >= 1)) AND (d_dom#32469 <= 2)) AND d_year#32466 IN (1998,1999,2000)) AND isnotnull(d_date_sk#32460))
+         :     :                    :     :     :              +- BatchScan[d_date_sk#32460, d_year#32466, d_dom#32469] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_dom IS NOT NULL, d_dom >= 1, d_dom <= 2, d_year IN (1998, 1999, 2000), d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     :                    :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=24550]
+         :     :                    :     :        +- Project [s_store_sk#32488]
+         :     :                    :     :           +- Filter (s_city#32510 IN (Cedar Grove,Wildwood) AND isnotnull(s_store_sk#32488))
+         :     :                    :     :              +- BatchScan[s_store_sk#32488, s_city#32510] spark_catalog.tpcds_iceberg_10g.store [filters=s_city IN ('Cedar Grove', 'Wildwood'), s_store_sk IS NOT NULL] RuntimeFilters: []
+         :     :                    :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=24554]
+         :     :                    :        +- Project [hd_demo_sk#32517]
+         :     :                    :           +- Filter (((hd_dep_count#32520 = 2) OR (hd_vehicle_count#32521 = 1)) AND isnotnull(hd_demo_sk#32517))
+         :     :                    :              +- BatchScan[hd_demo_sk#32517, hd_dep_count#32520, hd_vehicle_count#32521] spark_catalog.tpcds_iceberg_10g.household_demographics [filters=(hd_dep_count = 2 OR hd_vehicle_count = 1), hd_demo_sk IS NOT NULL] RuntimeFilters: []
+         :     :                    +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=24558]
+         :     :                       +- Filter (isnotnull(ca_address_sk#32522) AND isnotnull(ca_city#32528))
+         :     :                          +- BatchScan[ca_address_sk#32522, ca_city#32528] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL, ca_city IS NOT NULL] RuntimeFilters: []
+         :     +- Sort [c_customer_sk#32535 ASC NULLS FIRST], false, 0
+         :        +- Exchange hashpartitioning(c_customer_sk#32535, 200), ENSURE_REQUIREMENTS, [plan_id=24568]
+         :           +- Filter (isnotnull(c_customer_sk#32535) AND isnotnull(c_current_addr_sk#32539))
+         :              +- BatchScan[c_customer_sk#32535, c_current_addr_sk#32539, c_first_name#32543, c_last_name#32544] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL, c_current_addr_sk IS NOT NULL] RuntimeFilters: []
+         +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=24574]
+            +- Filter (isnotnull(ca_address_sk#32553) AND isnotnull(ca_city#32559))
+               +- BatchScan[ca_address_sk#32553, ca_city#32559] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL, ca_city IS NOT NULL] RuntimeFilters: []
+

@@ -1,0 +1,35 @@
+== Optimized Logical Plan ==
+Aggregate [ca_country#9093], [ca_country#9093, cast((avg(UnscaledValue(cs_sales_price#9116)) / 100.0) as decimal(11,6)) AS avg_sales_price#9081]
++- Project [ca_country#9093, cs_sales_price#9116]
+   +- Join Inner, (ca_address_sk#9083 = cs_bill_addr_sk#9101)
+      :- Join LeftSemi, (ca_country#9093 = ca_country#9140)
+      :  :- Filter isnotnull(ca_address_sk#9083)
+      :  :  +- RelationV2[ca_address_sk#9083, ca_country#9093] spark_catalog.tpcds_iceberg_10g.customer_address
+      :  +- Aggregate [ca_country#9140], [ca_country#9140]
+      :     +- Project [ca_country#9140]
+      :        +- Filter ca_state#9138 IN (NY,CA,TX)
+      :           +- RelationV2[ca_state#9138, ca_country#9140] spark_catalog.tpcds_iceberg_10g.customer_address
+      +- Filter isnotnull(cs_bill_addr_sk#9101)
+         +- RelationV2[cs_bill_addr_sk#9101, cs_sales_price#9116] spark_catalog.tpcds_iceberg_10g.catalog_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[ca_country#9093], functions=[avg(UnscaledValue(cs_sales_price#9116))], output=[ca_country#9093, avg_sales_price#9081])
+   +- Exchange hashpartitioning(ca_country#9093, 200), ENSURE_REQUIREMENTS, [plan_id=6753]
+      +- HashAggregate(keys=[ca_country#9093], functions=[partial_avg(UnscaledValue(cs_sales_price#9116))], output=[ca_country#9093, sum#9169, count#9170L])
+         +- Project [ca_country#9093, cs_sales_price#9116]
+            +- BroadcastHashJoin [ca_address_sk#9083], [cs_bill_addr_sk#9101], Inner, BuildLeft, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=6748]
+               :  +- BroadcastHashJoin [ca_country#9093], [ca_country#9140], LeftSemi, BuildRight, false
+               :     :- Filter isnotnull(ca_address_sk#9083)
+               :     :  +- BatchScan[ca_address_sk#9083, ca_country#9093] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL] RuntimeFilters: []
+               :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, true]),false), [plan_id=6745]
+               :        +- HashAggregate(keys=[ca_country#9140], functions=[], output=[ca_country#9140])
+               :           +- HashAggregate(keys=[ca_country#9140], functions=[], output=[ca_country#9140])
+               :              +- Project [ca_country#9140]
+               :                 +- Filter ca_state#9138 IN (NY,CA,TX)
+               :                    +- BatchScan[ca_state#9138, ca_country#9140] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_state IN ('NY', 'CA', 'TX')] RuntimeFilters: []
+               +- Filter isnotnull(cs_bill_addr_sk#9101)
+                  +- BatchScan[cs_bill_addr_sk#9101, cs_sales_price#9116] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_bill_addr_sk IS NOT NULL] RuntimeFilters: []
+

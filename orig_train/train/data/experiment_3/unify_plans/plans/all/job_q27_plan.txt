@@ -1,0 +1,38 @@
+== Optimized Logical Plan ==
+Sort [company_count#14249L DESC NULLS LAST], true
++- Aggregate [title#14251], [title#14251, count(distinct id#14267L) AS company_count#14249L]
+   +- Project [title#14251, id#14267L]
+      +- Join Inner, (company_id#14264L = id#14267L)
+         :- Project [title#14251, company_id#14264L]
+         :  +- Join Inner, (id#14250L = movie_id#14263L)
+         :     :- Project [id#14250L, title#14251]
+         :     :  +- Filter (((isnotnull(production_year#14254L) AND (production_year#14254L >= 1980)) AND (production_year#14254L <= 1990)) AND isnotnull(id#14250L))
+         :     :     +- RelationV2[id#14250L, title#14251, production_year#14254L] spark_catalog.job_iceberg_10g.title
+         :     +- Filter (isnotnull(movie_id#14263L) AND isnotnull(company_id#14264L))
+         :        +- RelationV2[movie_id#14263L, company_id#14264L] spark_catalog.job_iceberg_10g.movie_companies
+         +- Filter isnotnull(id#14267L)
+            +- RelationV2[id#14267L] spark_catalog.job_iceberg_10g.company_name
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [company_count#14249L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[title#14251], functions=[count(distinct id#14267L)], output=[title#14251, company_count#14249L])
+      +- HashAggregate(keys=[title#14251], functions=[partial_count(distinct id#14267L)], output=[title#14251, count#14300L])
+         +- HashAggregate(keys=[title#14251, id#14267L], functions=[], output=[title#14251, id#14267L])
+            +- HashAggregate(keys=[title#14251, id#14267L], functions=[], output=[title#14251, id#14267L])
+               +- Project [title#14251, id#14267L]
+                  +- BroadcastHashJoin [company_id#14264L], [id#14267L], Inner, BuildRight, false
+                     :- Project [title#14251, company_id#14264L]
+                     :  +- SortMergeJoin [id#14250L], [movie_id#14263L], Inner
+                     :     :- Sort [id#14250L ASC NULLS FIRST], false, 0
+                     :     :  +- Project [id#14250L, title#14251]
+                     :     :     +- Filter (((isnotnull(production_year#14254L) AND (production_year#14254L >= 1980)) AND (production_year#14254L <= 1990)) AND isnotnull(id#14250L))
+                     :     :        +- BatchScan[id#14250L, title#14251, production_year#14254L] spark_catalog.job_iceberg_10g.title [filters=production_year IS NOT NULL, production_year >= 1980, production_year <= 1990, id IS NOT NULL] RuntimeFilters: []
+                     :     +- Sort [movie_id#14263L ASC NULLS FIRST], false, 0
+                     :        +- Filter (isnotnull(movie_id#14263L) AND isnotnull(company_id#14264L))
+                     :           +- BatchScan[movie_id#14263L, company_id#14264L] spark_catalog.job_iceberg_10g.movie_companies [filters=movie_id IS NOT NULL, company_id IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=13986]
+                        +- Filter isnotnull(id#14267L)
+                           +- BatchScan[id#14267L] spark_catalog.job_iceberg_10g.company_name [filters=id IS NOT NULL] RuntimeFilters: []
+

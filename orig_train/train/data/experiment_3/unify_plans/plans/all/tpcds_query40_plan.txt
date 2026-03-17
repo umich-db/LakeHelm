@@ -1,0 +1,65 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [w_state#22285 ASC NULLS FIRST, i_item_id#22290 ASC NULLS FIRST], true
+      +- Aggregate [w_state#22285, i_item_id#22290], [w_state#22285, i_item_id#22290, sum(CASE WHEN (d_date#22313 < 1998-04-08) THEN CheckOverflow((promote_precision(cast(cs_sales_price#22234 as decimal(13,2))) - promote_precision(cast(coalesce(cast(cr_refunded_cash#22270 as decimal(12,2)), 0.00) as decimal(13,2)))), DecimalType(13,2)) ELSE 0.00 END) AS sales_before#22212, sum(CASE WHEN (d_date#22313 >= 1998-04-08) THEN CheckOverflow((promote_precision(cast(cs_sales_price#22234 as decimal(13,2))) - promote_precision(cast(coalesce(cast(cr_refunded_cash#22270 as decimal(12,2)), 0.00) as decimal(13,2)))), DecimalType(13,2)) ELSE 0.00 END) AS sales_after#22213]
+         +- Project [cs_sales_price#22234, cr_refunded_cash#22270, w_state#22285, i_item_id#22290, d_date#22313]
+            +- Join Inner, (cs_sold_date_sk#22247 = d_date_sk#22311)
+               :- Project [cs_sales_price#22234, cs_sold_date_sk#22247, cr_refunded_cash#22270, w_state#22285, i_item_id#22290]
+               :  +- Join Inner, (i_item_sk#22289 = cs_item_sk#22228)
+               :     :- Project [cs_item_sk#22228, cs_sales_price#22234, cs_sold_date_sk#22247, cr_refunded_cash#22270, w_state#22285]
+               :     :  +- Join Inner, (cs_warehouse_sk#22227 = w_warehouse_sk#22275)
+               :     :     :- Project [cs_warehouse_sk#22227, cs_item_sk#22228, cs_sales_price#22234, cs_sold_date_sk#22247, cr_refunded_cash#22270]
+               :     :     :  +- Join LeftOuter, ((cs_order_number#22230L = cr_order_number#22263L) AND (cs_item_sk#22228 = cr_item_sk#22249))
+               :     :     :     :- Filter (((isnotnull(cs_warehouse_sk#22227) AND isnotnull(cs_item_sk#22228)) AND isnotnull(cs_sold_date_sk#22247)) AND dynamicpruning#22385 [cs_sold_date_sk#22247])
+               :     :     :     :  :  +- Filter (((isnotnull(d_date#22313) AND (d_date#22313 >= 1998-03-09)) AND (d_date#22313 <= 1998-05-08)) AND isnotnull(d_date_sk#22311))
+               :     :     :     :  :     +- RelationV2[d_date_sk#22311, d_date#22313] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     :     :  +- RelationV2[cs_warehouse_sk#22227, cs_item_sk#22228, cs_order_number#22230L, cs_sales_price#22234, cs_sold_date_sk#22247] spark_catalog.tpcds_iceberg_10g.catalog_sales
+               :     :     :     +- Filter (isnotnull(cr_order_number#22263L) AND isnotnull(cr_item_sk#22249))
+               :     :     :        +- RelationV2[cr_item_sk#22249, cr_order_number#22263L, cr_refunded_cash#22270] spark_catalog.tpcds_iceberg_10g.catalog_returns
+               :     :     +- Filter isnotnull(w_warehouse_sk#22275)
+               :     :        +- RelationV2[w_warehouse_sk#22275, w_state#22285] spark_catalog.tpcds_iceberg_10g.warehouse
+               :     +- Project [i_item_sk#22289, i_item_id#22290]
+               :        +- Filter (((isnotnull(i_current_price#22294) AND (i_current_price#22294 >= 0.99)) AND (i_current_price#22294 <= 1.49)) AND isnotnull(i_item_sk#22289))
+               :           +- RelationV2[i_item_sk#22289, i_item_id#22290, i_current_price#22294] spark_catalog.tpcds_iceberg_10g.item
+               +- Filter (((isnotnull(d_date#22313) AND (d_date#22313 >= 1998-03-09)) AND (d_date#22313 <= 1998-05-08)) AND isnotnull(d_date_sk#22311))
+                  +- RelationV2[d_date_sk#22311, d_date#22313] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[w_state#22285 ASC NULLS FIRST,i_item_id#22290 ASC NULLS FIRST], output=[w_state#22285,i_item_id#22290,sales_before#22212,sales_after#22213])
+   +- HashAggregate(keys=[w_state#22285, i_item_id#22290], functions=[sum(CASE WHEN (d_date#22313 < 1998-04-08) THEN CheckOverflow((promote_precision(cast(cs_sales_price#22234 as decimal(13,2))) - promote_precision(cast(coalesce(cast(cr_refunded_cash#22270 as decimal(12,2)), 0.00) as decimal(13,2)))), DecimalType(13,2)) ELSE 0.00 END), sum(CASE WHEN (d_date#22313 >= 1998-04-08) THEN CheckOverflow((promote_precision(cast(cs_sales_price#22234 as decimal(13,2))) - promote_precision(cast(coalesce(cast(cr_refunded_cash#22270 as decimal(12,2)), 0.00) as decimal(13,2)))), DecimalType(13,2)) ELSE 0.00 END)], output=[w_state#22285, i_item_id#22290, sales_before#22212, sales_after#22213])
+      +- Exchange hashpartitioning(w_state#22285, i_item_id#22290, 200), ENSURE_REQUIREMENTS, [plan_id=17082]
+         +- HashAggregate(keys=[w_state#22285, i_item_id#22290], functions=[partial_sum(CASE WHEN (d_date#22313 < 1998-04-08) THEN CheckOverflow((promote_precision(cast(cs_sales_price#22234 as decimal(13,2))) - promote_precision(cast(coalesce(cast(cr_refunded_cash#22270 as decimal(12,2)), 0.00) as decimal(13,2)))), DecimalType(13,2)) ELSE 0.00 END), partial_sum(CASE WHEN (d_date#22313 >= 1998-04-08) THEN CheckOverflow((promote_precision(cast(cs_sales_price#22234 as decimal(13,2))) - promote_precision(cast(coalesce(cast(cr_refunded_cash#22270 as decimal(12,2)), 0.00) as decimal(13,2)))), DecimalType(13,2)) ELSE 0.00 END)], output=[w_state#22285, i_item_id#22290, sum#22390, isEmpty#22391, sum#22392, isEmpty#22393])
+            +- Project [cs_sales_price#22234, cr_refunded_cash#22270, w_state#22285, i_item_id#22290, d_date#22313]
+               +- BroadcastHashJoin [cs_sold_date_sk#22247], [d_date_sk#22311], Inner, BuildRight, false
+                  :- Project [cs_sales_price#22234, cs_sold_date_sk#22247, cr_refunded_cash#22270, w_state#22285, i_item_id#22290]
+                  :  +- BroadcastHashJoin [cs_item_sk#22228], [i_item_sk#22289], Inner, BuildRight, false
+                  :     :- Project [cs_item_sk#22228, cs_sales_price#22234, cs_sold_date_sk#22247, cr_refunded_cash#22270, w_state#22285]
+                  :     :  +- BroadcastHashJoin [cs_warehouse_sk#22227], [w_warehouse_sk#22275], Inner, BuildRight, false
+                  :     :     :- Project [cs_warehouse_sk#22227, cs_item_sk#22228, cs_sales_price#22234, cs_sold_date_sk#22247, cr_refunded_cash#22270]
+                  :     :     :  +- SortMergeJoin [cs_order_number#22230L, cs_item_sk#22228], [cr_order_number#22263L, cr_item_sk#22249], LeftOuter
+                  :     :     :     :- Sort [cs_order_number#22230L ASC NULLS FIRST, cs_item_sk#22228 ASC NULLS FIRST], false, 0
+                  :     :     :     :  +- Exchange hashpartitioning(cs_order_number#22230L, cs_item_sk#22228, 200), ENSURE_REQUIREMENTS, [plan_id=17062]
+                  :     :     :     :     +- Filter ((isnotnull(cs_warehouse_sk#22227) AND isnotnull(cs_item_sk#22228)) AND isnotnull(cs_sold_date_sk#22247))
+                  :     :     :     :        +- BatchScan[cs_warehouse_sk#22227, cs_item_sk#22228, cs_order_number#22230L, cs_sales_price#22234, cs_sold_date_sk#22247] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_warehouse_sk IS NOT NULL, cs_item_sk IS NOT NULL, cs_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cs_sold_date_sk#22247 IN dynamicpruning#22385)]
+                  :     :     :     :              +- SubqueryAdaptiveBroadcast dynamicpruning#22385, 0, true, Filter (((isnotnull(d_date#22313) AND (d_date#22313 >= 1998-03-09)) AND (d_date#22313 <= 1998-05-08)) AND isnotnull(d_date_sk#22311)), [d_date_sk#22311]
+                  :     :     :     :                 +- AdaptiveSparkPlan isFinalPlan=false
+                  :     :     :     :                    +- Filter (((isnotnull(d_date#22313) AND (d_date#22313 >= 1998-03-09)) AND (d_date#22313 <= 1998-05-08)) AND isnotnull(d_date_sk#22311))
+                  :     :     :     :                       +- BatchScan[d_date_sk#22311, d_date#22313] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date >= 10294, d_date <= 10354, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     :     +- Sort [cr_order_number#22263L ASC NULLS FIRST, cr_item_sk#22249 ASC NULLS FIRST], false, 0
+                  :     :     :        +- Exchange hashpartitioning(cr_order_number#22263L, cr_item_sk#22249, 200), ENSURE_REQUIREMENTS, [plan_id=17063]
+                  :     :     :           +- Filter (isnotnull(cr_order_number#22263L) AND isnotnull(cr_item_sk#22249))
+                  :     :     :              +- BatchScan[cr_item_sk#22249, cr_order_number#22263L, cr_refunded_cash#22270] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=cr_order_number IS NOT NULL, cr_item_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=17069]
+                  :     :        +- Filter isnotnull(w_warehouse_sk#22275)
+                  :     :           +- BatchScan[w_warehouse_sk#22275, w_state#22285] spark_catalog.tpcds_iceberg_10g.warehouse [filters=w_warehouse_sk IS NOT NULL] RuntimeFilters: []
+                  :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=17073]
+                  :        +- Project [i_item_sk#22289, i_item_id#22290]
+                  :           +- Filter (((isnotnull(i_current_price#22294) AND (i_current_price#22294 >= 0.99)) AND (i_current_price#22294 <= 1.49)) AND isnotnull(i_item_sk#22289))
+                  :              +- BatchScan[i_item_sk#22289, i_item_id#22290, i_current_price#22294] spark_catalog.tpcds_iceberg_10g.item [filters=i_current_price IS NOT NULL, i_current_price >= 0.99, i_current_price <= 1.49, i_item_sk IS NOT NULL] RuntimeFilters: []
+                  +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=17077]
+                     +- Filter (((isnotnull(d_date#22313) AND (d_date#22313 >= 1998-03-09)) AND (d_date#22313 <= 1998-05-08)) AND isnotnull(d_date_sk#22311))
+                        +- BatchScan[d_date_sk#22311, d_date#22313] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date >= 10294, d_date <= 10354, d_date_sk IS NOT NULL] RuntimeFilters: []
+

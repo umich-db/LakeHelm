@@ -1,0 +1,125 @@
+== Parsed Logical Plan ==
+'Sort ['supp_nation ASC NULLS FIRST, 'cust_nation ASC NULLS FIRST, 'l_year ASC NULLS FIRST], true
++- 'Aggregate ['supp_nation, 'cust_nation, 'l_year], ['supp_nation, 'cust_nation, 'l_year, 'sum('volume) AS revenue#14497]
+   +- 'SubqueryAlias shipping
+      +- 'Project ['n1.n_name AS supp_nation#14493, 'n2.n_name AS cust_nation#14494, 'extract(year, 'date('l_shipdate)) AS l_year#14495, ('l_extendedprice * (1 - 'l_discount)) AS volume#14496]
+         +- 'Filter (((('s_suppkey = 'l_suppkey) AND ('o_orderkey = 'l_orderkey)) AND (('c_custkey = 'o_custkey) AND ('s_nationkey = 'n1.n_nationkey))) AND ((('c_nationkey = 'n2.n_nationkey) AND ((('n1.n_name = GERMANY) AND ('n2.n_name = ROMANIA)) OR (('n1.n_name = ROMANIA) AND ('n2.n_name = GERMANY)))) AND (('date('l_shipdate) >= 1995-01-01) AND ('date('l_shipdate) <= 1996-12-31))))
+            +- 'Join Inner
+               :- 'Join Inner
+               :  :- 'Join Inner
+               :  :  :- 'Join Inner
+               :  :  :  :- 'Join Inner
+               :  :  :  :  :- 'UnresolvedRelation [supplier], [], false
+               :  :  :  :  +- 'UnresolvedRelation [lineitem], [], false
+               :  :  :  +- 'UnresolvedRelation [orders], [], false
+               :  :  +- 'UnresolvedRelation [customer], [], false
+               :  +- 'SubqueryAlias n1
+               :     +- 'UnresolvedRelation [nation], [], false
+               +- 'SubqueryAlias n2
+                  +- 'UnresolvedRelation [nation], [], false
+
+== Analyzed Logical Plan ==
+supp_nation: string, cust_nation: string, l_year: int, revenue: double
+Sort [supp_nation#14493 ASC NULLS FIRST, cust_nation#14494 ASC NULLS FIRST, l_year#14495 ASC NULLS FIRST], true
++- Aggregate [supp_nation#14493, cust_nation#14494, l_year#14495], [supp_nation#14493, cust_nation#14494, l_year#14495, sum(volume#14496) AS revenue#14497]
+   +- SubqueryAlias shipping
+      +- Project [n_name#14545 AS supp_nation#14493, n_name#14549 AS cust_nation#14494, extract(year, cast(l_shipdate#14521 as date)) AS l_year#14495, (l_extendedprice#14516 * (cast(1 as double) - l_discount#14517)) AS volume#14496]
+         +- Filter ((((s_suppkey#14504L = l_suppkey#14513L) AND (o_orderkey#14527L = l_orderkey#14511L)) AND ((c_custkey#14536L = o_custkey#14528L) AND (s_nationkey#14507L = n_nationkey#14544L))) AND (((c_nationkey#14539L = n_nationkey#14548L) AND (((n_name#14545 = GERMANY) AND (n_name#14549 = ROMANIA)) OR ((n_name#14545 = ROMANIA) AND (n_name#14549 = GERMANY)))) AND ((cast(l_shipdate#14521 as date) >= 1995-01-01) AND (cast(l_shipdate#14521 as date) <= 1996-12-31))))
+            +- Join Inner
+               :- Join Inner
+               :  :- Join Inner
+               :  :  :- Join Inner
+               :  :  :  :- Join Inner
+               :  :  :  :  :- SubqueryAlias spark_catalog.tpch_iceberg_10g.supplier
+               :  :  :  :  :  +- RelationV2[s_suppkey#14504L, s_name#14505, s_address#14506, s_nationkey#14507L, s_phone#14508, s_acctbal#14509, s_comment#14510] spark_catalog.tpch_iceberg_10g.supplier
+               :  :  :  :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+               :  :  :  :     +- RelationV2[l_orderkey#14511L, l_partkey#14512L, l_suppkey#14513L, l_linenumber#14514L, l_quantity#14515L, l_extendedprice#14516, l_discount#14517, l_tax#14518, l_returnflag#14519, l_linestatus#14520, l_shipdate#14521, l_commitdate#14522, l_receiptdate#14523, l_shipinstruct#14524, l_shipmode#14525, l_comment#14526] spark_catalog.tpch_iceberg_10g.lineitem
+               :  :  :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.orders
+               :  :  :     +- RelationV2[o_orderkey#14527L, o_custkey#14528L, o_orderstatus#14529, o_totalprice#14530, o_orderdate#14531, o_orderpriority#14532, o_clerk#14533, o_shippriority#14534L, o_comment#14535] spark_catalog.tpch_iceberg_10g.orders
+               :  :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.customer
+               :  :     +- RelationV2[c_custkey#14536L, c_name#14537, c_address#14538, c_nationkey#14539L, c_phone#14540, c_acctbal#14541, c_mktsegment#14542, c_comment#14543] spark_catalog.tpch_iceberg_10g.customer
+               :  +- SubqueryAlias n1
+               :     +- SubqueryAlias spark_catalog.tpch_iceberg_10g.nation
+               :        +- RelationV2[n_nationkey#14544L, n_name#14545, n_regionkey#14546L, n_comment#14547] spark_catalog.tpch_iceberg_10g.nation
+               +- SubqueryAlias n2
+                  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.nation
+                     +- RelationV2[n_nationkey#14548L, n_name#14549, n_regionkey#14550L, n_comment#14551] spark_catalog.tpch_iceberg_10g.nation
+
+== Optimized Logical Plan ==
+Sort [supp_nation#14493 ASC NULLS FIRST, cust_nation#14494 ASC NULLS FIRST, l_year#14495 ASC NULLS FIRST], true
++- Aggregate [supp_nation#14493, cust_nation#14494, l_year#14495], [supp_nation#14493, cust_nation#14494, l_year#14495, sum(volume#14496) AS revenue#14497]
+   +- Project [n_name#14545 AS supp_nation#14493, n_name#14549 AS cust_nation#14494, year(cast(l_shipdate#14521 as date)) AS l_year#14495, (l_extendedprice#14516 * (1.0 - l_discount#14517)) AS volume#14496]
+      +- Join Inner, ((c_nationkey#14539L = n_nationkey#14548L) AND (((n_name#14545 = GERMANY) AND (n_name#14549 = ROMANIA)) OR ((n_name#14545 = ROMANIA) AND (n_name#14549 = GERMANY))))
+         :- Project [l_extendedprice#14516, l_discount#14517, l_shipdate#14521, c_nationkey#14539L, n_name#14545]
+         :  +- Join Inner, (s_nationkey#14507L = n_nationkey#14544L)
+         :     :- Project [s_nationkey#14507L, l_extendedprice#14516, l_discount#14517, l_shipdate#14521, c_nationkey#14539L]
+         :     :  +- Join Inner, (c_custkey#14536L = o_custkey#14528L)
+         :     :     :- Project [s_nationkey#14507L, l_extendedprice#14516, l_discount#14517, l_shipdate#14521, o_custkey#14528L]
+         :     :     :  +- Join Inner, (o_orderkey#14527L = l_orderkey#14511L)
+         :     :     :     :- Project [s_nationkey#14507L, l_orderkey#14511L, l_extendedprice#14516, l_discount#14517, l_shipdate#14521]
+         :     :     :     :  +- Join Inner, (s_suppkey#14504L = l_suppkey#14513L)
+         :     :     :     :     :- Filter ((isnotnull(s_suppkey#14504L) AND isnotnull(s_nationkey#14507L)) AND dynamicpruning#14598 [s_nationkey#14507L])
+         :     :     :     :     :  :  +- Filter (isnotnull(n_nationkey#14544L) AND ((n_name#14545 = GERMANY) OR (n_name#14545 = ROMANIA)))
+         :     :     :     :     :  :     +- RelationV2[n_nationkey#14544L, n_name#14545] spark_catalog.tpch_iceberg_10g.nation
+         :     :     :     :     :  +- RelationV2[s_suppkey#14504L, s_nationkey#14507L] spark_catalog.tpch_iceberg_10g.supplier
+         :     :     :     :     +- Filter (((((cast(l_shipdate#14521 as date) >= 1995-01-01) AND (cast(l_shipdate#14521 as date) <= 1996-12-31)) AND isnotnull(l_shipdate#14521)) AND isnotnull(l_suppkey#14513L)) AND isnotnull(l_orderkey#14511L))
+         :     :     :     :        +- RelationV2[l_orderkey#14511L, l_suppkey#14513L, l_extendedprice#14516, l_discount#14517, l_shipdate#14521] spark_catalog.tpch_iceberg_10g.lineitem
+         :     :     :     +- Filter (isnotnull(o_orderkey#14527L) AND isnotnull(o_custkey#14528L))
+         :     :     :        +- RelationV2[o_orderkey#14527L, o_custkey#14528L] spark_catalog.tpch_iceberg_10g.orders
+         :     :     +- Filter ((isnotnull(c_custkey#14536L) AND isnotnull(c_nationkey#14539L)) AND dynamicpruning#14599 [c_nationkey#14539L])
+         :     :        :  +- Filter (isnotnull(n_nationkey#14548L) AND ((n_name#14549 = ROMANIA) OR (n_name#14549 = GERMANY)))
+         :     :        :     +- RelationV2[n_nationkey#14548L, n_name#14549] spark_catalog.tpch_iceberg_10g.nation
+         :     :        +- RelationV2[c_custkey#14536L, c_nationkey#14539L] spark_catalog.tpch_iceberg_10g.customer
+         :     +- Filter (isnotnull(n_nationkey#14544L) AND ((n_name#14545 = GERMANY) OR (n_name#14545 = ROMANIA)))
+         :        +- RelationV2[n_nationkey#14544L, n_name#14545] spark_catalog.tpch_iceberg_10g.nation
+         +- Filter (isnotnull(n_nationkey#14548L) AND ((n_name#14549 = ROMANIA) OR (n_name#14549 = GERMANY)))
+            +- RelationV2[n_nationkey#14548L, n_name#14549] spark_catalog.tpch_iceberg_10g.nation
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [supp_nation#14493 ASC NULLS FIRST, cust_nation#14494 ASC NULLS FIRST, l_year#14495 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(supp_nation#14493 ASC NULLS FIRST, cust_nation#14494 ASC NULLS FIRST, l_year#14495 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=17259]
+      +- HashAggregate(keys=[supp_nation#14493, cust_nation#14494, l_year#14495], functions=[sum(volume#14496)], output=[supp_nation#14493, cust_nation#14494, l_year#14495, revenue#14497])
+         +- Exchange hashpartitioning(supp_nation#14493, cust_nation#14494, l_year#14495, 200), ENSURE_REQUIREMENTS, [plan_id=17256]
+            +- HashAggregate(keys=[supp_nation#14493, cust_nation#14494, l_year#14495], functions=[partial_sum(volume#14496)], output=[supp_nation#14493, cust_nation#14494, l_year#14495, sum#14601])
+               +- Project [n_name#14545 AS supp_nation#14493, n_name#14549 AS cust_nation#14494, year(cast(l_shipdate#14521 as date)) AS l_year#14495, (l_extendedprice#14516 * (1.0 - l_discount#14517)) AS volume#14496]
+                  +- BroadcastHashJoin [c_nationkey#14539L], [n_nationkey#14548L], Inner, BuildRight, (((n_name#14545 = GERMANY) AND (n_name#14549 = ROMANIA)) OR ((n_name#14545 = ROMANIA) AND (n_name#14549 = GERMANY))), false
+                     :- Project [l_extendedprice#14516, l_discount#14517, l_shipdate#14521, c_nationkey#14539L, n_name#14545]
+                     :  +- BroadcastHashJoin [s_nationkey#14507L], [n_nationkey#14544L], Inner, BuildRight, false
+                     :     :- Project [s_nationkey#14507L, l_extendedprice#14516, l_discount#14517, l_shipdate#14521, c_nationkey#14539L]
+                     :     :  +- SortMergeJoin [o_custkey#14528L], [c_custkey#14536L], Inner
+                     :     :     :- Sort [o_custkey#14528L ASC NULLS FIRST], false, 0
+                     :     :     :  +- Exchange hashpartitioning(o_custkey#14528L, 200), ENSURE_REQUIREMENTS, [plan_id=17240]
+                     :     :     :     +- Project [s_nationkey#14507L, l_extendedprice#14516, l_discount#14517, l_shipdate#14521, o_custkey#14528L]
+                     :     :     :        +- SortMergeJoin [l_orderkey#14511L], [o_orderkey#14527L], Inner
+                     :     :     :           :- Sort [l_orderkey#14511L ASC NULLS FIRST], false, 0
+                     :     :     :           :  +- Exchange hashpartitioning(l_orderkey#14511L, 200), ENSURE_REQUIREMENTS, [plan_id=17232]
+                     :     :     :           :     +- Project [s_nationkey#14507L, l_orderkey#14511L, l_extendedprice#14516, l_discount#14517, l_shipdate#14521]
+                     :     :     :           :        +- BroadcastHashJoin [s_suppkey#14504L], [l_suppkey#14513L], Inner, BuildLeft, false
+                     :     :     :           :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=17227]
+                     :     :     :           :           :  +- Filter (isnotnull(s_suppkey#14504L) AND isnotnull(s_nationkey#14507L))
+                     :     :     :           :           :     +- BatchScan[s_suppkey#14504L, s_nationkey#14507L] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL, s_nationkey IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(s_nationkey#14507L IN dynamicpruning#14598)]
+                     :     :     :           :           :           +- SubqueryAdaptiveBroadcast dynamicpruning#14598, 0, true, Filter (isnotnull(n_nationkey#14544L) AND ((n_name#14545 = GERMANY) OR (n_name#14545 = ROMANIA))), [n_nationkey#14544L]
+                     :     :     :           :           :              +- AdaptiveSparkPlan isFinalPlan=false
+                     :     :     :           :           :                 +- Filter (isnotnull(n_nationkey#14544L) AND ((n_name#14545 = GERMANY) OR (n_name#14545 = ROMANIA)))
+                     :     :     :           :           :                    +- BatchScan[n_nationkey#14544L, n_name#14545] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, (n_name = 'GERMANY' OR n_name = 'ROMANIA')] RuntimeFilters: []
+                     :     :     :           :           +- Filter (((((cast(l_shipdate#14521 as date) >= 1995-01-01) AND (cast(l_shipdate#14521 as date) <= 1996-12-31)) AND isnotnull(l_shipdate#14521)) AND isnotnull(l_suppkey#14513L)) AND isnotnull(l_orderkey#14511L))
+                     :     :     :           :              +- BatchScan[l_orderkey#14511L, l_suppkey#14513L, l_extendedprice#14516, l_discount#14517, l_shipdate#14521] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_suppkey IS NOT NULL, l_orderkey IS NOT NULL] RuntimeFilters: []
+                     :     :     :           +- Sort [o_orderkey#14527L ASC NULLS FIRST], false, 0
+                     :     :     :              +- Exchange hashpartitioning(o_orderkey#14527L, 200), ENSURE_REQUIREMENTS, [plan_id=17233]
+                     :     :     :                 +- Filter (isnotnull(o_orderkey#14527L) AND isnotnull(o_custkey#14528L))
+                     :     :     :                    +- BatchScan[o_orderkey#14527L, o_custkey#14528L] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderkey IS NOT NULL, o_custkey IS NOT NULL] RuntimeFilters: []
+                     :     :     +- Sort [c_custkey#14536L ASC NULLS FIRST], false, 0
+                     :     :        +- Exchange hashpartitioning(c_custkey#14536L, 200), ENSURE_REQUIREMENTS, [plan_id=17241]
+                     :     :           +- Filter (isnotnull(c_custkey#14536L) AND isnotnull(c_nationkey#14539L))
+                     :     :              +- BatchScan[c_custkey#14536L, c_nationkey#14539L] spark_catalog.tpch_iceberg_10g.customer [filters=c_custkey IS NOT NULL, c_nationkey IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(c_nationkey#14539L IN dynamicpruning#14599)]
+                     :     :                    +- SubqueryAdaptiveBroadcast dynamicpruning#14599, 0, true, Filter (isnotnull(n_nationkey#14548L) AND ((n_name#14549 = ROMANIA) OR (n_name#14549 = GERMANY))), [n_nationkey#14548L]
+                     :     :                       +- AdaptiveSparkPlan isFinalPlan=false
+                     :     :                          +- Filter (isnotnull(n_nationkey#14548L) AND ((n_name#14549 = ROMANIA) OR (n_name#14549 = GERMANY)))
+                     :     :                             +- BatchScan[n_nationkey#14548L, n_name#14549] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, (n_name = 'ROMANIA' OR n_name = 'GERMANY')] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=17247]
+                     :        +- Filter (isnotnull(n_nationkey#14544L) AND ((n_name#14545 = GERMANY) OR (n_name#14545 = ROMANIA)))
+                     :           +- BatchScan[n_nationkey#14544L, n_name#14545] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, (n_name = 'GERMANY' OR n_name = 'ROMANIA')] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=17251]
+                        +- Filter (isnotnull(n_nationkey#14548L) AND ((n_name#14549 = ROMANIA) OR (n_name#14549 = GERMANY)))
+                           +- BatchScan[n_nationkey#14548L, n_name#14549] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, (n_name = 'ROMANIA' OR n_name = 'GERMANY')] RuntimeFilters: []

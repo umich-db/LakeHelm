@@ -1,0 +1,18 @@
+=== Optimized Logical Plan ===
+Aggregate [(sum(l_extendedprice#11) / 7.0) AS avg_yearly#41]
++- Project [l_extendedprice#11]
+   +- Join Inner, ((cast(l_quantity#10L as double) < (0.2 * avg(l_quantity))#44) AND (l_partkey#51L = p_partkey#27L))
+      :- Project [l_quantity#10L, l_extendedprice#11, p_partkey#27L]
+      :  +- Join Inner, (p_partkey#27L = l_partkey#7L)
+      :     :- Project [l_partkey#7L, l_quantity#10L, l_extendedprice#11]
+      :     :  +- Filter (isnotnull(l_partkey#7L) AND isnotnull(l_quantity#10L))
+      :     :     +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+      :     +- Project [p_partkey#27L]
+      :        +- Filter (((isnotnull(p_brand#30) AND isnotnull(p_container#33)) AND ((p_brand#30 = Brand#43) AND (p_container#33 = WRAP CAN))) AND isnotnull(p_partkey#27L))
+      :           +- Relation tpch_hudi_10g.part[_hoodie_commit_time#22,_hoodie_commit_seqno#23,_hoodie_record_key#24,_hoodie_partition_path#25,_hoodie_file_name#26,p_partkey#27L,p_name#28,p_mfgr#29,p_brand#30,p_type#31,p_size#32L,p_container#33,p_retailprice#34,p_comment#35] parquet
+      +- Filter isnotnull((0.2 * avg(l_quantity))#44)
+         +- Aggregate [l_partkey#51L], [(0.2 * avg(l_quantity#54L)) AS (0.2 * avg(l_quantity))#44, l_partkey#51L]
+            +- Project [l_partkey#51L, l_quantity#54L]
+               +- Filter isnotnull(l_partkey#51L)
+                  +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#45,_hoodie_commit_seqno#46,_hoodie_record_key#47,_hoodie_partition_path#48,_hoodie_file_name#49,l_orderkey#50L,l_partkey#51L,l_suppkey#52L,l_linenumber#53L,l_quantity#54L,l_extendedprice#55,l_discount#56,l_tax#57,l_returnflag#58,l_linestatus#59,l_shipdate#60,l_commitdate#61,l_receiptdate#62,l_shipinstruct#63,l_shipmode#64,l_comment#65] parquet
+=== Physical Plan ===

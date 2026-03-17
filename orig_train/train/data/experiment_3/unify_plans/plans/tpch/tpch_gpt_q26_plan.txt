@@ -1,0 +1,40 @@
+== Optimized Logical Plan ==
+Sort [max_supplycost#20801 DESC NULLS LAST], true
++- Aggregate [s_name#20803, p_name#20815], [s_name#20803, p_name#20815, max(ps_supplycost#20812) AS max_supplycost#20801]
+   +- Project [s_name#20803, ps_supplycost#20812, p_name#20815]
+      +- Join Inner, (ps_partkey#20809L = p_partkey#20814L)
+         :- Project [s_name#20803, ps_partkey#20809L, ps_supplycost#20812]
+         :  +- Join Inner, (s_suppkey#20802L = ps_suppkey#20810L)
+         :     :- Filter isnotnull(s_suppkey#20802L)
+         :     :  +- RelationV2[s_suppkey#20802L, s_name#20803] spark_catalog.tpch_iceberg_10g.supplier
+         :     +- Filter (isnotnull(ps_suppkey#20810L) AND isnotnull(ps_partkey#20809L))
+         :        +- RelationV2[ps_partkey#20809L, ps_suppkey#20810L, ps_supplycost#20812] spark_catalog.tpch_iceberg_10g.partsupp
+         +- Project [p_partkey#20814L, p_name#20815]
+            +- Filter ((isnotnull(p_type#20818) AND StartsWith(p_type#20818, LARGE)) AND isnotnull(p_partkey#20814L))
+               +- RelationV2[p_partkey#20814L, p_name#20815, p_type#20818] spark_catalog.tpch_iceberg_10g.part
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [max_supplycost#20801 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(max_supplycost#20801 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=23601]
+      +- HashAggregate(keys=[s_name#20803, p_name#20815], functions=[max(ps_supplycost#20812)], output=[s_name#20803, p_name#20815, max_supplycost#20801])
+         +- Exchange hashpartitioning(s_name#20803, p_name#20815, 200), ENSURE_REQUIREMENTS, [plan_id=23598]
+            +- HashAggregate(keys=[s_name#20803, p_name#20815], functions=[partial_max(ps_supplycost#20812)], output=[s_name#20803, p_name#20815, max#20851])
+               +- Project [s_name#20803, ps_supplycost#20812, p_name#20815]
+                  +- SortMergeJoin [ps_partkey#20809L], [p_partkey#20814L], Inner
+                     :- Sort [ps_partkey#20809L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(ps_partkey#20809L, 200), ENSURE_REQUIREMENTS, [plan_id=23590]
+                     :     +- Project [s_name#20803, ps_partkey#20809L, ps_supplycost#20812]
+                     :        +- BroadcastHashJoin [s_suppkey#20802L], [ps_suppkey#20810L], Inner, BuildLeft, false
+                     :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=23585]
+                     :           :  +- Filter isnotnull(s_suppkey#20802L)
+                     :           :     +- BatchScan[s_suppkey#20802L, s_name#20803] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL] RuntimeFilters: []
+                     :           +- Filter (isnotnull(ps_suppkey#20810L) AND isnotnull(ps_partkey#20809L))
+                     :              +- BatchScan[ps_partkey#20809L, ps_suppkey#20810L, ps_supplycost#20812] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_suppkey IS NOT NULL, ps_partkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [p_partkey#20814L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(p_partkey#20814L, 200), ENSURE_REQUIREMENTS, [plan_id=23591]
+                           +- Project [p_partkey#20814L, p_name#20815]
+                              +- Filter ((isnotnull(p_type#20818) AND StartsWith(p_type#20818, LARGE)) AND isnotnull(p_partkey#20814L))
+                                 +- BatchScan[p_partkey#20814L, p_name#20815, p_type#20818] spark_catalog.tpch_iceberg_10g.part [filters=p_type IS NOT NULL, p_type LIKE '"LARGE"%', p_partkey IS NOT NULL] RuntimeFilters: []
+

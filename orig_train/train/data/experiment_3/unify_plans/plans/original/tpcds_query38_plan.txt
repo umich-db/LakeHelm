@@ -1,0 +1,139 @@
+=== Optimized Logical Plan ===
+Aggregate [count(1) AS count(1)#18379L]
++- Project
+   +- Join LeftSemi, (((c_last_name#18209 <=> c_last_name#18369) AND (c_first_name#18208 <=> c_first_name#18368)) AND (d_date#18174 <=> d_date#18334))
+      :- Join LeftSemi, (((c_last_name#18209 <=> c_last_name#18289) AND (c_first_name#18208 <=> c_first_name#18288)) AND (d_date#18174 <=> d_date#18254))
+      :  :- Aggregate [c_last_name#18209, c_first_name#18208, d_date#18174], [c_last_name#18209, c_first_name#18208, d_date#18174]
+      :  :  +- Project [c_last_name#18209, c_first_name#18208, d_date#18174]
+      :  :     +- Join Inner, (ss_customer_sk#18151 = c_customer_sk#18200)
+      :  :        :- Project [ss_customer_sk#18151, d_date#18174]
+      :  :        :  +- Join Inner, (ss_sold_date_sk#18171 = d_date_sk#18172)
+      :  :        :     :- Filter ((isnotnull(ss_sold_date_sk#18171) AND isnotnull(ss_customer_sk#18151)) AND dynamicpruning#18450 [ss_sold_date_sk#18171])
+      :  :        :     :  :  +- Project [d_date_sk#18172, d_date#18174]
+      :  :        :     :  :     +- Filter (((isnotnull(d_month_seq#18175) AND (d_month_seq#18175 >= 1212)) AND (d_month_seq#18175 <= 1223)) AND isnotnull(d_date_sk#18172))
+      :  :        :     :  :        +- RelationV2[d_date_sk#18172, d_date#18174, d_month_seq#18175] spark_catalog.tpcds_iceberg_10g.date_dim
+      :  :        :     :  +- RelationV2[ss_customer_sk#18151, ss_sold_date_sk#18171] spark_catalog.tpcds_iceberg_10g.store_sales
+      :  :        :     +- Project [d_date_sk#18172, d_date#18174]
+      :  :        :        +- Filter (((isnotnull(d_month_seq#18175) AND (d_month_seq#18175 >= 1212)) AND (d_month_seq#18175 <= 1223)) AND isnotnull(d_date_sk#18172))
+      :  :        :           +- RelationV2[d_date_sk#18172, d_date#18174, d_month_seq#18175] spark_catalog.tpcds_iceberg_10g.date_dim
+      :  :        +- Filter isnotnull(c_customer_sk#18200)
+      :  :           +- RelationV2[c_customer_sk#18200, c_first_name#18208, c_last_name#18209] spark_catalog.tpcds_iceberg_10g.customer
+      :  +- Aggregate [c_last_name#18289, c_first_name#18288, d_date#18254], [c_last_name#18289, c_first_name#18288, d_date#18254]
+      :     +- Project [c_last_name#18289, c_first_name#18288, d_date#18254]
+      :        +- Join Inner, (cs_bill_customer_sk#18220 = c_customer_sk#18280)
+      :           :- Project [cs_bill_customer_sk#18220, d_date#18254]
+      :           :  +- Join Inner, (cs_sold_date_sk#18251 = d_date_sk#18252)
+      :           :     :- Filter ((isnotnull(cs_sold_date_sk#18251) AND isnotnull(cs_bill_customer_sk#18220)) AND dynamicpruning#18451 [cs_sold_date_sk#18251])
+      :           :     :  :  +- Project [d_date_sk#18252, d_date#18254]
+      :           :     :  :     +- Filter (((isnotnull(d_month_seq#18255) AND (d_month_seq#18255 >= 1212)) AND (d_month_seq#18255 <= 1223)) AND isnotnull(d_date_sk#18252))
+      :           :     :  :        +- RelationV2[d_date_sk#18252, d_date#18254, d_month_seq#18255] spark_catalog.tpcds_iceberg_10g.date_dim
+      :           :     :  +- RelationV2[cs_bill_customer_sk#18220, cs_sold_date_sk#18251] spark_catalog.tpcds_iceberg_10g.catalog_sales
+      :           :     +- Project [d_date_sk#18252, d_date#18254]
+      :           :        +- Filter (((isnotnull(d_month_seq#18255) AND (d_month_seq#18255 >= 1212)) AND (d_month_seq#18255 <= 1223)) AND isnotnull(d_date_sk#18252))
+      :           :           +- RelationV2[d_date_sk#18252, d_date#18254, d_month_seq#18255] spark_catalog.tpcds_iceberg_10g.date_dim
+      :           +- Filter isnotnull(c_customer_sk#18280)
+      :              +- RelationV2[c_customer_sk#18280, c_first_name#18288, c_last_name#18289] spark_catalog.tpcds_iceberg_10g.customer
+      +- Aggregate [c_last_name#18369, c_first_name#18368, d_date#18334], [c_last_name#18369, c_first_name#18368, d_date#18334]
+         +- Project [c_last_name#18369, c_first_name#18368, d_date#18334]
+            +- Join Inner, (ws_bill_customer_sk#18301 = c_customer_sk#18360)
+               :- Project [ws_bill_customer_sk#18301, d_date#18334]
+               :  +- Join Inner, (ws_sold_date_sk#18331 = d_date_sk#18332)
+               :     :- Filter ((isnotnull(ws_sold_date_sk#18331) AND isnotnull(ws_bill_customer_sk#18301)) AND dynamicpruning#18452 [ws_sold_date_sk#18331])
+               :     :  :  +- Project [d_date_sk#18332, d_date#18334]
+               :     :  :     +- Filter (((isnotnull(d_month_seq#18335) AND (d_month_seq#18335 >= 1212)) AND (d_month_seq#18335 <= 1223)) AND isnotnull(d_date_sk#18332))
+               :     :  :        +- RelationV2[d_date_sk#18332, d_date#18334, d_month_seq#18335] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :  +- RelationV2[ws_bill_customer_sk#18301, ws_sold_date_sk#18331] spark_catalog.tpcds_iceberg_10g.web_sales
+               :     +- Project [d_date_sk#18332, d_date#18334]
+               :        +- Filter (((isnotnull(d_month_seq#18335) AND (d_month_seq#18335 >= 1212)) AND (d_month_seq#18335 <= 1223)) AND isnotnull(d_date_sk#18332))
+               :           +- RelationV2[d_date_sk#18332, d_date#18334, d_month_seq#18335] spark_catalog.tpcds_iceberg_10g.date_dim
+               +- Filter isnotnull(c_customer_sk#18360)
+                  +- RelationV2[c_customer_sk#18360, c_first_name#18368, c_last_name#18369] spark_catalog.tpcds_iceberg_10g.customer
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[count(1)], output=[count(1)#18379L])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=15824]
+      +- HashAggregate(keys=[], functions=[partial_count(1)], output=[count#18454L])
+         +- Project
+            +- SortMergeJoin [coalesce(c_last_name#18209, ), isnull(c_last_name#18209), coalesce(c_first_name#18208, ), isnull(c_first_name#18208), coalesce(d_date#18174, 1970-01-01), isnull(d_date#18174)], [coalesce(c_last_name#18369, ), isnull(c_last_name#18369), coalesce(c_first_name#18368, ), isnull(c_first_name#18368), coalesce(d_date#18334, 1970-01-01), isnull(d_date#18334)], LeftSemi
+               :- SortMergeJoin [coalesce(c_last_name#18209, ), isnull(c_last_name#18209), coalesce(c_first_name#18208, ), isnull(c_first_name#18208), coalesce(d_date#18174, 1970-01-01), isnull(d_date#18174)], [coalesce(c_last_name#18289, ), isnull(c_last_name#18289), coalesce(c_first_name#18288, ), isnull(c_first_name#18288), coalesce(d_date#18254, 1970-01-01), isnull(d_date#18254)], LeftSemi
+               :  :- Sort [coalesce(c_last_name#18209, ) ASC NULLS FIRST, isnull(c_last_name#18209) ASC NULLS FIRST, coalesce(c_first_name#18208, ) ASC NULLS FIRST, isnull(c_first_name#18208) ASC NULLS FIRST, coalesce(d_date#18174, 1970-01-01) ASC NULLS FIRST, isnull(d_date#18174) ASC NULLS FIRST], false, 0
+               :  :  +- Exchange hashpartitioning(coalesce(c_last_name#18209, ), isnull(c_last_name#18209), coalesce(c_first_name#18208, ), isnull(c_first_name#18208), coalesce(d_date#18174, 1970-01-01), isnull(d_date#18174), 200), ENSURE_REQUIREMENTS, [plan_id=15796]
+               :  :     +- HashAggregate(keys=[c_last_name#18209, c_first_name#18208, d_date#18174], functions=[], output=[c_last_name#18209, c_first_name#18208, d_date#18174])
+               :  :        +- Exchange hashpartitioning(c_last_name#18209, c_first_name#18208, d_date#18174, 200), ENSURE_REQUIREMENTS, [plan_id=15777]
+               :  :           +- HashAggregate(keys=[c_last_name#18209, c_first_name#18208, d_date#18174], functions=[], output=[c_last_name#18209, c_first_name#18208, d_date#18174])
+               :  :              +- Project [c_last_name#18209, c_first_name#18208, d_date#18174]
+               :  :                 +- SortMergeJoin [ss_customer_sk#18151], [c_customer_sk#18200], Inner
+               :  :                    :- Sort [ss_customer_sk#18151 ASC NULLS FIRST], false, 0
+               :  :                    :  +- Exchange hashpartitioning(ss_customer_sk#18151, 200), ENSURE_REQUIREMENTS, [plan_id=15769]
+               :  :                    :     +- Project [ss_customer_sk#18151, d_date#18174]
+               :  :                    :        +- BroadcastHashJoin [ss_sold_date_sk#18171], [d_date_sk#18172], Inner, BuildRight, false
+               :  :                    :           :- Filter (isnotnull(ss_sold_date_sk#18171) AND isnotnull(ss_customer_sk#18151))
+               :  :                    :           :  +- BatchScan[ss_customer_sk#18151, ss_sold_date_sk#18171] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sold_date_sk IS NOT NULL, ss_customer_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#18171 IN dynamicpruning#18450)]
+               :  :                    :           :        +- SubqueryAdaptiveBroadcast dynamicpruning#18450, 0, true, Project [d_date_sk#18172, d_date#18174], [d_date_sk#18172]
+               :  :                    :           :           +- AdaptiveSparkPlan isFinalPlan=false
+               :  :                    :           :              +- Project [d_date_sk#18172, d_date#18174]
+               :  :                    :           :                 +- Filter (((isnotnull(d_month_seq#18175) AND (d_month_seq#18175 >= 1212)) AND (d_month_seq#18175 <= 1223)) AND isnotnull(d_date_sk#18172))
+               :  :                    :           :                    +- BatchScan[d_date_sk#18172, d_date#18174, d_month_seq#18175] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IS NOT NULL, d_month_seq >= 1212, d_month_seq <= 1223, d_date_sk IS NOT NULL] RuntimeFilters: []
+               :  :                    :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=15764]
+               :  :                    :              +- Project [d_date_sk#18172, d_date#18174]
+               :  :                    :                 +- Filter (((isnotnull(d_month_seq#18175) AND (d_month_seq#18175 >= 1212)) AND (d_month_seq#18175 <= 1223)) AND isnotnull(d_date_sk#18172))
+               :  :                    :                    +- BatchScan[d_date_sk#18172, d_date#18174, d_month_seq#18175] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IS NOT NULL, d_month_seq >= 1212, d_month_seq <= 1223, d_date_sk IS NOT NULL] RuntimeFilters: []
+               :  :                    +- Sort [c_customer_sk#18200 ASC NULLS FIRST], false, 0
+               :  :                       +- Exchange hashpartitioning(c_customer_sk#18200, 200), ENSURE_REQUIREMENTS, [plan_id=15770]
+               :  :                          +- Filter isnotnull(c_customer_sk#18200)
+               :  :                             +- BatchScan[c_customer_sk#18200, c_first_name#18208, c_last_name#18209] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL] RuntimeFilters: []
+               :  +- Sort [coalesce(c_last_name#18289, ) ASC NULLS FIRST, isnull(c_last_name#18289) ASC NULLS FIRST, coalesce(c_first_name#18288, ) ASC NULLS FIRST, isnull(c_first_name#18288) ASC NULLS FIRST, coalesce(d_date#18254, 1970-01-01) ASC NULLS FIRST, isnull(d_date#18254) ASC NULLS FIRST], false, 0
+               :     +- Exchange hashpartitioning(coalesce(c_last_name#18289, ), isnull(c_last_name#18289), coalesce(c_first_name#18288, ), isnull(c_first_name#18288), coalesce(d_date#18254, 1970-01-01), isnull(d_date#18254), 200), ENSURE_REQUIREMENTS, [plan_id=15797]
+               :        +- HashAggregate(keys=[c_last_name#18289, c_first_name#18288, d_date#18254], functions=[], output=[c_last_name#18289, c_first_name#18288, d_date#18254])
+               :           +- Exchange hashpartitioning(c_last_name#18289, c_first_name#18288, d_date#18254, 200), ENSURE_REQUIREMENTS, [plan_id=15792]
+               :              +- HashAggregate(keys=[c_last_name#18289, c_first_name#18288, d_date#18254], functions=[], output=[c_last_name#18289, c_first_name#18288, d_date#18254])
+               :                 +- Project [c_last_name#18289, c_first_name#18288, d_date#18254]
+               :                    +- SortMergeJoin [cs_bill_customer_sk#18220], [c_customer_sk#18280], Inner
+               :                       :- Sort [cs_bill_customer_sk#18220 ASC NULLS FIRST], false, 0
+               :                       :  +- Exchange hashpartitioning(cs_bill_customer_sk#18220, 200), ENSURE_REQUIREMENTS, [plan_id=15784]
+               :                       :     +- Project [cs_bill_customer_sk#18220, d_date#18254]
+               :                       :        +- BroadcastHashJoin [cs_sold_date_sk#18251], [d_date_sk#18252], Inner, BuildRight, false
+               :                       :           :- Filter (isnotnull(cs_sold_date_sk#18251) AND isnotnull(cs_bill_customer_sk#18220))
+               :                       :           :  +- BatchScan[cs_bill_customer_sk#18220, cs_sold_date_sk#18251] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_sold_date_sk IS NOT NULL, cs_bill_customer_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cs_sold_date_sk#18251 IN dynamicpruning#18451)]
+               :                       :           :        +- SubqueryAdaptiveBroadcast dynamicpruning#18451, 0, true, Project [d_date_sk#18252, d_date#18254], [d_date_sk#18252]
+               :                       :           :           +- AdaptiveSparkPlan isFinalPlan=false
+               :                       :           :              +- Project [d_date_sk#18252, d_date#18254]
+               :                       :           :                 +- Filter (((isnotnull(d_month_seq#18255) AND (d_month_seq#18255 >= 1212)) AND (d_month_seq#18255 <= 1223)) AND isnotnull(d_date_sk#18252))
+               :                       :           :                    +- BatchScan[d_date_sk#18252, d_date#18254, d_month_seq#18255] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IS NOT NULL, d_month_seq >= 1212, d_month_seq <= 1223, d_date_sk IS NOT NULL] RuntimeFilters: []
+               :                       :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=15779]
+               :                       :              +- Project [d_date_sk#18252, d_date#18254]
+               :                       :                 +- Filter (((isnotnull(d_month_seq#18255) AND (d_month_seq#18255 >= 1212)) AND (d_month_seq#18255 <= 1223)) AND isnotnull(d_date_sk#18252))
+               :                       :                    +- BatchScan[d_date_sk#18252, d_date#18254, d_month_seq#18255] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IS NOT NULL, d_month_seq >= 1212, d_month_seq <= 1223, d_date_sk IS NOT NULL] RuntimeFilters: []
+               :                       +- Sort [c_customer_sk#18280 ASC NULLS FIRST], false, 0
+               :                          +- Exchange hashpartitioning(c_customer_sk#18280, 200), ENSURE_REQUIREMENTS, [plan_id=15785]
+               :                             +- Filter isnotnull(c_customer_sk#18280)
+               :                                +- BatchScan[c_customer_sk#18280, c_first_name#18288, c_last_name#18289] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL] RuntimeFilters: []
+               +- Sort [coalesce(c_last_name#18369, ) ASC NULLS FIRST, isnull(c_last_name#18369) ASC NULLS FIRST, coalesce(c_first_name#18368, ) ASC NULLS FIRST, isnull(c_first_name#18368) ASC NULLS FIRST, coalesce(d_date#18334, 1970-01-01) ASC NULLS FIRST, isnull(d_date#18334) ASC NULLS FIRST], false, 0
+                  +- Exchange hashpartitioning(coalesce(c_last_name#18369, ), isnull(c_last_name#18369), coalesce(c_first_name#18368, ), isnull(c_first_name#18368), coalesce(d_date#18334, 1970-01-01), isnull(d_date#18334), 200), ENSURE_REQUIREMENTS, [plan_id=15818]
+                     +- HashAggregate(keys=[c_last_name#18369, c_first_name#18368, d_date#18334], functions=[], output=[c_last_name#18369, c_first_name#18368, d_date#18334])
+                        +- Exchange hashpartitioning(c_last_name#18369, c_first_name#18368, d_date#18334, 200), ENSURE_REQUIREMENTS, [plan_id=15814]
+                           +- HashAggregate(keys=[c_last_name#18369, c_first_name#18368, d_date#18334], functions=[], output=[c_last_name#18369, c_first_name#18368, d_date#18334])
+                              +- Project [c_last_name#18369, c_first_name#18368, d_date#18334]
+                                 +- SortMergeJoin [ws_bill_customer_sk#18301], [c_customer_sk#18360], Inner
+                                    :- Sort [ws_bill_customer_sk#18301 ASC NULLS FIRST], false, 0
+                                    :  +- Exchange hashpartitioning(ws_bill_customer_sk#18301, 200), ENSURE_REQUIREMENTS, [plan_id=15806]
+                                    :     +- Project [ws_bill_customer_sk#18301, d_date#18334]
+                                    :        +- BroadcastHashJoin [ws_sold_date_sk#18331], [d_date_sk#18332], Inner, BuildRight, false
+                                    :           :- Filter (isnotnull(ws_sold_date_sk#18331) AND isnotnull(ws_bill_customer_sk#18301))
+                                    :           :  +- BatchScan[ws_bill_customer_sk#18301, ws_sold_date_sk#18331] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sold_date_sk IS NOT NULL, ws_bill_customer_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#18331 IN dynamicpruning#18452)]
+                                    :           :        +- SubqueryAdaptiveBroadcast dynamicpruning#18452, 0, true, Project [d_date_sk#18332, d_date#18334], [d_date_sk#18332]
+                                    :           :           +- AdaptiveSparkPlan isFinalPlan=false
+                                    :           :              +- Project [d_date_sk#18332, d_date#18334]
+                                    :           :                 +- Filter (((isnotnull(d_month_seq#18335) AND (d_month_seq#18335 >= 1212)) AND (d_month_seq#18335 <= 1223)) AND isnotnull(d_date_sk#18332))
+                                    :           :                    +- BatchScan[d_date_sk#18332, d_date#18334, d_month_seq#18335] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IS NOT NULL, d_month_seq >= 1212, d_month_seq <= 1223, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                    :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=15801]
+                                    :              +- Project [d_date_sk#18332, d_date#18334]
+                                    :                 +- Filter (((isnotnull(d_month_seq#18335) AND (d_month_seq#18335 >= 1212)) AND (d_month_seq#18335 <= 1223)) AND isnotnull(d_date_sk#18332))
+                                    :                    +- BatchScan[d_date_sk#18332, d_date#18334, d_month_seq#18335] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IS NOT NULL, d_month_seq >= 1212, d_month_seq <= 1223, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                    +- Sort [c_customer_sk#18360 ASC NULLS FIRST], false, 0
+                                       +- Exchange hashpartitioning(c_customer_sk#18360, 200), ENSURE_REQUIREMENTS, [plan_id=15807]
+                                          +- Filter isnotnull(c_customer_sk#18360)
+                                             +- BatchScan[c_customer_sk#18360, c_first_name#18368, c_last_name#18369] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL] RuntimeFilters: []
+

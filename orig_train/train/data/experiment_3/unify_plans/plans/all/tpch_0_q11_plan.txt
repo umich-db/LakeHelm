@@ -1,0 +1,32 @@
+=== Optimized Logical Plan ===
+Sort [value#803 DESC NULLS LAST], true
++- Filter (isnotnull(value#803) AND (value#803 > scalar-subquery#804 []))
+   :  +- Aggregate [(sum((ps_supplycost#817 * cast(ps_availqty#816L as double))) * 1.0E-5) AS (sum((ps_supplycost * ps_availqty)) * 0.0000100000)#807]
+   :     +- Project [ps_availqty#816L, ps_supplycost#817]
+   :        +- Join Inner, (s_nationkey#827L = n_nationkey#836L)
+   :           :- Project [ps_availqty#816L, ps_supplycost#817, s_nationkey#827L]
+   :           :  +- Join Inner, (ps_suppkey#815L = s_suppkey#824L)
+   :           :     :- Project [ps_suppkey#815L, ps_availqty#816L, ps_supplycost#817]
+   :           :     :  +- Filter isnotnull(ps_suppkey#815L)
+   :           :     :     +- Relation tpch_hudi_10g.partsupp[_hoodie_commit_time#809,_hoodie_commit_seqno#810,_hoodie_record_key#811,_hoodie_partition_path#812,_hoodie_file_name#813,ps_partkey#814L,ps_suppkey#815L,ps_availqty#816L,ps_supplycost#817,ps_comment#818] parquet
+   :           :     +- Project [s_suppkey#824L, s_nationkey#827L]
+   :           :        +- Filter (isnotnull(s_suppkey#824L) AND isnotnull(s_nationkey#827L))
+   :           :           +- Relation tpch_hudi_10g.supplier[_hoodie_commit_time#819,_hoodie_commit_seqno#820,_hoodie_record_key#821,_hoodie_partition_path#822,_hoodie_file_name#823,s_suppkey#824L,s_name#825,s_address#826,s_nationkey#827L,s_phone#828,s_acctbal#829,s_comment#830] parquet
+   :           +- Project [n_nationkey#836L]
+   :              +- Filter ((isnotnull(n_name#837) AND (n_name#837 = IRAN)) AND isnotnull(n_nationkey#836L))
+   :                 +- Relation tpch_hudi_10g.nation[_hoodie_commit_time#831,_hoodie_commit_seqno#832,_hoodie_record_key#833,_hoodie_partition_path#834,_hoodie_file_name#835,n_nationkey#836L,n_name#837,n_regionkey#838L,n_comment#839] parquet
+   +- Aggregate [ps_partkey#134L], [ps_partkey#134L, sum((ps_supplycost#137 * cast(ps_availqty#136L as double))) AS value#803]
+      +- Project [ps_partkey#134L, ps_availqty#136L, ps_supplycost#137]
+         +- Join Inner, (s_nationkey#125L = n_nationkey#144L)
+            :- Project [ps_partkey#134L, ps_availqty#136L, ps_supplycost#137, s_nationkey#125L]
+            :  +- Join Inner, (ps_suppkey#135L = s_suppkey#122L)
+            :     :- Project [ps_partkey#134L, ps_suppkey#135L, ps_availqty#136L, ps_supplycost#137]
+            :     :  +- Filter isnotnull(ps_suppkey#135L)
+            :     :     +- Relation tpch_hudi_10g.partsupp[_hoodie_commit_time#129,_hoodie_commit_seqno#130,_hoodie_record_key#131,_hoodie_partition_path#132,_hoodie_file_name#133,ps_partkey#134L,ps_suppkey#135L,ps_availqty#136L,ps_supplycost#137,ps_comment#138] parquet
+            :     +- Project [s_suppkey#122L, s_nationkey#125L]
+            :        +- Filter (isnotnull(s_suppkey#122L) AND isnotnull(s_nationkey#125L))
+            :           +- Relation tpch_hudi_10g.supplier[_hoodie_commit_time#117,_hoodie_commit_seqno#118,_hoodie_record_key#119,_hoodie_partition_path#120,_hoodie_file_name#121,s_suppkey#122L,s_name#123,s_address#124,s_nationkey#125L,s_phone#126,s_acctbal#127,s_comment#128] parquet
+            +- Project [n_nationkey#144L]
+               +- Filter ((isnotnull(n_name#145) AND (n_name#145 = IRAN)) AND isnotnull(n_nationkey#144L))
+                  +- Relation tpch_hudi_10g.nation[_hoodie_commit_time#139,_hoodie_commit_seqno#140,_hoodie_record_key#141,_hoodie_partition_path#142,_hoodie_file_name#143,n_nationkey#144L,n_name#145,n_regionkey#146L,n_comment#147] parquet
+=== Physical Plan ===

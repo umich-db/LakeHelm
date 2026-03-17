@@ -1,0 +1,31 @@
+== Optimized Logical Plan ==
+Sort [c_acctbal#24496 DESC NULLS LAST], true
++- Project [c_name#24492, c_acctbal#24496, n_name#24500, r_name#24504]
+   +- Join Inner, (n_regionkey#24501L = r_regionkey#24503L)
+      :- Project [c_name#24492, c_acctbal#24496, n_name#24500, n_regionkey#24501L]
+      :  +- Join Inner, (c_nationkey#24494L = n_nationkey#24499L)
+      :     :- Filter isnotnull(c_nationkey#24494L)
+      :     :  +- RelationV2[c_name#24492, c_nationkey#24494L, c_acctbal#24496] spark_catalog.tpch_iceberg_10g.customer
+      :     +- Filter (isnotnull(n_nationkey#24499L) AND isnotnull(n_regionkey#24501L))
+      :        +- RelationV2[n_nationkey#24499L, n_name#24500, n_regionkey#24501L] spark_catalog.tpch_iceberg_10g.nation
+      +- Filter ((isnotnull(r_name#24504) AND (r_name#24504 = ASIA)) AND isnotnull(r_regionkey#24503L))
+         +- RelationV2[r_regionkey#24503L, r_name#24504] spark_catalog.tpch_iceberg_10g.region
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [c_acctbal#24496 DESC NULLS LAST], true, 0
+   +- Project [c_name#24492, c_acctbal#24496, n_name#24500, r_name#24504]
+      +- BroadcastHashJoin [n_regionkey#24501L], [r_regionkey#24503L], Inner, BuildRight, false
+         :- Project [c_name#24492, c_acctbal#24496, n_name#24500, n_regionkey#24501L]
+         :  +- BroadcastHashJoin [c_nationkey#24494L], [n_nationkey#24499L], Inner, BuildRight, false
+         :     :- Filter isnotnull(c_nationkey#24494L)
+         :     :  +- BatchScan[c_name#24492, c_nationkey#24494L, c_acctbal#24496] spark_catalog.tpch_iceberg_10g.customer [filters=c_nationkey IS NOT NULL] RuntimeFilters: []
+         :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=28962]
+         :        +- Filter (isnotnull(n_nationkey#24499L) AND isnotnull(n_regionkey#24501L))
+         :           +- BatchScan[n_nationkey#24499L, n_name#24500, n_regionkey#24501L] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, n_regionkey IS NOT NULL] RuntimeFilters: []
+         +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=28966]
+            +- Filter ((isnotnull(r_name#24504) AND (r_name#24504 = ASIA)) AND isnotnull(r_regionkey#24503L))
+               +- BatchScan[r_regionkey#24503L, r_name#24504] spark_catalog.tpch_iceberg_10g.region [filters=r_name IS NOT NULL, r_name = 'ASIA', r_regionkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

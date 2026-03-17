@@ -1,0 +1,17 @@
+== Optimized Logical Plan ==
+Project [cs_order_number#5914L, cs_sales_price#5918, percent_rank#5897]
++- Window [percent_rank(cs_sales_price#5918) windowspecdefinition(cs_item_sk#5912, cs_sales_price#5918 DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS percent_rank#5897], [cs_item_sk#5912], [cs_sales_price#5918 DESC NULLS LAST]
+   +- Project [cs_order_number#5914L, cs_sales_price#5918, cs_item_sk#5912]
+      +- Filter (isnotnull(cs_sales_price#5918) AND (cs_sales_price#5918 > 100.00))
+         +- RelationV2[cs_item_sk#5912, cs_order_number#5914L, cs_sales_price#5918] spark_catalog.tpcds_iceberg_10g.catalog_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Project [cs_order_number#5914L, cs_sales_price#5918, percent_rank#5897]
+   +- Window [percent_rank(cs_sales_price#5918) windowspecdefinition(cs_item_sk#5912, cs_sales_price#5918 DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS percent_rank#5897], [cs_item_sk#5912], [cs_sales_price#5918 DESC NULLS LAST]
+      +- Sort [cs_item_sk#5912 ASC NULLS FIRST, cs_sales_price#5918 DESC NULLS LAST], false, 0
+         +- Exchange hashpartitioning(cs_item_sk#5912, 200), ENSURE_REQUIREMENTS, [plan_id=4520]
+            +- Filter (isnotnull(cs_sales_price#5918) AND (cs_sales_price#5918 > 100.00))
+               +- BatchScan[cs_item_sk#5912, cs_order_number#5914L, cs_sales_price#5918] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_sales_price IS NOT NULL, cs_sales_price > 100.00] RuntimeFilters: []
+

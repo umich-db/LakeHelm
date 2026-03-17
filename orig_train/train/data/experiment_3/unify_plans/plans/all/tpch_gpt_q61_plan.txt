@@ -1,0 +1,44 @@
+== Optimized Logical Plan ==
+Sort [num_orders#22638L DESC NULLS LAST], true
++- Aggregate [n_name#22640], [n_name#22640, count(distinct o_orderkey#22651L) AS num_orders#22638L]
+   +- Project [n_name#22640, o_orderkey#22651L]
+      +- Join Inner, (c_custkey#22643L = o_custkey#22652L)
+         :- Project [n_name#22640, c_custkey#22643L]
+         :  +- Join Inner, (n_nationkey#22639L = c_nationkey#22646L)
+         :     :- Filter isnotnull(n_nationkey#22639L)
+         :     :  +- RelationV2[n_nationkey#22639L, n_name#22640] spark_catalog.tpch_iceberg_10g.nation
+         :     +- Filter (isnotnull(c_nationkey#22646L) AND isnotnull(c_custkey#22643L))
+         :        +- RelationV2[c_custkey#22643L, c_nationkey#22646L] spark_catalog.tpch_iceberg_10g.customer
+         +- Project [o_orderkey#22651L, o_custkey#22652L]
+            +- Filter (((isnotnull(o_orderdate#22655) AND (o_orderdate#22655 >= 1998-01-01)) AND (o_orderdate#22655 <= 1998-12-31)) AND isnotnull(o_custkey#22652L))
+               +- RelationV2[o_orderkey#22651L, o_custkey#22652L, o_orderdate#22655] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_orders#22638L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(num_orders#22638L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=26379]
+      +- HashAggregate(keys=[n_name#22640], functions=[count(distinct o_orderkey#22651L)], output=[n_name#22640, num_orders#22638L])
+         +- Exchange hashpartitioning(n_name#22640, 200), ENSURE_REQUIREMENTS, [plan_id=26376]
+            +- HashAggregate(keys=[n_name#22640], functions=[partial_count(distinct o_orderkey#22651L)], output=[n_name#22640, count#22687L])
+               +- HashAggregate(keys=[n_name#22640, o_orderkey#22651L], functions=[], output=[n_name#22640, o_orderkey#22651L])
+                  +- Exchange hashpartitioning(n_name#22640, o_orderkey#22651L, 200), ENSURE_REQUIREMENTS, [plan_id=26372]
+                     +- HashAggregate(keys=[n_name#22640, o_orderkey#22651L], functions=[], output=[n_name#22640, o_orderkey#22651L])
+                        +- Project [n_name#22640, o_orderkey#22651L]
+                           +- SortMergeJoin [c_custkey#22643L], [o_custkey#22652L], Inner
+                              :- Sort [c_custkey#22643L ASC NULLS FIRST], false, 0
+                              :  +- Exchange hashpartitioning(c_custkey#22643L, 200), ENSURE_REQUIREMENTS, [plan_id=26365]
+                              :     +- Project [n_name#22640, c_custkey#22643L]
+                              :        +- BroadcastHashJoin [n_nationkey#22639L], [c_nationkey#22646L], Inner, BuildLeft, false
+                              :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=26359]
+                              :           :  +- Filter isnotnull(n_nationkey#22639L)
+                              :           :     +- BatchScan[n_nationkey#22639L, n_name#22640] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL] RuntimeFilters: []
+                              :           +- Filter (isnotnull(c_nationkey#22646L) AND isnotnull(c_custkey#22643L))
+                              :              +- BatchScan[c_custkey#22643L, c_nationkey#22646L] spark_catalog.tpch_iceberg_10g.customer [filters=c_nationkey IS NOT NULL, c_custkey IS NOT NULL] RuntimeFilters: []
+                              +- Sort [o_custkey#22652L ASC NULLS FIRST], false, 0
+                                 +- Exchange hashpartitioning(o_custkey#22652L, 200), ENSURE_REQUIREMENTS, [plan_id=26364]
+                                    +- Project [o_orderkey#22651L, o_custkey#22652L]
+                                       +- Filter (((isnotnull(o_orderdate#22655) AND (o_orderdate#22655 >= 1998-01-01)) AND (o_orderdate#22655 <= 1998-12-31)) AND isnotnull(o_custkey#22652L))
+                                          +- BatchScan[o_orderkey#22651L, o_custkey#22652L, o_orderdate#22655] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderdate IS NOT NULL, o_orderdate >= '1998-01-01', o_orderdate <= '1998-12-31', o_custkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

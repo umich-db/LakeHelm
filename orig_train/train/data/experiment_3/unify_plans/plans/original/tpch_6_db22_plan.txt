@@ -1,0 +1,70 @@
+== Parsed Logical Plan ==
+'Sort ['cntrycode ASC NULLS FIRST], true
++- 'Aggregate ['cntrycode], ['cntrycode, 'count(1) AS numcust#11918, 'sum('c_acctbal) AS totacctbal#11919]
+   +- 'SubqueryAlias custsale
+      +- 'Project [substring('c_phone, 1, 2) AS cntrycode#11915, 'c_acctbal]
+         +- 'Filter ((substring('c_phone, 1, 2) IN (13,30,23,11,12,27,16) AND ('c_acctbal > scalar-subquery#11916 [])) AND NOT exists#11917 [])
+            :  :- 'Project [unresolvedalias('avg('c_acctbal), None)]
+            :  :  +- 'Filter (('c_acctbal > 0.00) AND substring('c_phone, 1, 2) IN (13,30,23,11,12,27,16))
+            :  :     +- 'UnresolvedRelation [customer], [], false
+            :  +- 'Project [*]
+            :     +- 'Filter ('o_custkey = 'c_custkey)
+            :        +- 'UnresolvedRelation [orders], [], false
+            +- 'UnresolvedRelation [customer], [], false
+
+== Analyzed Logical Plan ==
+cntrycode: string, numcust: bigint, totacctbal: double
+Sort [cntrycode#11915 ASC NULLS FIRST], true
++- Aggregate [cntrycode#11915], [cntrycode#11915, count(1) AS numcust#11918L, sum(c_acctbal#11931) AS totacctbal#11919]
+   +- SubqueryAlias custsale
+      +- Project [substring(c_phone#11930, 1, 2) AS cntrycode#11915, c_acctbal#11931]
+         +- Filter ((substring(c_phone#11930, 1, 2) IN (13,30,23,11,12,27,16) AND (c_acctbal#11931 > scalar-subquery#11916 [])) AND NOT exists#11917 [c_custkey#11926L])
+            :  :- Aggregate [avg(c_acctbal#11940) AS avg(c_acctbal)#11949]
+            :  :  +- Filter ((c_acctbal#11940 > cast(0.00 as double)) AND substring(c_phone#11939, 1, 2) IN (13,30,23,11,12,27,16))
+            :  :     +- SubqueryAlias spark_catalog.tpch_iceberg_10g.customer
+            :  :        +- RelationV2[c_custkey#11935L, c_name#11936, c_address#11937, c_nationkey#11938L, c_phone#11939, c_acctbal#11940, c_mktsegment#11941, c_comment#11942] spark_catalog.tpch_iceberg_10g.customer
+            :  +- Project [o_orderkey#11950L, o_custkey#11951L, o_orderstatus#11952, o_totalprice#11953, o_orderdate#11954, o_orderpriority#11955, o_clerk#11956, o_shippriority#11957L, o_comment#11958]
+            :     +- Filter (o_custkey#11951L = outer(c_custkey#11926L))
+            :        +- SubqueryAlias spark_catalog.tpch_iceberg_10g.orders
+            :           +- RelationV2[o_orderkey#11950L, o_custkey#11951L, o_orderstatus#11952, o_totalprice#11953, o_orderdate#11954, o_orderpriority#11955, o_clerk#11956, o_shippriority#11957L, o_comment#11958] spark_catalog.tpch_iceberg_10g.orders
+            +- SubqueryAlias spark_catalog.tpch_iceberg_10g.customer
+               +- RelationV2[c_custkey#11926L, c_name#11927, c_address#11928, c_nationkey#11929L, c_phone#11930, c_acctbal#11931, c_mktsegment#11932, c_comment#11933] spark_catalog.tpch_iceberg_10g.customer
+
+== Optimized Logical Plan ==
+Sort [cntrycode#11915 ASC NULLS FIRST], true
++- Aggregate [cntrycode#11915], [cntrycode#11915, count(1) AS numcust#11918L, sum(c_acctbal#11931) AS totacctbal#11919]
+   +- Project [substring(c_phone#11930, 1, 2) AS cntrycode#11915, c_acctbal#11931]
+      +- Join LeftAnti, (o_custkey#11951L = c_custkey#11926L)
+         :- Filter ((substring(c_phone#11930, 1, 2) IN (13,30,23,11,12,27,16) AND isnotnull(c_acctbal#11931)) AND (c_acctbal#11931 > scalar-subquery#11916 []))
+         :  :  +- Aggregate [avg(c_acctbal#11940) AS avg(c_acctbal)#11949]
+         :  :     +- Project [c_acctbal#11940]
+         :  :        +- Filter ((substring(c_phone#11939, 1, 2) IN (13,30,23,11,12,27,16) AND isnotnull(c_acctbal#11940)) AND (c_acctbal#11940 > 0.0))
+         :  :           +- RelationV2[c_phone#11939, c_acctbal#11940] spark_catalog.tpch_iceberg_10g.customer
+         :  +- RelationV2[c_custkey#11926L, c_phone#11930, c_acctbal#11931] spark_catalog.tpch_iceberg_10g.customer
+         +- Project [o_custkey#11951L]
+            +- RelationV2[o_orderkey#11950L, o_custkey#11951L, o_orderstatus#11952, o_totalprice#11953, o_orderdate#11954, o_orderpriority#11955, o_clerk#11956, o_shippriority#11957L, o_comment#11958] spark_catalog.tpch_iceberg_10g.orders
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [cntrycode#11915 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(cntrycode#11915 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=14103]
+      +- HashAggregate(keys=[cntrycode#11915], functions=[count(1), sum(c_acctbal#11931)], output=[cntrycode#11915, numcust#11918L, totacctbal#11919])
+         +- Exchange hashpartitioning(cntrycode#11915, 200), ENSURE_REQUIREMENTS, [plan_id=14100]
+            +- HashAggregate(keys=[cntrycode#11915], functions=[partial_count(1), partial_sum(c_acctbal#11931)], output=[cntrycode#11915, count#11986L, sum#11987])
+               +- Project [substring(c_phone#11930, 1, 2) AS cntrycode#11915, c_acctbal#11931]
+                  +- SortMergeJoin [c_custkey#11926L], [o_custkey#11951L], LeftAnti
+                     :- Sort [c_custkey#11926L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(c_custkey#11926L, 200), ENSURE_REQUIREMENTS, [plan_id=14093]
+                     :     +- Filter ((substring(c_phone#11930, 1, 2) IN (13,30,23,11,12,27,16) AND isnotnull(c_acctbal#11931)) AND (c_acctbal#11931 > Subquery subquery#11916, [id=#14077]))
+                     :        :  +- Subquery subquery#11916, [id=#14077]
+                     :        :     +- AdaptiveSparkPlan isFinalPlan=false
+                     :        :        +- HashAggregate(keys=[], functions=[avg(c_acctbal#11940)], output=[avg(c_acctbal)#11949])
+                     :        :           +- HashAggregate(keys=[], functions=[partial_avg(c_acctbal#11940)], output=[sum#11990, count#11991L])
+                     :        :              +- Project [c_acctbal#11940]
+                     :        :                 +- Filter ((substring(c_phone#11939, 1, 2) IN (13,30,23,11,12,27,16) AND isnotnull(c_acctbal#11940)) AND (c_acctbal#11940 > 0.0))
+                     :        :                    +- BatchScan[c_phone#11939, c_acctbal#11940] spark_catalog.tpch_iceberg_10g.customer [filters=c_acctbal IS NOT NULL, c_acctbal > 0.0] RuntimeFilters: []
+                     :        +- BatchScan[c_custkey#11926L, c_phone#11930, c_acctbal#11931] spark_catalog.tpch_iceberg_10g.customer [filters=c_acctbal IS NOT NULL] RuntimeFilters: []
+                     +- Sort [o_custkey#11951L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(o_custkey#11951L, 200), ENSURE_REQUIREMENTS, [plan_id=14092]
+                           +- Project [o_custkey#11951L]
+                              +- BatchScan[o_orderkey#11950L, o_custkey#11951L, o_orderstatus#11952, o_totalprice#11953, o_orderdate#11954, o_orderpriority#11955, o_clerk#11956, o_shippriority#11957L, o_comment#11958] spark_catalog.tpch_iceberg_10g.orders [filters=] RuntimeFilters: []

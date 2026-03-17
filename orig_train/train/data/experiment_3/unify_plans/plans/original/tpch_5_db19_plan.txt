@@ -1,0 +1,43 @@
+== Parsed Logical Plan ==
+'Project ['sum(('l_extendedprice * (1 - 'l_discount))) AS revenue#9069]
++- 'Filter (((((('p_partkey = 'l_partkey) AND ('p_brand = Brand#25)) AND ('p_container IN (SM CASE,SM BOX,SM PACK,SM PKG) AND ('l_quantity >= 10))) AND ((('l_quantity <= (10 + 10)) AND (('p_size >= 1) AND ('p_size <= 5))) AND ('l_shipmode IN (AIR,AIR REG) AND ('l_shipinstruct = DELIVER IN PERSON)))) OR (((('p_partkey = 'l_partkey) AND ('p_brand = Brand#35)) AND ('p_container IN (MED BAG,MED BOX,MED PKG,MED PACK) AND ('l_quantity >= 19))) AND ((('l_quantity <= (19 + 10)) AND (('p_size >= 1) AND ('p_size <= 10))) AND ('l_shipmode IN (AIR,AIR REG) AND ('l_shipinstruct = DELIVER IN PERSON))))) OR (((('p_partkey = 'l_partkey) AND ('p_brand = Brand#41)) AND ('p_container IN (LG CASE,LG BOX,LG PACK,LG PKG) AND ('l_quantity >= 23))) AND ((('l_quantity <= (23 + 10)) AND (('p_size >= 1) AND ('p_size <= 15))) AND ('l_shipmode IN (AIR,AIR REG) AND ('l_shipinstruct = DELIVER IN PERSON)))))
+   +- 'Join Inner
+      :- 'UnresolvedRelation [lineitem], [], false
+      +- 'UnresolvedRelation [part], [], false
+
+== Analyzed Logical Plan ==
+revenue: double
+Aggregate [sum((l_extendedprice#9081 * (cast(1 as double) - l_discount#9082))) AS revenue#9069]
++- Filter ((((((p_partkey#9092L = l_partkey#9077L) AND (p_brand#9095 = Brand#25)) AND (p_container#9098 IN (SM CASE,SM BOX,SM PACK,SM PKG) AND (l_quantity#9080L >= cast(10 as bigint)))) AND (((l_quantity#9080L <= cast((10 + 10) as bigint)) AND ((p_size#9097L >= cast(1 as bigint)) AND (p_size#9097L <= cast(5 as bigint)))) AND (l_shipmode#9090 IN (AIR,AIR REG) AND (l_shipinstruct#9089 = DELIVER IN PERSON)))) OR ((((p_partkey#9092L = l_partkey#9077L) AND (p_brand#9095 = Brand#35)) AND (p_container#9098 IN (MED BAG,MED BOX,MED PKG,MED PACK) AND (l_quantity#9080L >= cast(19 as bigint)))) AND (((l_quantity#9080L <= cast((19 + 10) as bigint)) AND ((p_size#9097L >= cast(1 as bigint)) AND (p_size#9097L <= cast(10 as bigint)))) AND (l_shipmode#9090 IN (AIR,AIR REG) AND (l_shipinstruct#9089 = DELIVER IN PERSON))))) OR ((((p_partkey#9092L = l_partkey#9077L) AND (p_brand#9095 = Brand#41)) AND (p_container#9098 IN (LG CASE,LG BOX,LG PACK,LG PKG) AND (l_quantity#9080L >= cast(23 as bigint)))) AND (((l_quantity#9080L <= cast((23 + 10) as bigint)) AND ((p_size#9097L >= cast(1 as bigint)) AND (p_size#9097L <= cast(15 as bigint)))) AND (l_shipmode#9090 IN (AIR,AIR REG) AND (l_shipinstruct#9089 = DELIVER IN PERSON)))))
+   +- Join Inner
+      :- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+      :  +- RelationV2[l_orderkey#9076L, l_partkey#9077L, l_suppkey#9078L, l_linenumber#9079L, l_quantity#9080L, l_extendedprice#9081, l_discount#9082, l_tax#9083, l_returnflag#9084, l_linestatus#9085, l_shipdate#9086, l_commitdate#9087, l_receiptdate#9088, l_shipinstruct#9089, l_shipmode#9090, l_comment#9091] spark_catalog.tpch_iceberg_10g.lineitem
+      +- SubqueryAlias spark_catalog.tpch_iceberg_10g.part
+         +- RelationV2[p_partkey#9092L, p_name#9093, p_mfgr#9094, p_brand#9095, p_type#9096, p_size#9097L, p_container#9098, p_retailprice#9099, p_comment#9100] spark_catalog.tpch_iceberg_10g.part
+
+== Optimized Logical Plan ==
+Aggregate [sum((l_extendedprice#9081 * (1.0 - l_discount#9082))) AS revenue#9069]
++- Project [l_extendedprice#9081, l_discount#9082]
+   +- Join Inner, ((p_partkey#9092L = l_partkey#9077L) AND (((((((p_brand#9095 = Brand#25) AND p_container#9098 IN (SM CASE,SM BOX,SM PACK,SM PKG)) AND (l_quantity#9080L >= 10)) AND (l_quantity#9080L <= 20)) AND (p_size#9097L <= 5)) OR (((((p_brand#9095 = Brand#35) AND p_container#9098 IN (MED BAG,MED BOX,MED PKG,MED PACK)) AND (l_quantity#9080L >= 19)) AND (l_quantity#9080L <= 29)) AND (p_size#9097L <= 10))) OR (((((p_brand#9095 = Brand#41) AND p_container#9098 IN (LG CASE,LG BOX,LG PACK,LG PKG)) AND (l_quantity#9080L >= 23)) AND (l_quantity#9080L <= 33)) AND (p_size#9097L <= 15))))
+      :- Project [l_partkey#9077L, l_quantity#9080L, l_extendedprice#9081, l_discount#9082]
+      :  +- Filter ((((isnotnull(l_shipinstruct#9089) AND l_shipmode#9090 IN (AIR,AIR REG)) AND (l_shipinstruct#9089 = DELIVER IN PERSON)) AND isnotnull(l_partkey#9077L)) AND ((((l_quantity#9080L >= 10) AND (l_quantity#9080L <= 20)) OR ((l_quantity#9080L >= 19) AND (l_quantity#9080L <= 29))) OR ((l_quantity#9080L >= 23) AND (l_quantity#9080L <= 33))))
+      :     +- RelationV2[l_partkey#9077L, l_quantity#9080L, l_extendedprice#9081, l_discount#9082, l_shipinstruct#9089, l_shipmode#9090] spark_catalog.tpch_iceberg_10g.lineitem
+      +- Filter (((isnotnull(p_size#9097L) AND (p_size#9097L >= 1)) AND isnotnull(p_partkey#9092L)) AND (((((p_brand#9095 = Brand#25) AND p_container#9098 IN (SM CASE,SM BOX,SM PACK,SM PKG)) AND (p_size#9097L <= 5)) OR (((p_brand#9095 = Brand#35) AND p_container#9098 IN (MED BAG,MED BOX,MED PKG,MED PACK)) AND (p_size#9097L <= 10))) OR (((p_brand#9095 = Brand#41) AND p_container#9098 IN (LG CASE,LG BOX,LG PACK,LG PKG)) AND (p_size#9097L <= 15))))
+         +- RelationV2[p_partkey#9092L, p_brand#9095, p_size#9097L, p_container#9098] spark_catalog.tpch_iceberg_10g.part
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[sum((l_extendedprice#9081 * (1.0 - l_discount#9082)))], output=[revenue#9069])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=10248]
+      +- HashAggregate(keys=[], functions=[partial_sum((l_extendedprice#9081 * (1.0 - l_discount#9082)))], output=[sum#9123])
+         +- Project [l_extendedprice#9081, l_discount#9082]
+            +- SortMergeJoin [l_partkey#9077L], [p_partkey#9092L], Inner, (((((((p_brand#9095 = Brand#25) AND p_container#9098 IN (SM CASE,SM BOX,SM PACK,SM PKG)) AND (l_quantity#9080L >= 10)) AND (l_quantity#9080L <= 20)) AND (p_size#9097L <= 5)) OR (((((p_brand#9095 = Brand#35) AND p_container#9098 IN (MED BAG,MED BOX,MED PKG,MED PACK)) AND (l_quantity#9080L >= 19)) AND (l_quantity#9080L <= 29)) AND (p_size#9097L <= 10))) OR (((((p_brand#9095 = Brand#41) AND p_container#9098 IN (LG CASE,LG BOX,LG PACK,LG PKG)) AND (l_quantity#9080L >= 23)) AND (l_quantity#9080L <= 33)) AND (p_size#9097L <= 15)))
+               :- Sort [l_partkey#9077L ASC NULLS FIRST], false, 0
+               :  +- Exchange hashpartitioning(l_partkey#9077L, 200), ENSURE_REQUIREMENTS, [plan_id=10240]
+               :     +- Project [l_partkey#9077L, l_quantity#9080L, l_extendedprice#9081, l_discount#9082]
+               :        +- Filter ((((isnotnull(l_shipinstruct#9089) AND l_shipmode#9090 IN (AIR,AIR REG)) AND (l_shipinstruct#9089 = DELIVER IN PERSON)) AND isnotnull(l_partkey#9077L)) AND ((((l_quantity#9080L >= 10) AND (l_quantity#9080L <= 20)) OR ((l_quantity#9080L >= 19) AND (l_quantity#9080L <= 29))) OR ((l_quantity#9080L >= 23) AND (l_quantity#9080L <= 33))))
+               :           +- BatchScan[l_partkey#9077L, l_quantity#9080L, l_extendedprice#9081, l_discount#9082, l_shipinstruct#9089, l_shipmode#9090] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipinstruct IS NOT NULL, l_shipmode IN ('AIR', 'AIR REG'), l_shipinstruct = 'DELIVER IN PERSON', l_partkey IS NOT NULL, (((l_quantity >= 10 AND l_quantity <= 20) OR (l_quantity >= 19 AND l_quantity <= 29)) OR (l_quantity >= 23 AND l_quantity <= 33))] RuntimeFilters: []
+               +- Sort [p_partkey#9092L ASC NULLS FIRST], false, 0
+                  +- Exchange hashpartitioning(p_partkey#9092L, 200), ENSURE_REQUIREMENTS, [plan_id=10241]
+                     +- Filter (((isnotnull(p_size#9097L) AND (p_size#9097L >= 1)) AND isnotnull(p_partkey#9092L)) AND (((((p_brand#9095 = Brand#25) AND p_container#9098 IN (SM CASE,SM BOX,SM PACK,SM PKG)) AND (p_size#9097L <= 5)) OR (((p_brand#9095 = Brand#35) AND p_container#9098 IN (MED BAG,MED BOX,MED PKG,MED PACK)) AND (p_size#9097L <= 10))) OR (((p_brand#9095 = Brand#41) AND p_container#9098 IN (LG CASE,LG BOX,LG PACK,LG PKG)) AND (p_size#9097L <= 15))))
+                        +- BatchScan[p_partkey#9092L, p_brand#9095, p_size#9097L, p_container#9098] spark_catalog.tpch_iceberg_10g.part [filters=p_size IS NOT NULL, p_size >= 1, p_partkey IS NOT NULL, ((((p_brand = 'Brand#25' AND p_container IN ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')) AND p_size <= 5) OR ((p_brand = 'Brand#35' AND p_container IN ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')) AND p_size <= 10)) OR ((p_brand = 'Brand#41' AND p_container IN ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')) AND p_size <= 15))] RuntimeFilters: []

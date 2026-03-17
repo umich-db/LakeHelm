@@ -1,0 +1,47 @@
+== Optimized Logical Plan ==
+Filter (isnotnull(avg_sales#5759) AND (avg_sales#5759 > 50.000000))
++- Aggregate [ca_state#5804], [ca_state#5804, cast((avg(UnscaledValue(cs_sales_price#5782)) / 100.0) as decimal(11,6)) AS avg_sales#5759]
+   +- Project [cs_sales_price#5782, ca_state#5804]
+      +- Join Inner, (cs_bill_addr_sk#5767 = ca_address_sk#5796)
+         :- Project [cs_bill_addr_sk#5767, cs_sales_price#5782]
+         :  +- Join LeftSemi, (cs_item_sk#5776 = i_item_sk#5809)
+         :     :- Filter isnotnull(cs_bill_addr_sk#5767)
+         :     :  +- RelationV2[cs_bill_addr_sk#5767, cs_item_sk#5776, cs_sales_price#5782] spark_catalog.tpcds_iceberg_10g.catalog_sales
+         :     +- Project [i_item_sk#5809]
+         :        +- Filter (((isnotnull(i_category#5821) AND isnotnull(i_current_price#5814)) AND (i_category#5821 = Books)) AND (cast(i_current_price#5814 as decimal(11,6)) > scalar-subquery#5760 []))
+         :           :  +- Aggregate [cast((avg(UnscaledValue(i_current_price#5836)) / 100.0) as decimal(11,6)) AS avg(i_current_price)#5854]
+         :           :     +- Project [i_current_price#5836]
+         :           :        +- Filter (isnotnull(i_category#5843) AND (i_category#5843 = Books))
+         :           :           +- RelationV2[i_current_price#5836, i_category#5843] spark_catalog.tpcds_iceberg_10g.item
+         :           +- RelationV2[i_item_sk#5809, i_current_price#5814, i_category#5821] spark_catalog.tpcds_iceberg_10g.item
+         +- Filter isnotnull(ca_address_sk#5796)
+            +- RelationV2[ca_address_sk#5796, ca_state#5804] spark_catalog.tpcds_iceberg_10g.customer_address
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Filter (isnotnull(avg_sales#5759) AND (avg_sales#5759 > 50.000000))
+   +- HashAggregate(keys=[ca_state#5804], functions=[avg(UnscaledValue(cs_sales_price#5782))], output=[ca_state#5804, avg_sales#5759])
+      +- Exchange hashpartitioning(ca_state#5804, 200), ENSURE_REQUIREMENTS, [plan_id=4499]
+         +- HashAggregate(keys=[ca_state#5804], functions=[partial_avg(UnscaledValue(cs_sales_price#5782))], output=[ca_state#5804, sum#5891, count#5892L])
+            +- Project [cs_sales_price#5782, ca_state#5804]
+               +- BroadcastHashJoin [cs_bill_addr_sk#5767], [ca_address_sk#5796], Inner, BuildRight, false
+                  :- Project [cs_bill_addr_sk#5767, cs_sales_price#5782]
+                  :  +- BroadcastHashJoin [cs_item_sk#5776], [i_item_sk#5809], LeftSemi, BuildRight, false
+                  :     :- Filter isnotnull(cs_bill_addr_sk#5767)
+                  :     :  +- BatchScan[cs_bill_addr_sk#5767, cs_item_sk#5776, cs_sales_price#5782] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_bill_addr_sk IS NOT NULL] RuntimeFilters: []
+                  :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=4490]
+                  :        +- Project [i_item_sk#5809]
+                  :           +- Filter (((isnotnull(i_category#5821) AND isnotnull(i_current_price#5814)) AND (i_category#5821 = Books)) AND (cast(i_current_price#5814 as decimal(11,6)) > Subquery subquery#5760, [id=#4472]))
+                  :              :  +- Subquery subquery#5760, [id=#4472]
+                  :              :     +- AdaptiveSparkPlan isFinalPlan=false
+                  :              :        +- HashAggregate(keys=[], functions=[avg(UnscaledValue(i_current_price#5836))], output=[avg(i_current_price)#5854])
+                  :              :           +- HashAggregate(keys=[], functions=[partial_avg(UnscaledValue(i_current_price#5836))], output=[sum#5895, count#5896L])
+                  :              :              +- Project [i_current_price#5836]
+                  :              :                 +- Filter (isnotnull(i_category#5843) AND (i_category#5843 = Books))
+                  :              :                    +- BatchScan[i_current_price#5836, i_category#5843] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IS NOT NULL, i_category = 'Books'] RuntimeFilters: []
+                  :              +- BatchScan[i_item_sk#5809, i_current_price#5814, i_category#5821] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IS NOT NULL, i_current_price IS NOT NULL, i_category = 'Books'] RuntimeFilters: []
+                  +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=4494]
+                     +- Filter isnotnull(ca_address_sk#5796)
+                        +- BatchScan[ca_address_sk#5796, ca_state#5804] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL] RuntimeFilters: []
+

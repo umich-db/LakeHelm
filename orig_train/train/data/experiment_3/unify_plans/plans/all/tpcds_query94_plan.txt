@@ -1,0 +1,68 @@
+=== Optimized Logical Plan ===
+Aggregate [count(distinct ws_order_number#42957L) AS order_count#42936L, MakeDecimal(sum(UnscaledValue(ws_ext_ship_cost#42968)),17,2) AS total_shipping_cost#42937, MakeDecimal(sum(UnscaledValue(ws_net_profit#42973)),17,2) AS total_net_profit#42938]
++- Project [ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973]
+   +- Join Inner, (ws_web_site_sk#42953 = web_site_sk#43016)
+      :- Project [ws_web_site_sk#42953, ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973]
+      :  +- Join Inner, (ws_ship_addr_sk#42951 = ca_address_sk#43003)
+      :     :- Project [ws_ship_addr_sk#42951, ws_web_site_sk#42953, ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973]
+      :     :  +- Join Inner, (ws_ship_date_sk#42942 = d_date_sk#42975)
+      :     :     :- Join LeftAnti, (ws_order_number#42957L = wr_order_number#43093L)
+      :     :     :  :- Project [ws_ship_date_sk#42942, ws_ship_addr_sk#42951, ws_web_site_sk#42953, ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973]
+      :     :     :  :  +- Join LeftSemi, ((ws_order_number#42957L = ws_order_number#43058L) AND NOT (ws_warehouse_sk#42955 = ws_warehouse_sk#43056))
+      :     :     :  :     :- Filter ((isnotnull(ws_ship_date_sk#42942) AND isnotnull(ws_ship_addr_sk#42951)) AND isnotnull(ws_web_site_sk#42953))
+      :     :     :  :     :  +- RelationV2[ws_ship_date_sk#42942, ws_ship_addr_sk#42951, ws_web_site_sk#42953, ws_warehouse_sk#42955, ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973] spark_catalog.tpcds_iceberg_10g.web_sales
+      :     :     :  :     +- Project [ws_warehouse_sk#43056, ws_order_number#43058L]
+      :     :     :  :        +- RelationV2[ws_sold_time_sk#43042, ws_ship_date_sk#43043, ws_item_sk#43044, ws_bill_customer_sk#43045, ws_bill_cdemo_sk#43046, ws_bill_hdemo_sk#43047, ws_bill_addr_sk#43048, ws_ship_customer_sk#43049, ws_ship_cdemo_sk#43050, ws_ship_hdemo_sk#43051, ws_ship_addr_sk#43052, ws_web_page_sk#43053, ws_web_site_sk#43054, ws_ship_mode_sk#43055, ws_warehouse_sk#43056, ws_promo_sk#43057, ws_order_number#43058L, ws_quantity#43059, ws_wholesale_cost#43060, ws_list_price#43061, ws_sales_price#43062, ws_ext_discount_amt#43063, ws_ext_sales_price#43064, ws_ext_wholesale_cost#43065, ... 10 more fields] spark_catalog.tpcds_iceberg_10g.web_sales
+      :     :     :  +- Project [wr_order_number#43093L]
+      :     :     :     +- RelationV2[wr_returned_time_sk#43081, wr_item_sk#43082, wr_refunded_customer_sk#43083, wr_refunded_cdemo_sk#43084, wr_refunded_hdemo_sk#43085, wr_refunded_addr_sk#43086, wr_returning_customer_sk#43087, wr_returning_cdemo_sk#43088, wr_returning_hdemo_sk#43089, wr_returning_addr_sk#43090, wr_web_page_sk#43091, wr_reason_sk#43092, wr_order_number#43093L, wr_return_quantity#43094, wr_return_amt#43095, wr_return_tax#43096, wr_return_amt_inc_tax#43097, wr_fee#43098, wr_return_ship_cost#43099, wr_refunded_cash#43100, wr_reversed_charge#43101, wr_account_credit#43102, wr_net_loss#43103, wr_returned_date_sk#43104] spark_catalog.tpcds_iceberg_10g.web_returns
+      :     :     +- Project [d_date_sk#42975]
+      :     :        +- Filter (((isnotnull(d_date#42977) AND (d_date#42977 >= 1999-05-01)) AND (d_date#42977 <= 1999-06-30)) AND isnotnull(d_date_sk#42975))
+      :     :           +- RelationV2[d_date_sk#42975, d_date#42977] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     +- Project [ca_address_sk#43003]
+      :        +- Filter ((isnotnull(ca_state#43011) AND (ca_state#43011 = TX)) AND isnotnull(ca_address_sk#43003))
+      :           +- RelationV2[ca_address_sk#43003, ca_state#43011] spark_catalog.tpcds_iceberg_10g.customer_address
+      +- Project [web_site_sk#43016]
+         +- Filter ((isnotnull(web_company_name#43030) AND (web_company_name#43030 = pri)) AND isnotnull(web_site_sk#43016))
+            +- RelationV2[web_site_sk#43016, web_company_name#43030] spark_catalog.tpcds_iceberg_10g.web_site
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[sum(UnscaledValue(ws_ext_ship_cost#42968)), sum(UnscaledValue(ws_net_profit#42973)), count(distinct ws_order_number#42957L)], output=[order_count#42936L, total_shipping_cost#42937, total_net_profit#42938])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=32103]
+      +- HashAggregate(keys=[], functions=[merge_sum(UnscaledValue(ws_ext_ship_cost#42968)), merge_sum(UnscaledValue(ws_net_profit#42973)), partial_count(distinct ws_order_number#42957L)], output=[sum#43209L, sum#43211L, count#43214L])
+         +- HashAggregate(keys=[ws_order_number#42957L], functions=[merge_sum(UnscaledValue(ws_ext_ship_cost#42968)), merge_sum(UnscaledValue(ws_net_profit#42973))], output=[ws_order_number#42957L, sum#43209L, sum#43211L])
+            +- HashAggregate(keys=[ws_order_number#42957L], functions=[partial_sum(UnscaledValue(ws_ext_ship_cost#42968)), partial_sum(UnscaledValue(ws_net_profit#42973))], output=[ws_order_number#42957L, sum#43209L, sum#43211L])
+               +- Project [ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973]
+                  +- BroadcastHashJoin [ws_web_site_sk#42953], [web_site_sk#43016], Inner, BuildRight, false
+                     :- Project [ws_web_site_sk#42953, ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973]
+                     :  +- BroadcastHashJoin [ws_ship_addr_sk#42951], [ca_address_sk#43003], Inner, BuildRight, false
+                     :     :- Project [ws_ship_addr_sk#42951, ws_web_site_sk#42953, ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973]
+                     :     :  +- BroadcastHashJoin [ws_ship_date_sk#42942], [d_date_sk#42975], Inner, BuildRight, false
+                     :     :     :- BroadcastHashJoin [ws_order_number#42957L], [wr_order_number#43093L], LeftAnti, BuildRight, false
+                     :     :     :  :- Project [ws_ship_date_sk#42942, ws_ship_addr_sk#42951, ws_web_site_sk#42953, ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973]
+                     :     :     :  :  +- SortMergeJoin [ws_order_number#42957L], [ws_order_number#43058L], LeftSemi, NOT (ws_warehouse_sk#42955 = ws_warehouse_sk#43056)
+                     :     :     :  :     :- Sort [ws_order_number#42957L ASC NULLS FIRST], false, 0
+                     :     :     :  :     :  +- Exchange hashpartitioning(ws_order_number#42957L, 200), ENSURE_REQUIREMENTS, [plan_id=32078]
+                     :     :     :  :     :     +- Filter ((isnotnull(ws_ship_date_sk#42942) AND isnotnull(ws_ship_addr_sk#42951)) AND isnotnull(ws_web_site_sk#42953))
+                     :     :     :  :     :        +- BatchScan[ws_ship_date_sk#42942, ws_ship_addr_sk#42951, ws_web_site_sk#42953, ws_warehouse_sk#42955, ws_order_number#42957L, ws_ext_ship_cost#42968, ws_net_profit#42973] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_ship_date_sk IS NOT NULL, ws_ship_addr_sk IS NOT NULL, ws_web_site_sk IS NOT NULL] RuntimeFilters: []
+                     :     :     :  :     +- Sort [ws_order_number#43058L ASC NULLS FIRST], false, 0
+                     :     :     :  :        +- Exchange hashpartitioning(ws_order_number#43058L, 200), ENSURE_REQUIREMENTS, [plan_id=32079]
+                     :     :     :  :           +- Project [ws_warehouse_sk#43056, ws_order_number#43058L]
+                     :     :     :  :              +- BatchScan[ws_sold_time_sk#43042, ws_ship_date_sk#43043, ws_item_sk#43044, ws_bill_customer_sk#43045, ws_bill_cdemo_sk#43046, ws_bill_hdemo_sk#43047, ws_bill_addr_sk#43048, ws_ship_customer_sk#43049, ws_ship_cdemo_sk#43050, ws_ship_hdemo_sk#43051, ws_ship_addr_sk#43052, ws_web_page_sk#43053, ws_web_site_sk#43054, ws_ship_mode_sk#43055, ws_warehouse_sk#43056, ws_promo_sk#43057, ws_order_number#43058L, ws_quantity#43059, ws_wholesale_cost#43060, ws_list_price#43061, ws_sales_price#43062, ws_ext_discount_amt#43063, ws_ext_sales_price#43064, ws_ext_wholesale_cost#43065, ... 10 more fields] spark_catalog.tpcds_iceberg_10g.web_sales [filters=] RuntimeFilters: []
+                     :     :     :  +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=32085]
+                     :     :     :     +- Project [wr_order_number#43093L]
+                     :     :     :        +- BatchScan[wr_returned_time_sk#43081, wr_item_sk#43082, wr_refunded_customer_sk#43083, wr_refunded_cdemo_sk#43084, wr_refunded_hdemo_sk#43085, wr_refunded_addr_sk#43086, wr_returning_customer_sk#43087, wr_returning_cdemo_sk#43088, wr_returning_hdemo_sk#43089, wr_returning_addr_sk#43090, wr_web_page_sk#43091, wr_reason_sk#43092, wr_order_number#43093L, wr_return_quantity#43094, wr_return_amt#43095, wr_return_tax#43096, wr_return_amt_inc_tax#43097, wr_fee#43098, wr_return_ship_cost#43099, wr_refunded_cash#43100, wr_reversed_charge#43101, wr_account_credit#43102, wr_net_loss#43103, wr_returned_date_sk#43104] spark_catalog.tpcds_iceberg_10g.web_returns [filters=] RuntimeFilters: []
+                     :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=32088]
+                     :     :        +- Project [d_date_sk#42975]
+                     :     :           +- Filter (((isnotnull(d_date#42977) AND (d_date#42977 >= 1999-05-01)) AND (d_date#42977 <= 1999-06-30)) AND isnotnull(d_date_sk#42975))
+                     :     :              +- BatchScan[d_date_sk#42975, d_date#42977] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date >= 10712, d_date <= 10772, d_date_sk IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=32092]
+                     :        +- Project [ca_address_sk#43003]
+                     :           +- Filter ((isnotnull(ca_state#43011) AND (ca_state#43011 = TX)) AND isnotnull(ca_address_sk#43003))
+                     :              +- BatchScan[ca_address_sk#43003, ca_state#43011] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_state IS NOT NULL, ca_state = 'TX', ca_address_sk IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=32096]
+                        +- Project [web_site_sk#43016]
+                           +- Filter ((isnotnull(web_company_name#43030) AND (web_company_name#43030 = pri)) AND isnotnull(web_site_sk#43016))
+                              +- BatchScan[web_site_sk#43016, web_company_name#43030] spark_catalog.tpcds_iceberg_10g.web_site [filters=web_company_name IS NOT NULL, web_company_name = 'pri', web_site_sk IS NOT NULL] RuntimeFilters: []
+

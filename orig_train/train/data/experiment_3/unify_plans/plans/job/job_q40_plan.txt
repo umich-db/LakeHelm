@@ -1,0 +1,39 @@
+== Optimized Logical Plan ==
+GlobalLimit 5
++- LocalLimit 5
+   +- Sort [linked_movies#12352L DESC NULLS LAST], true
+      +- Aggregate [title#12354], [title#12354, count(distinct linked_movie_id#12367L) AS linked_movies#12352L]
+         +- Project [title#12354, linked_movie_id#12367L]
+            +- Join Inner, (link_type_id#12368L = id#12369L)
+               :- Project [title#12354, linked_movie_id#12367L, link_type_id#12368L]
+               :  +- Join Inner, (id#12353L = movie_id#12366L)
+               :     :- Filter isnotnull(id#12353L)
+               :     :  +- RelationV2[id#12353L, title#12354] spark_catalog.job_iceberg_10g.title
+               :     +- Filter (isnotnull(movie_id#12366L) AND isnotnull(link_type_id#12368L))
+               :        +- RelationV2[movie_id#12366L, linked_movie_id#12367L, link_type_id#12368L] spark_catalog.job_iceberg_10g.movie_link
+               +- Project [id#12369L]
+                  +- Filter ((isnotnull(link#12370) AND (link#12370 = sequel)) AND isnotnull(id#12369L))
+                     +- RelationV2[id#12369L, link#12370] spark_catalog.job_iceberg_10g.link_type
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=5, orderBy=[linked_movies#12352L DESC NULLS LAST], output=[title#12354,linked_movies#12352L])
+   +- HashAggregate(keys=[title#12354], functions=[count(distinct linked_movie_id#12367L)], output=[title#12354, linked_movies#12352L])
+      +- HashAggregate(keys=[title#12354], functions=[partial_count(distinct linked_movie_id#12367L)], output=[title#12354, count#12398L])
+         +- HashAggregate(keys=[title#12354, linked_movie_id#12367L], functions=[], output=[title#12354, linked_movie_id#12367L])
+            +- HashAggregate(keys=[title#12354, linked_movie_id#12367L], functions=[], output=[title#12354, linked_movie_id#12367L])
+               +- Project [title#12354, linked_movie_id#12367L]
+                  +- BroadcastHashJoin [link_type_id#12368L], [id#12369L], Inner, BuildRight, false
+                     :- Project [title#12354, linked_movie_id#12367L, link_type_id#12368L]
+                     :  +- BroadcastHashJoin [id#12353L], [movie_id#12366L], Inner, BuildRight, false
+                     :     :- Filter isnotnull(id#12353L)
+                     :     :  +- BatchScan[id#12353L, title#12354] spark_catalog.job_iceberg_10g.title [filters=id IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=10930]
+                     :        +- Filter (isnotnull(movie_id#12366L) AND isnotnull(link_type_id#12368L))
+                     :           +- BatchScan[movie_id#12366L, linked_movie_id#12367L, link_type_id#12368L] spark_catalog.job_iceberg_10g.movie_link [filters=movie_id IS NOT NULL, link_type_id IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=10934]
+                        +- Project [id#12369L]
+                           +- Filter ((isnotnull(link#12370) AND (link#12370 = sequel)) AND isnotnull(id#12369L))
+                              +- BatchScan[id#12369L, link#12370] spark_catalog.job_iceberg_10g.link_type [filters=link IS NOT NULL, link = 'sequel', id IS NOT NULL] RuntimeFilters: []
+

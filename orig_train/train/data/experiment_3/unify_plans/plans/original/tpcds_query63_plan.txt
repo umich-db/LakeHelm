@@ -1,0 +1,65 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [i_manager_id#29704 ASC NULLS FIRST, avg_monthly_sales#29683 ASC NULLS FIRST, sum_sales#29682 ASC NULLS FIRST], true
+      +- Project [i_manager_id#29704, sum_sales#29682, avg_monthly_sales#29683]
+         +- Filter CASE WHEN (avg_monthly_sales#29683 > 0.000000) THEN (CheckOverflow((promote_precision(abs(CheckOverflow((promote_precision(cast(sum_sales#29682 as decimal(22,6))) - promote_precision(cast(avg_monthly_sales#29683 as decimal(22,6)))), DecimalType(22,6)))) / promote_precision(cast(avg_monthly_sales#29683 as decimal(22,6)))), DecimalType(38,16)) > 0.1000000000000000) ELSE false END
+            +- Window [avg(_w0#29809) windowspecdefinition(i_manager_id#29704, specifiedwindowframe(RowFrame, unboundedpreceding$(), unboundedfollowing$())) AS avg_monthly_sales#29683], [i_manager_id#29704]
+               +- Aggregate [i_manager_id#29704, d_moy#29737], [i_manager_id#29704, MakeDecimal(sum(UnscaledValue(ss_sales_price#29718)),17,2) AS sum_sales#29682, MakeDecimal(sum(UnscaledValue(ss_sales_price#29718)),17,2) AS _w0#29809]
+                  +- Project [i_manager_id#29704, ss_sales_price#29718, d_moy#29737]
+                     +- Join Inner, (ss_store_sk#29712 = s_store_sk#29757)
+                        :- Project [i_manager_id#29704, ss_store_sk#29712, ss_sales_price#29718, d_moy#29737]
+                        :  +- Join Inner, (ss_sold_date_sk#29728 = d_date_sk#29729)
+                        :     :- Project [i_manager_id#29704, ss_store_sk#29712, ss_sales_price#29718, ss_sold_date_sk#29728]
+                        :     :  +- Join Inner, (ss_item_sk#29707 = i_item_sk#29684)
+                        :     :     :- Project [i_item_sk#29684, i_manager_id#29704]
+                        :     :     :  +- Filter ((((i_category#29696 IN (Books,Children,Electronics) AND i_class#29694 IN (personal,portable,reference,self-help)) AND i_brand#29692 IN (scholaramalgamalg #14,scholaramalgamalg #7,exportiunivamalg #9,scholaramalgamalg #9)) OR ((i_category#29696 IN (Women,Music,Men) AND i_class#29694 IN (accessories,classical,fragrances,pants)) AND i_brand#29692 IN (amalgimporto #1,edu packscholar #1,exportiimporto #1,importoamalg #1))) AND isnotnull(i_item_sk#29684))
+                        :     :     :     +- RelationV2[i_item_sk#29684, i_brand#29692, i_class#29694, i_category#29696, i_manager_id#29704] spark_catalog.tpcds_iceberg_10g.item
+                        :     :     +- Filter (((isnotnull(ss_item_sk#29707) AND isnotnull(ss_sold_date_sk#29728)) AND isnotnull(ss_store_sk#29712)) AND dynamicpruning#29826 [ss_sold_date_sk#29728])
+                        :     :        :  +- Project [d_date_sk#29729, d_moy#29737]
+                        :     :        :     +- Filter (d_month_seq#29732 INSET 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223 AND isnotnull(d_date_sk#29729))
+                        :     :        :        +- RelationV2[d_date_sk#29729, d_month_seq#29732, d_moy#29737] spark_catalog.tpcds_iceberg_10g.date_dim
+                        :     :        +- RelationV2[ss_item_sk#29707, ss_store_sk#29712, ss_sales_price#29718, ss_sold_date_sk#29728] spark_catalog.tpcds_iceberg_10g.store_sales
+                        :     +- Project [d_date_sk#29729, d_moy#29737]
+                        :        +- Filter (d_month_seq#29732 INSET 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223 AND isnotnull(d_date_sk#29729))
+                        :           +- RelationV2[d_date_sk#29729, d_month_seq#29732, d_moy#29737] spark_catalog.tpcds_iceberg_10g.date_dim
+                        +- Filter isnotnull(s_store_sk#29757)
+                           +- RelationV2[s_store_sk#29757] spark_catalog.tpcds_iceberg_10g.store
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[i_manager_id#29704 ASC NULLS FIRST,avg_monthly_sales#29683 ASC NULLS FIRST,sum_sales#29682 ASC NULLS FIRST], output=[i_manager_id#29704,sum_sales#29682,avg_monthly_sales#29683])
+   +- Project [i_manager_id#29704, sum_sales#29682, avg_monthly_sales#29683]
+      +- Filter CASE WHEN (avg_monthly_sales#29683 > 0.000000) THEN (CheckOverflow((promote_precision(abs(CheckOverflow((promote_precision(cast(sum_sales#29682 as decimal(22,6))) - promote_precision(cast(avg_monthly_sales#29683 as decimal(22,6)))), DecimalType(22,6)))) / promote_precision(cast(avg_monthly_sales#29683 as decimal(22,6)))), DecimalType(38,16)) > 0.1000000000000000) ELSE false END
+         +- Window [avg(_w0#29809) windowspecdefinition(i_manager_id#29704, specifiedwindowframe(RowFrame, unboundedpreceding$(), unboundedfollowing$())) AS avg_monthly_sales#29683], [i_manager_id#29704]
+            +- Sort [i_manager_id#29704 ASC NULLS FIRST], false, 0
+               +- Exchange hashpartitioning(i_manager_id#29704, 200), ENSURE_REQUIREMENTS, [plan_id=22706]
+                  +- HashAggregate(keys=[i_manager_id#29704, d_moy#29737], functions=[sum(UnscaledValue(ss_sales_price#29718))], output=[i_manager_id#29704, sum_sales#29682, _w0#29809])
+                     +- Exchange hashpartitioning(i_manager_id#29704, d_moy#29737, 200), ENSURE_REQUIREMENTS, [plan_id=22703]
+                        +- HashAggregate(keys=[i_manager_id#29704, d_moy#29737], functions=[partial_sum(UnscaledValue(ss_sales_price#29718))], output=[i_manager_id#29704, d_moy#29737, sum#29828L])
+                           +- Project [i_manager_id#29704, ss_sales_price#29718, d_moy#29737]
+                              +- BroadcastHashJoin [ss_store_sk#29712], [s_store_sk#29757], Inner, BuildRight, false
+                                 :- Project [i_manager_id#29704, ss_store_sk#29712, ss_sales_price#29718, d_moy#29737]
+                                 :  +- BroadcastHashJoin [ss_sold_date_sk#29728], [d_date_sk#29729], Inner, BuildRight, false
+                                 :     :- Project [i_manager_id#29704, ss_store_sk#29712, ss_sales_price#29718, ss_sold_date_sk#29728]
+                                 :     :  +- BroadcastHashJoin [i_item_sk#29684], [ss_item_sk#29707], Inner, BuildLeft, false
+                                 :     :     :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=22690]
+                                 :     :     :  +- Project [i_item_sk#29684, i_manager_id#29704]
+                                 :     :     :     +- Filter ((((i_category#29696 IN (Books,Children,Electronics) AND i_class#29694 IN (personal,portable,reference,self-help)) AND i_brand#29692 IN (scholaramalgamalg #14,scholaramalgamalg #7,exportiunivamalg #9,scholaramalgamalg #9)) OR ((i_category#29696 IN (Women,Music,Men) AND i_class#29694 IN (accessories,classical,fragrances,pants)) AND i_brand#29692 IN (amalgimporto #1,edu packscholar #1,exportiimporto #1,importoamalg #1))) AND isnotnull(i_item_sk#29684))
+                                 :     :     :        +- BatchScan[i_item_sk#29684, i_brand#29692, i_class#29694, i_category#29696, i_manager_id#29704] spark_catalog.tpcds_iceberg_10g.item [filters=(((i_category IN ('Books', 'Children', 'Electronics') AND i_class IN ('personal', 'portable', 'reference', 'self-help')) AND i_brand IN ('scholaramalgamalg #14', 'scholaramalgamalg #7', 'exportiunivamalg #9', 'scholaramalgamalg #9')) OR ((i_category IN ('Women', 'Music', 'Men') AND i_class IN ('accessories', 'classical', 'fragrances', 'pants')) AND i_brand IN ('amalgimporto #1', 'edu packscholar #1', 'exportiimporto #1', 'importoamalg #1'))), i_item_sk IS NOT NULL] RuntimeFilters: []
+                                 :     :     +- Filter ((isnotnull(ss_item_sk#29707) AND isnotnull(ss_sold_date_sk#29728)) AND isnotnull(ss_store_sk#29712))
+                                 :     :        +- BatchScan[ss_item_sk#29707, ss_store_sk#29712, ss_sales_price#29718, ss_sold_date_sk#29728] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_item_sk IS NOT NULL, ss_sold_date_sk IS NOT NULL, ss_store_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#29728 IN dynamicpruning#29826)]
+                                 :     :              +- SubqueryAdaptiveBroadcast dynamicpruning#29826, 0, true, Project [d_date_sk#29729, d_moy#29737], [d_date_sk#29729]
+                                 :     :                 +- AdaptiveSparkPlan isFinalPlan=false
+                                 :     :                    +- Project [d_date_sk#29729, d_moy#29737]
+                                 :     :                       +- Filter (d_month_seq#29732 INSET 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223 AND isnotnull(d_date_sk#29729))
+                                 :     :                          +- BatchScan[d_date_sk#29729, d_month_seq#29732, d_moy#29737] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IN (1222, 1215, 1223, 1217, 1214, 1219, 1213, 1218, 1220, 1221, 1216, 1212), d_date_sk IS NOT NULL] RuntimeFilters: []
+                                 :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=22694]
+                                 :        +- Project [d_date_sk#29729, d_moy#29737]
+                                 :           +- Filter (d_month_seq#29732 INSET 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223 AND isnotnull(d_date_sk#29729))
+                                 :              +- BatchScan[d_date_sk#29729, d_month_seq#29732, d_moy#29737] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IN (1222, 1215, 1223, 1217, 1214, 1219, 1213, 1218, 1220, 1221, 1216, 1212), d_date_sk IS NOT NULL] RuntimeFilters: []
+                                 +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=22698]
+                                    +- Filter isnotnull(s_store_sk#29757)
+                                       +- BatchScan[s_store_sk#29757] spark_catalog.tpcds_iceberg_10g.store [filters=s_store_sk IS NOT NULL] RuntimeFilters: []
+

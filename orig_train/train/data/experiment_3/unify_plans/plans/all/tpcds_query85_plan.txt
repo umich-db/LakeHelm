@@ -1,0 +1,102 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [substr(r_reason_desc, 1, 20)#40219 ASC NULLS FIRST, avg(ws_quantity)#40220 ASC NULLS FIRST, avg(wr_refunded_cash)#40221 ASC NULLS FIRST, avg(wr_fee)#40222 ASC NULLS FIRST], true
+      +- Aggregate [r_reason_desc#40175], [substr(r_reason_desc#40175, 1, 20) AS substr(r_reason_desc, 1, 20)#40219, avg(ws_quantity#40059) AS avg(ws_quantity)#40220, cast((avg(UnscaledValue(wr_refunded_cash#40095)) / 100.0) as decimal(11,6)) AS avg(wr_refunded_cash)#40221, cast((avg(UnscaledValue(wr_fee#40093)) / 100.0) as decimal(11,6)) AS avg(wr_fee)#40222]
+         +- Project [ws_quantity#40059, wr_fee#40093, wr_refunded_cash#40095, r_reason_desc#40175]
+            +- Join Inner, (r_reason_sk#40173 = wr_reason_sk#40087)
+               :- Project [ws_quantity#40059, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+               :  +- Join Inner, (ws_sold_date_sk#40075 = d_date_sk#40145)
+               :     :- Project [ws_quantity#40059, ws_sold_date_sk#40075, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+               :     :  +- Join Inner, ((ca_address_sk#40132 = wr_refunded_addr_sk#40081) AND ((((ca_state#40140 IN (KY,GA,NM) AND (ws_net_profit#40074 >= 100.00)) AND (ws_net_profit#40074 <= 200.00)) OR ((ca_state#40140 IN (MT,OR,IN) AND (ws_net_profit#40074 >= 150.00)) AND (ws_net_profit#40074 <= 300.00))) OR ((ca_state#40140 IN (WI,MO,WV) AND (ws_net_profit#40074 >= 50.00)) AND (ws_net_profit#40074 <= 250.00))))
+               :     :     :- Project [ws_quantity#40059, ws_net_profit#40074, ws_sold_date_sk#40075, wr_refunded_addr_sk#40081, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+               :     :     :  +- Join Inner, (((cd_demo_sk#40123 = wr_returning_cdemo_sk#40083) AND (cd_marital_status#40116 = cd_marital_status#40125)) AND (cd_education_status#40117 = cd_education_status#40126))
+               :     :     :     :- Project [ws_quantity#40059, ws_net_profit#40074, ws_sold_date_sk#40075, wr_refunded_addr_sk#40081, wr_returning_cdemo_sk#40083, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095, cd_marital_status#40116, cd_education_status#40117]
+               :     :     :     :  +- Join Inner, (((((((cd_marital_status#40116 = M) AND (cd_education_status#40117 = 4 yr Degree)) AND (ws_sales_price#40062 >= 100.00)) AND (ws_sales_price#40062 <= 150.00)) OR ((((cd_marital_status#40116 = D) AND (cd_education_status#40117 = Primary)) AND (ws_sales_price#40062 >= 50.00)) AND (ws_sales_price#40062 <= 100.00))) OR ((((cd_marital_status#40116 = U) AND (cd_education_status#40117 = Advanced Degree)) AND (ws_sales_price#40062 >= 150.00)) AND (ws_sales_price#40062 <= 200.00))) AND (cd_demo_sk#40114 = wr_refunded_cdemo_sk#40079))
+               :     :     :     :     :- Project [ws_quantity#40059, ws_sales_price#40062, ws_net_profit#40074, ws_sold_date_sk#40075, wr_refunded_cdemo_sk#40079, wr_refunded_addr_sk#40081, wr_returning_cdemo_sk#40083, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+               :     :     :     :     :  +- Join Inner, (ws_web_page_sk#40053 = wp_web_page_sk#40100)
+               :     :     :     :     :     :- Project [ws_web_page_sk#40053, ws_quantity#40059, ws_sales_price#40062, ws_net_profit#40074, ws_sold_date_sk#40075, wr_refunded_cdemo_sk#40079, wr_refunded_addr_sk#40081, wr_returning_cdemo_sk#40083, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+               :     :     :     :     :     :  +- Join Inner, ((ws_item_sk#40044 = wr_item_sk#40077) AND (ws_order_number#40058L = wr_order_number#40088L))
+               :     :     :     :     :     :     :- Filter ((((isnotnull(ws_item_sk#40044) AND isnotnull(ws_order_number#40058L)) AND isnotnull(ws_web_page_sk#40053)) AND isnotnull(ws_sold_date_sk#40075)) AND ((((((ws_sales_price#40062 >= 100.00) AND (ws_sales_price#40062 <= 150.00)) OR ((ws_sales_price#40062 >= 50.00) AND (ws_sales_price#40062 <= 100.00))) OR ((ws_sales_price#40062 >= 150.00) AND (ws_sales_price#40062 <= 200.00))) AND ((((ws_net_profit#40074 >= 100.00) AND (ws_net_profit#40074 <= 200.00)) OR ((ws_net_profit#40074 >= 150.00) AND (ws_net_profit#40074 <= 300.00))) OR ((ws_net_profit#40074 >= 50.00) AND (ws_net_profit#40074 <= 250.00)))) AND dynamicpruning#40259 [ws_sold_date_sk#40075]))
+               :     :     :     :     :     :     :  :  +- Project [d_date_sk#40145]
+               :     :     :     :     :     :     :  :     +- Filter ((isnotnull(d_year#40151) AND (d_year#40151 = 1998)) AND isnotnull(d_date_sk#40145))
+               :     :     :     :     :     :     :  :        +- RelationV2[d_date_sk#40145, d_year#40151] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     :     :     :     :     :  +- RelationV2[ws_item_sk#40044, ws_web_page_sk#40053, ws_order_number#40058L, ws_quantity#40059, ws_sales_price#40062, ws_net_profit#40074, ws_sold_date_sk#40075] spark_catalog.tpcds_iceberg_10g.web_sales
+               :     :     :     :     :     :     +- Filter (((((isnotnull(wr_item_sk#40077) AND isnotnull(wr_order_number#40088L)) AND isnotnull(wr_refunded_cdemo_sk#40079)) AND isnotnull(wr_returning_cdemo_sk#40083)) AND isnotnull(wr_refunded_addr_sk#40081)) AND isnotnull(wr_reason_sk#40087))
+               :     :     :     :     :     :        +- RelationV2[wr_item_sk#40077, wr_refunded_cdemo_sk#40079, wr_refunded_addr_sk#40081, wr_returning_cdemo_sk#40083, wr_reason_sk#40087, wr_order_number#40088L, wr_fee#40093, wr_refunded_cash#40095] spark_catalog.tpcds_iceberg_10g.web_returns
+               :     :     :     :     :     +- Filter isnotnull(wp_web_page_sk#40100)
+               :     :     :     :     :        +- RelationV2[wp_web_page_sk#40100] spark_catalog.tpcds_iceberg_10g.web_page
+               :     :     :     :     +- Filter (((isnotnull(cd_demo_sk#40114) AND isnotnull(cd_marital_status#40116)) AND isnotnull(cd_education_status#40117)) AND ((((cd_marital_status#40116 = M) AND (cd_education_status#40117 = 4 yr Degree)) OR ((cd_marital_status#40116 = D) AND (cd_education_status#40117 = Primary))) OR ((cd_marital_status#40116 = U) AND (cd_education_status#40117 = Advanced Degree))))
+               :     :     :     :        +- RelationV2[cd_demo_sk#40114, cd_marital_status#40116, cd_education_status#40117] spark_catalog.tpcds_iceberg_10g.customer_demographics
+               :     :     :     +- Filter ((isnotnull(cd_demo_sk#40123) AND isnotnull(cd_marital_status#40125)) AND isnotnull(cd_education_status#40126))
+               :     :     :        +- RelationV2[cd_demo_sk#40123, cd_marital_status#40125, cd_education_status#40126] spark_catalog.tpcds_iceberg_10g.customer_demographics
+               :     :     +- Project [ca_address_sk#40132, ca_state#40140]
+               :     :        +- Filter (((isnotnull(ca_country#40142) AND (ca_country#40142 = United States)) AND isnotnull(ca_address_sk#40132)) AND ((ca_state#40140 IN (KY,GA,NM) OR ca_state#40140 IN (MT,OR,IN)) OR ca_state#40140 IN (WI,MO,WV)))
+               :     :           +- RelationV2[ca_address_sk#40132, ca_state#40140, ca_country#40142] spark_catalog.tpcds_iceberg_10g.customer_address
+               :     +- Project [d_date_sk#40145]
+               :        +- Filter ((isnotnull(d_year#40151) AND (d_year#40151 = 1998)) AND isnotnull(d_date_sk#40145))
+               :           +- RelationV2[d_date_sk#40145, d_year#40151] spark_catalog.tpcds_iceberg_10g.date_dim
+               +- Filter isnotnull(r_reason_sk#40173)
+                  +- RelationV2[r_reason_sk#40173, r_reason_desc#40175] spark_catalog.tpcds_iceberg_10g.reason
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[substr(r_reason_desc, 1, 20)#40219 ASC NULLS FIRST,avg(ws_quantity)#40220 ASC NULLS FIRST,avg(wr_refunded_cash)#40221 ASC NULLS FIRST,avg(wr_fee)#40222 ASC NULLS FIRST], output=[substr(r_reason_desc, 1, 20)#40219,avg(ws_quantity)#40220,avg(wr_refunded_cash)#40221,avg(wr_fee)#40222])
+   +- HashAggregate(keys=[r_reason_desc#40175], functions=[avg(ws_quantity#40059), avg(UnscaledValue(wr_refunded_cash#40095)), avg(UnscaledValue(wr_fee#40093))], output=[substr(r_reason_desc, 1, 20)#40219, avg(ws_quantity)#40220, avg(wr_refunded_cash)#40221, avg(wr_fee)#40222])
+      +- Exchange hashpartitioning(r_reason_desc#40175, 200), ENSURE_REQUIREMENTS, [plan_id=29880]
+         +- HashAggregate(keys=[r_reason_desc#40175], functions=[partial_avg(ws_quantity#40059), partial_avg(UnscaledValue(wr_refunded_cash#40095)), partial_avg(UnscaledValue(wr_fee#40093))], output=[r_reason_desc#40175, sum#40266, count#40267L, sum#40268, count#40269L, sum#40270, count#40271L])
+            +- Project [ws_quantity#40059, wr_fee#40093, wr_refunded_cash#40095, r_reason_desc#40175]
+               +- BroadcastHashJoin [wr_reason_sk#40087], [r_reason_sk#40173], Inner, BuildRight, false
+                  :- Project [ws_quantity#40059, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+                  :  +- BroadcastHashJoin [ws_sold_date_sk#40075], [d_date_sk#40145], Inner, BuildRight, false
+                  :     :- Project [ws_quantity#40059, ws_sold_date_sk#40075, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+                  :     :  +- BroadcastHashJoin [wr_refunded_addr_sk#40081], [ca_address_sk#40132], Inner, BuildRight, ((((ca_state#40140 IN (KY,GA,NM) AND (ws_net_profit#40074 >= 100.00)) AND (ws_net_profit#40074 <= 200.00)) OR ((ca_state#40140 IN (MT,OR,IN) AND (ws_net_profit#40074 >= 150.00)) AND (ws_net_profit#40074 <= 300.00))) OR ((ca_state#40140 IN (WI,MO,WV) AND (ws_net_profit#40074 >= 50.00)) AND (ws_net_profit#40074 <= 250.00))), false
+                  :     :     :- Project [ws_quantity#40059, ws_net_profit#40074, ws_sold_date_sk#40075, wr_refunded_addr_sk#40081, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+                  :     :     :  +- SortMergeJoin [wr_returning_cdemo_sk#40083, cd_marital_status#40116, cd_education_status#40117], [cd_demo_sk#40123, cd_marital_status#40125, cd_education_status#40126], Inner
+                  :     :     :     :- Sort [wr_returning_cdemo_sk#40083 ASC NULLS FIRST, cd_marital_status#40116 ASC NULLS FIRST, cd_education_status#40117 ASC NULLS FIRST], false, 0
+                  :     :     :     :  +- Exchange hashpartitioning(wr_returning_cdemo_sk#40083, cd_marital_status#40116, cd_education_status#40117, 200), ENSURE_REQUIREMENTS, [plan_id=29860]
+                  :     :     :     :     +- Project [ws_quantity#40059, ws_net_profit#40074, ws_sold_date_sk#40075, wr_refunded_addr_sk#40081, wr_returning_cdemo_sk#40083, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095, cd_marital_status#40116, cd_education_status#40117]
+                  :     :     :     :        +- SortMergeJoin [wr_refunded_cdemo_sk#40079], [cd_demo_sk#40114], Inner, ((((((cd_marital_status#40116 = M) AND (cd_education_status#40117 = 4 yr Degree)) AND (ws_sales_price#40062 >= 100.00)) AND (ws_sales_price#40062 <= 150.00)) OR ((((cd_marital_status#40116 = D) AND (cd_education_status#40117 = Primary)) AND (ws_sales_price#40062 >= 50.00)) AND (ws_sales_price#40062 <= 100.00))) OR ((((cd_marital_status#40116 = U) AND (cd_education_status#40117 = Advanced Degree)) AND (ws_sales_price#40062 >= 150.00)) AND (ws_sales_price#40062 <= 200.00)))
+                  :     :     :     :           :- Sort [wr_refunded_cdemo_sk#40079 ASC NULLS FIRST], false, 0
+                  :     :     :     :           :  +- Exchange hashpartitioning(wr_refunded_cdemo_sk#40079, 200), ENSURE_REQUIREMENTS, [plan_id=29852]
+                  :     :     :     :           :     +- Project [ws_quantity#40059, ws_sales_price#40062, ws_net_profit#40074, ws_sold_date_sk#40075, wr_refunded_cdemo_sk#40079, wr_refunded_addr_sk#40081, wr_returning_cdemo_sk#40083, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+                  :     :     :     :           :        +- BroadcastHashJoin [ws_web_page_sk#40053], [wp_web_page_sk#40100], Inner, BuildRight, false
+                  :     :     :     :           :           :- Project [ws_web_page_sk#40053, ws_quantity#40059, ws_sales_price#40062, ws_net_profit#40074, ws_sold_date_sk#40075, wr_refunded_cdemo_sk#40079, wr_refunded_addr_sk#40081, wr_returning_cdemo_sk#40083, wr_reason_sk#40087, wr_fee#40093, wr_refunded_cash#40095]
+                  :     :     :     :           :           :  +- SortMergeJoin [ws_item_sk#40044, ws_order_number#40058L], [wr_item_sk#40077, wr_order_number#40088L], Inner
+                  :     :     :     :           :           :     :- Sort [ws_item_sk#40044 ASC NULLS FIRST, ws_order_number#40058L ASC NULLS FIRST], false, 0
+                  :     :     :     :           :           :     :  +- Exchange hashpartitioning(ws_item_sk#40044, ws_order_number#40058L, 200), ENSURE_REQUIREMENTS, [plan_id=29840]
+                  :     :     :     :           :           :     :     +- Filter (((((isnotnull(ws_item_sk#40044) AND isnotnull(ws_order_number#40058L)) AND isnotnull(ws_web_page_sk#40053)) AND isnotnull(ws_sold_date_sk#40075)) AND ((((ws_sales_price#40062 >= 100.00) AND (ws_sales_price#40062 <= 150.00)) OR ((ws_sales_price#40062 >= 50.00) AND (ws_sales_price#40062 <= 100.00))) OR ((ws_sales_price#40062 >= 150.00) AND (ws_sales_price#40062 <= 200.00)))) AND ((((ws_net_profit#40074 >= 100.00) AND (ws_net_profit#40074 <= 200.00)) OR ((ws_net_profit#40074 >= 150.00) AND (ws_net_profit#40074 <= 300.00))) OR ((ws_net_profit#40074 >= 50.00) AND (ws_net_profit#40074 <= 250.00))))
+                  :     :     :     :           :           :     :        +- BatchScan[ws_item_sk#40044, ws_web_page_sk#40053, ws_order_number#40058L, ws_quantity#40059, ws_sales_price#40062, ws_net_profit#40074, ws_sold_date_sk#40075] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_item_sk IS NOT NULL, ws_order_number IS NOT NULL, ws_web_page_sk IS NOT NULL, ws_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#40075 IN dynamicpruning#40259)]
+                  :     :     :     :           :           :     :              +- SubqueryAdaptiveBroadcast dynamicpruning#40259, 0, true, Project [d_date_sk#40145], [d_date_sk#40145]
+                  :     :     :     :           :           :     :                 +- AdaptiveSparkPlan isFinalPlan=false
+                  :     :     :     :           :           :     :                    +- Project [d_date_sk#40145]
+                  :     :     :     :           :           :     :                       +- Filter ((isnotnull(d_year#40151) AND (d_year#40151 = 1998)) AND isnotnull(d_date_sk#40145))
+                  :     :     :     :           :           :     :                          +- BatchScan[d_date_sk#40145, d_year#40151] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     :     :           :           :     +- Sort [wr_item_sk#40077 ASC NULLS FIRST, wr_order_number#40088L ASC NULLS FIRST], false, 0
+                  :     :     :     :           :           :        +- Exchange hashpartitioning(wr_item_sk#40077, wr_order_number#40088L, 200), ENSURE_REQUIREMENTS, [plan_id=29841]
+                  :     :     :     :           :           :           +- Filter (((((isnotnull(wr_item_sk#40077) AND isnotnull(wr_order_number#40088L)) AND isnotnull(wr_refunded_cdemo_sk#40079)) AND isnotnull(wr_returning_cdemo_sk#40083)) AND isnotnull(wr_refunded_addr_sk#40081)) AND isnotnull(wr_reason_sk#40087))
+                  :     :     :     :           :           :              +- BatchScan[wr_item_sk#40077, wr_refunded_cdemo_sk#40079, wr_refunded_addr_sk#40081, wr_returning_cdemo_sk#40083, wr_reason_sk#40087, wr_order_number#40088L, wr_fee#40093, wr_refunded_cash#40095] spark_catalog.tpcds_iceberg_10g.web_returns [filters=wr_item_sk IS NOT NULL, wr_order_number IS NOT NULL, wr_refunded_cdemo_sk IS NOT NULL, wr_returning_cdemo_sk IS NOT NULL, wr_refunded_addr_sk IS NOT NULL, wr_reason_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     :     :           :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=29847]
+                  :     :     :     :           :              +- Filter isnotnull(wp_web_page_sk#40100)
+                  :     :     :     :           :                 +- BatchScan[wp_web_page_sk#40100] spark_catalog.tpcds_iceberg_10g.web_page [filters=wp_web_page_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     :     :           +- Sort [cd_demo_sk#40114 ASC NULLS FIRST], false, 0
+                  :     :     :     :              +- Exchange hashpartitioning(cd_demo_sk#40114, 200), ENSURE_REQUIREMENTS, [plan_id=29853]
+                  :     :     :     :                 +- Filter (((isnotnull(cd_demo_sk#40114) AND isnotnull(cd_marital_status#40116)) AND isnotnull(cd_education_status#40117)) AND ((((cd_marital_status#40116 = M) AND (cd_education_status#40117 = 4 yr Degree)) OR ((cd_marital_status#40116 = D) AND (cd_education_status#40117 = Primary))) OR ((cd_marital_status#40116 = U) AND (cd_education_status#40117 = Advanced Degree))))
+                  :     :     :     :                    +- BatchScan[cd_demo_sk#40114, cd_marital_status#40116, cd_education_status#40117] spark_catalog.tpcds_iceberg_10g.customer_demographics [filters=cd_demo_sk IS NOT NULL, cd_marital_status IS NOT NULL, cd_education_status IS NOT NULL, (((cd_marital_status = 'M' AND cd_education_status = '4 yr Degree') OR (cd_marital_status = 'D' AND cd_education_status = 'Primary')) OR (cd_marital_status = 'U' AND cd_education_status = 'Advanced Degree'))] RuntimeFilters: []
+                  :     :     :     +- Sort [cd_demo_sk#40123 ASC NULLS FIRST, cd_marital_status#40125 ASC NULLS FIRST, cd_education_status#40126 ASC NULLS FIRST], false, 0
+                  :     :     :        +- Exchange hashpartitioning(cd_demo_sk#40123, cd_marital_status#40125, cd_education_status#40126, 200), ENSURE_REQUIREMENTS, [plan_id=29861]
+                  :     :     :           +- Filter ((isnotnull(cd_demo_sk#40123) AND isnotnull(cd_marital_status#40125)) AND isnotnull(cd_education_status#40126))
+                  :     :     :              +- BatchScan[cd_demo_sk#40123, cd_marital_status#40125, cd_education_status#40126] spark_catalog.tpcds_iceberg_10g.customer_demographics [filters=cd_demo_sk IS NOT NULL, cd_marital_status IS NOT NULL, cd_education_status IS NOT NULL] RuntimeFilters: []
+                  :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29867]
+                  :     :        +- Project [ca_address_sk#40132, ca_state#40140]
+                  :     :           +- Filter (((isnotnull(ca_country#40142) AND (ca_country#40142 = United States)) AND isnotnull(ca_address_sk#40132)) AND ((ca_state#40140 IN (KY,GA,NM) OR ca_state#40140 IN (MT,OR,IN)) OR ca_state#40140 IN (WI,MO,WV)))
+                  :     :              +- BatchScan[ca_address_sk#40132, ca_state#40140, ca_country#40142] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_country IS NOT NULL, ca_country = 'United States', ca_address_sk IS NOT NULL, ((ca_state IN ('KY', 'GA', 'NM') OR ca_state IN ('MT', 'OR', 'IN')) OR ca_state IN ('WI', 'MO', 'WV'))] RuntimeFilters: []
+                  :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29871]
+                  :        +- Project [d_date_sk#40145]
+                  :           +- Filter ((isnotnull(d_year#40151) AND (d_year#40151 = 1998)) AND isnotnull(d_date_sk#40145))
+                  :              +- BatchScan[d_date_sk#40145, d_year#40151] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=29875]
+                     +- Filter isnotnull(r_reason_sk#40173)
+                        +- BatchScan[r_reason_sk#40173, r_reason_desc#40175] spark_catalog.tpcds_iceberg_10g.reason [filters=r_reason_sk IS NOT NULL] RuntimeFilters: []
+

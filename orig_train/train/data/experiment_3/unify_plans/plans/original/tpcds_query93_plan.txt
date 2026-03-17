@@ -1,0 +1,39 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [sumsales#42856 ASC NULLS FIRST, ss_customer_sk#42859 ASC NULLS FIRST], true
+      +- Aggregate [ss_customer_sk#42859], [ss_customer_sk#42859, sum(act_sales#42855) AS sumsales#42856]
+         +- Project [ss_customer_sk#42859, CASE WHEN isnotnull(sr_return_quantity#42889) THEN CheckOverflow((promote_precision(cast((ss_quantity#42866 - sr_return_quantity#42889) as decimal(12,2))) * promote_precision(cast(ss_sales_price#42869 as decimal(12,2)))), DecimalType(18,2)) ELSE CheckOverflow((promote_precision(cast(ss_quantity#42866 as decimal(12,2))) * promote_precision(cast(ss_sales_price#42869 as decimal(12,2)))), DecimalType(18,2)) END AS act_sales#42855]
+            +- Join Inner, (sr_reason_sk#42887 = r_reason_sk#42900)
+               :- Project [ss_customer_sk#42859, ss_quantity#42866, ss_sales_price#42869, sr_reason_sk#42887, sr_return_quantity#42889]
+               :  +- Join Inner, ((sr_item_sk#42881 = ss_item_sk#42858) AND (sr_ticket_number#42888L = ss_ticket_number#42865L))
+               :     :- RelationV2[ss_item_sk#42858, ss_customer_sk#42859, ss_ticket_number#42865L, ss_quantity#42866, ss_sales_price#42869] spark_catalog.tpcds_iceberg_10g.store_sales
+               :     +- Filter ((isnotnull(sr_item_sk#42881) AND isnotnull(sr_ticket_number#42888L)) AND isnotnull(sr_reason_sk#42887))
+               :        +- RelationV2[sr_item_sk#42881, sr_reason_sk#42887, sr_ticket_number#42888L, sr_return_quantity#42889] spark_catalog.tpcds_iceberg_10g.store_returns
+               +- Project [r_reason_sk#42900]
+                  +- Filter ((isnotnull(r_reason_desc#42902) AND (r_reason_desc#42902 = Did not like the warranty)) AND isnotnull(r_reason_sk#42900))
+                     +- RelationV2[r_reason_sk#42900, r_reason_desc#42902] spark_catalog.tpcds_iceberg_10g.reason
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[sumsales#42856 ASC NULLS FIRST,ss_customer_sk#42859 ASC NULLS FIRST], output=[ss_customer_sk#42859,sumsales#42856])
+   +- HashAggregate(keys=[ss_customer_sk#42859], functions=[sum(act_sales#42855)], output=[ss_customer_sk#42859, sumsales#42856])
+      +- Exchange hashpartitioning(ss_customer_sk#42859, 200), ENSURE_REQUIREMENTS, [plan_id=31968]
+         +- HashAggregate(keys=[ss_customer_sk#42859], functions=[partial_sum(act_sales#42855)], output=[ss_customer_sk#42859, sum#42934, isEmpty#42935])
+            +- Project [ss_customer_sk#42859, CASE WHEN isnotnull(sr_return_quantity#42889) THEN CheckOverflow((promote_precision(cast((ss_quantity#42866 - sr_return_quantity#42889) as decimal(12,2))) * promote_precision(cast(ss_sales_price#42869 as decimal(12,2)))), DecimalType(18,2)) ELSE CheckOverflow((promote_precision(cast(ss_quantity#42866 as decimal(12,2))) * promote_precision(cast(ss_sales_price#42869 as decimal(12,2)))), DecimalType(18,2)) END AS act_sales#42855]
+               +- BroadcastHashJoin [sr_reason_sk#42887], [r_reason_sk#42900], Inner, BuildRight, false
+                  :- Project [ss_customer_sk#42859, ss_quantity#42866, ss_sales_price#42869, sr_reason_sk#42887, sr_return_quantity#42889]
+                  :  +- SortMergeJoin [ss_item_sk#42858, ss_ticket_number#42865L], [sr_item_sk#42881, sr_ticket_number#42888L], Inner
+                  :     :- Sort [ss_item_sk#42858 ASC NULLS FIRST, ss_ticket_number#42865L ASC NULLS FIRST], false, 0
+                  :     :  +- Exchange hashpartitioning(ss_item_sk#42858, ss_ticket_number#42865L, 200), ENSURE_REQUIREMENTS, [plan_id=31956]
+                  :     :     +- BatchScan[ss_item_sk#42858, ss_customer_sk#42859, ss_ticket_number#42865L, ss_quantity#42866, ss_sales_price#42869] spark_catalog.tpcds_iceberg_10g.store_sales [filters=] RuntimeFilters: []
+                  :     +- Sort [sr_item_sk#42881 ASC NULLS FIRST, sr_ticket_number#42888L ASC NULLS FIRST], false, 0
+                  :        +- Exchange hashpartitioning(sr_item_sk#42881, sr_ticket_number#42888L, 200), ENSURE_REQUIREMENTS, [plan_id=31957]
+                  :           +- Filter ((isnotnull(sr_item_sk#42881) AND isnotnull(sr_ticket_number#42888L)) AND isnotnull(sr_reason_sk#42887))
+                  :              +- BatchScan[sr_item_sk#42881, sr_reason_sk#42887, sr_ticket_number#42888L, sr_return_quantity#42889] spark_catalog.tpcds_iceberg_10g.store_returns [filters=sr_item_sk IS NOT NULL, sr_ticket_number IS NOT NULL, sr_reason_sk IS NOT NULL] RuntimeFilters: []
+                  +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31963]
+                     +- Project [r_reason_sk#42900]
+                        +- Filter ((isnotnull(r_reason_desc#42902) AND (r_reason_desc#42902 = Did not like the warranty)) AND isnotnull(r_reason_sk#42900))
+                           +- BatchScan[r_reason_sk#42900, r_reason_desc#42902] spark_catalog.tpcds_iceberg_10g.reason [filters=r_reason_desc IS NOT NULL, r_reason_desc = 'Did not like the warranty', r_reason_sk IS NOT NULL] RuntimeFilters: []
+

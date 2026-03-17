@@ -1,0 +1,26 @@
+== Parsed Logical Plan ==
+'Project ['sum(('l_extendedprice * 'l_discount)) AS revenue#20018]
++- 'Filter ((('date('l_shipdate) >= 1994-01-01) AND ('date('l_shipdate) < (1994-01-01 + INTERVAL '1' YEAR))) AND ((('l_discount >= (0.09 - 0.01)) AND ('l_discount <= (0.09 + 0.01))) AND ('l_quantity < 25)))
+   +- 'UnresolvedRelation [lineitem], [], false
+
+== Analyzed Logical Plan ==
+revenue: double
+Aggregate [sum((l_extendedprice#20030 * l_discount#20031)) AS revenue#20018]
++- Filter (((cast(l_shipdate#20035 as date) >= 1994-01-01) AND (cast(l_shipdate#20035 as date) < 1994-01-01 + INTERVAL '1' YEAR)) AND (((l_discount#20031 >= cast(CheckOverflow((promote_precision(cast(0.09 as decimal(3,2))) - promote_precision(cast(0.01 as decimal(3,2)))), DecimalType(3,2)) as double)) AND (l_discount#20031 <= cast(CheckOverflow((promote_precision(cast(0.09 as decimal(3,2))) + promote_precision(cast(0.01 as decimal(3,2)))), DecimalType(3,2)) as double))) AND (l_quantity#20029L < cast(25 as bigint))))
+   +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+      +- RelationV2[l_orderkey#20025L, l_partkey#20026L, l_suppkey#20027L, l_linenumber#20028L, l_quantity#20029L, l_extendedprice#20030, l_discount#20031, l_tax#20032, l_returnflag#20033, l_linestatus#20034, l_shipdate#20035, l_commitdate#20036, l_receiptdate#20037, l_shipinstruct#20038, l_shipmode#20039, l_comment#20040] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Optimized Logical Plan ==
+Aggregate [sum((l_extendedprice#20030 * l_discount#20031)) AS revenue#20018]
++- Project [l_extendedprice#20030, l_discount#20031]
+   +- Filter ((((((((cast(l_shipdate#20035 as date) >= 1994-01-01) AND (cast(l_shipdate#20035 as date) < 1995-01-01)) AND isnotnull(l_shipdate#20035)) AND isnotnull(l_discount#20031)) AND isnotnull(l_quantity#20029L)) AND (l_discount#20031 >= 0.08)) AND (l_discount#20031 <= 0.1)) AND (l_quantity#20029L < 25))
+      +- RelationV2[l_quantity#20029L, l_extendedprice#20030, l_discount#20031, l_shipdate#20035] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[sum((l_extendedprice#20030 * l_discount#20031))], output=[revenue#20018])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=24013]
+      +- HashAggregate(keys=[], functions=[partial_sum((l_extendedprice#20030 * l_discount#20031))], output=[sum#20052])
+         +- Project [l_extendedprice#20030, l_discount#20031]
+            +- Filter ((((((((cast(l_shipdate#20035 as date) >= 1994-01-01) AND (cast(l_shipdate#20035 as date) < 1995-01-01)) AND isnotnull(l_shipdate#20035)) AND isnotnull(l_discount#20031)) AND isnotnull(l_quantity#20029L)) AND (l_discount#20031 >= 0.08)) AND (l_discount#20031 <= 0.1)) AND (l_quantity#20029L < 25))
+               +- BatchScan[l_quantity#20029L, l_extendedprice#20030, l_discount#20031, l_shipdate#20035] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_discount IS NOT NULL, l_quantity IS NOT NULL, l_discount >= 0.08, l_discount <= 0.1, l_quantity < 25] RuntimeFilters: []

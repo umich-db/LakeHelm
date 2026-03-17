@@ -1,0 +1,40 @@
+== Optimized Logical Plan ==
+GlobalLimit 15
++- LocalLimit 15
+   +- Sort [keyword_count#17996L DESC NULLS LAST], true
+      +- Aggregate [title#17998], [title#17998, count(distinct keyword_id#18011L) AS keyword_count#17996L]
+         +- Project [title#17998, keyword_id#18011L]
+            +- Join Inner, (keyword_id#18011L = id#18012L)
+               :- Project [title#17998, keyword_id#18011L]
+               :  +- Join Inner, (id#17997L = movie_id#18010L)
+               :     :- Filter isnotnull(id#17997L)
+               :     :  +- RelationV2[id#17997L, title#17998] spark_catalog.job_iceberg_10g.title
+               :     +- Filter (isnotnull(movie_id#18010L) AND isnotnull(keyword_id#18011L))
+               :        +- RelationV2[movie_id#18010L, keyword_id#18011L] spark_catalog.job_iceberg_10g.movie_keyword
+               +- Project [id#18012L]
+                  +- Filter ((isnotnull(keyword#18013) AND StartsWith(keyword#18013, action)) AND isnotnull(id#18012L))
+                     +- RelationV2[id#18012L, keyword#18013] spark_catalog.job_iceberg_10g.keyword
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=15, orderBy=[keyword_count#17996L DESC NULLS LAST], output=[title#17998,keyword_count#17996L])
+   +- HashAggregate(keys=[title#17998], functions=[count(distinct keyword_id#18011L)], output=[title#17998, keyword_count#17996L])
+      +- HashAggregate(keys=[title#17998], functions=[partial_count(distinct keyword_id#18011L)], output=[title#17998, count#18041L])
+         +- HashAggregate(keys=[title#17998, keyword_id#18011L], functions=[], output=[title#17998, keyword_id#18011L])
+            +- HashAggregate(keys=[title#17998, keyword_id#18011L], functions=[], output=[title#17998, keyword_id#18011L])
+               +- Project [title#17998, keyword_id#18011L]
+                  +- BroadcastHashJoin [keyword_id#18011L], [id#18012L], Inner, BuildRight, false
+                     :- Project [title#17998, keyword_id#18011L]
+                     :  +- SortMergeJoin [id#17997L], [movie_id#18010L], Inner
+                     :     :- Sort [id#17997L ASC NULLS FIRST], false, 0
+                     :     :  +- Filter isnotnull(id#17997L)
+                     :     :     +- BatchScan[id#17997L, title#17998] spark_catalog.job_iceberg_10g.title [filters=id IS NOT NULL] RuntimeFilters: []
+                     :     +- Sort [movie_id#18010L ASC NULLS FIRST], false, 0
+                     :        +- Filter (isnotnull(movie_id#18010L) AND isnotnull(keyword_id#18011L))
+                     :           +- BatchScan[movie_id#18010L, keyword_id#18011L] spark_catalog.job_iceberg_10g.movie_keyword [filters=movie_id IS NOT NULL, keyword_id IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=19555]
+                        +- Project [id#18012L]
+                           +- Filter ((isnotnull(keyword#18013) AND StartsWith(keyword#18013, action)) AND isnotnull(id#18012L))
+                              +- BatchScan[id#18012L, keyword#18013] spark_catalog.job_iceberg_10g.keyword [filters=keyword IS NOT NULL, keyword LIKE '"action"%', id IS NOT NULL] RuntimeFilters: []
+

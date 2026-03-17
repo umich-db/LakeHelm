@@ -1,0 +1,45 @@
+== Optimized Logical Plan ==
+Filter (cast(order_count#9749L as double) > scalar-subquery#9751 [])
+:  +- Aggregate [avg(order_count#9750L) AS avg(order_count)#9847]
+:     +- Aggregate [ws_promo_sk#9821], [count(distinct ws_order_number#9822L) AS order_count#9750L]
+:        +- RelationV2[ws_promo_sk#9821, ws_order_number#9822L] spark_catalog.tpcds_iceberg_10g.web_sales
++- Aggregate [p_promo_name#9759], [p_promo_name#9759, count(distinct ws_order_number#9787L) AS order_count#9749L]
+   +- Project [p_promo_name#9759, ws_order_number#9787L]
+      +- Join Inner, (p_promo_sk#9752 = ws_promo_sk#9786)
+         :- Project [p_promo_sk#9752, p_promo_name#9759]
+         :  +- Filter (((isnotnull(p_start_date_sk#9754) AND (p_start_date_sk#9754 >= 2450000)) AND (p_start_date_sk#9754 <= 2451000)) AND isnotnull(p_promo_sk#9752))
+         :     +- RelationV2[p_promo_sk#9752, p_start_date_sk#9754, p_promo_name#9759] spark_catalog.tpcds_iceberg_10g.promotion
+         +- Filter isnotnull(ws_promo_sk#9786)
+            +- RelationV2[ws_promo_sk#9786, ws_order_number#9787L] spark_catalog.tpcds_iceberg_10g.web_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Filter (cast(order_count#9749L as double) > Subquery subquery#9751, [id=#7363])
+   :  +- Subquery subquery#9751, [id=#7363]
+   :     +- AdaptiveSparkPlan isFinalPlan=false
+   :        +- HashAggregate(keys=[], functions=[avg(order_count#9750L)], output=[avg(order_count)#9847])
+   :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=7361]
+   :              +- HashAggregate(keys=[], functions=[partial_avg(order_count#9750L)], output=[sum#9878, count#9879L])
+   :                 +- HashAggregate(keys=[ws_promo_sk#9821], functions=[count(distinct ws_order_number#9822L)], output=[order_count#9750L])
+   :                    +- Exchange hashpartitioning(ws_promo_sk#9821, 200), ENSURE_REQUIREMENTS, [plan_id=7357]
+   :                       +- HashAggregate(keys=[ws_promo_sk#9821], functions=[partial_count(distinct ws_order_number#9822L)], output=[ws_promo_sk#9821, count#9882L])
+   :                          +- HashAggregate(keys=[ws_promo_sk#9821, ws_order_number#9822L], functions=[], output=[ws_promo_sk#9821, ws_order_number#9822L])
+   :                             +- Exchange hashpartitioning(ws_promo_sk#9821, ws_order_number#9822L, 200), ENSURE_REQUIREMENTS, [plan_id=7353]
+   :                                +- HashAggregate(keys=[ws_promo_sk#9821, ws_order_number#9822L], functions=[], output=[ws_promo_sk#9821, ws_order_number#9822L])
+   :                                   +- BatchScan[ws_promo_sk#9821, ws_order_number#9822L] spark_catalog.tpcds_iceberg_10g.web_sales [filters=] RuntimeFilters: []
+   +- HashAggregate(keys=[p_promo_name#9759], functions=[count(distinct ws_order_number#9787L)], output=[p_promo_name#9759, order_count#9749L])
+      +- Exchange hashpartitioning(p_promo_name#9759, 200), ENSURE_REQUIREMENTS, [plan_id=7382]
+         +- HashAggregate(keys=[p_promo_name#9759], functions=[partial_count(distinct ws_order_number#9787L)], output=[p_promo_name#9759, count#9874L])
+            +- HashAggregate(keys=[p_promo_name#9759, ws_order_number#9787L], functions=[], output=[p_promo_name#9759, ws_order_number#9787L])
+               +- Exchange hashpartitioning(p_promo_name#9759, ws_order_number#9787L, 200), ENSURE_REQUIREMENTS, [plan_id=7378]
+                  +- HashAggregate(keys=[p_promo_name#9759, ws_order_number#9787L], functions=[], output=[p_promo_name#9759, ws_order_number#9787L])
+                     +- Project [p_promo_name#9759, ws_order_number#9787L]
+                        +- BroadcastHashJoin [p_promo_sk#9752], [ws_promo_sk#9786], Inner, BuildLeft, false
+                           :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=7373]
+                           :  +- Project [p_promo_sk#9752, p_promo_name#9759]
+                           :     +- Filter (((isnotnull(p_start_date_sk#9754) AND (p_start_date_sk#9754 >= 2450000)) AND (p_start_date_sk#9754 <= 2451000)) AND isnotnull(p_promo_sk#9752))
+                           :        +- BatchScan[p_promo_sk#9752, p_start_date_sk#9754, p_promo_name#9759] spark_catalog.tpcds_iceberg_10g.promotion [filters=p_start_date_sk IS NOT NULL, p_start_date_sk >= 2450000, p_start_date_sk <= 2451000, p_promo_sk IS NOT NULL] RuntimeFilters: []
+                           +- Filter isnotnull(ws_promo_sk#9786)
+                              +- BatchScan[ws_promo_sk#9786, ws_order_number#9787L] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_promo_sk IS NOT NULL] RuntimeFilters: []
+

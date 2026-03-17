@@ -1,0 +1,31 @@
+== Optimized Logical Plan ==
+Sort [total_sales#24823 DESC NULLS LAST], true
++- Aggregate [o_orderstatus#24826], [o_orderstatus#24826, sum(o_totalprice#24827) AS total_sales#24823]
+   +- Project [o_orderstatus#24826, o_totalprice#24827]
+      +- Join Inner, (o_custkey#24825L = c_custkey#24833L)
+         :- Filter isnotnull(o_custkey#24825L)
+         :  +- RelationV2[o_custkey#24825L, o_orderstatus#24826, o_totalprice#24827] spark_catalog.tpch_iceberg_10g.orders
+         +- Project [c_custkey#24833L]
+            +- Filter ((isnotnull(c_mktsegment#24839) AND (c_mktsegment#24839 = BUILDING)) AND isnotnull(c_custkey#24833L))
+               +- RelationV2[c_custkey#24833L, c_mktsegment#24839] spark_catalog.tpch_iceberg_10g.customer
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_sales#24823 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_sales#24823 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=29422]
+      +- HashAggregate(keys=[o_orderstatus#24826], functions=[sum(o_totalprice#24827)], output=[o_orderstatus#24826, total_sales#24823])
+         +- Exchange hashpartitioning(o_orderstatus#24826, 200), ENSURE_REQUIREMENTS, [plan_id=29419]
+            +- HashAggregate(keys=[o_orderstatus#24826], functions=[partial_sum(o_totalprice#24827)], output=[o_orderstatus#24826, sum#24860])
+               +- Project [o_orderstatus#24826, o_totalprice#24827]
+                  +- SortMergeJoin [o_custkey#24825L], [c_custkey#24833L], Inner
+                     :- Sort [o_custkey#24825L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(o_custkey#24825L, 200), ENSURE_REQUIREMENTS, [plan_id=29411]
+                     :     +- Filter isnotnull(o_custkey#24825L)
+                     :        +- BatchScan[o_custkey#24825L, o_orderstatus#24826, o_totalprice#24827] spark_catalog.tpch_iceberg_10g.orders [filters=o_custkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [c_custkey#24833L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(c_custkey#24833L, 200), ENSURE_REQUIREMENTS, [plan_id=29412]
+                           +- Project [c_custkey#24833L]
+                              +- Filter ((isnotnull(c_mktsegment#24839) AND (c_mktsegment#24839 = BUILDING)) AND isnotnull(c_custkey#24833L))
+                                 +- BatchScan[c_custkey#24833L, c_mktsegment#24839] spark_catalog.tpch_iceberg_10g.customer [filters=c_mktsegment IS NOT NULL, c_mktsegment = 'BUILDING', c_custkey IS NOT NULL] RuntimeFilters: []
+

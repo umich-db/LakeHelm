@@ -1,0 +1,88 @@
+=== Optimized Logical Plan ===
+Sort [Returns_Loss#42459 DESC NULLS LAST], true
++- Aggregate [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cd_marital_status#42579, cd_education_status#42580], [cc_call_center_id#42461 AS Call_Center#42456, cc_name#42466 AS Call_Center_Name#42457, cc_manager#42471 AS Manager#42458, MakeDecimal(sum(UnscaledValue(cr_net_loss#42516)),17,2) AS Returns_Loss#42459]
+   +- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_net_loss#42516, cd_marital_status#42579, cd_education_status#42580]
+      +- Join Inner, (hd_demo_sk#42586 = c_current_hdemo_sk#42549)
+         :- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_net_loss#42516, c_current_hdemo_sk#42549, cd_marital_status#42579, cd_education_status#42580]
+         :  +- Join Inner, (cd_demo_sk#42577 = c_current_cdemo_sk#42548)
+         :     :- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_net_loss#42516, c_current_cdemo_sk#42548, c_current_hdemo_sk#42549]
+         :     :  +- Join Inner, (ca_address_sk#42564 = c_current_addr_sk#42550)
+         :     :     :- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_net_loss#42516, c_current_cdemo_sk#42548, c_current_hdemo_sk#42549, c_current_addr_sk#42550]
+         :     :     :  +- Join Inner, (cr_returning_customer_sk#42497 = c_customer_sk#42546)
+         :     :     :     :- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_returning_customer_sk#42497, cr_net_loss#42516]
+         :     :     :     :  +- Join Inner, (cr_returned_date_sk#42517 = d_date_sk#42518)
+         :     :     :     :     :- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_returning_customer_sk#42497, cr_net_loss#42516, cr_returned_date_sk#42517]
+         :     :     :     :     :  +- Join Inner, (cr_call_center_sk#42501 = cc_call_center_sk#42460)
+         :     :     :     :     :     :- Filter isnotnull(cc_call_center_sk#42460)
+         :     :     :     :     :     :  +- RelationV2[cc_call_center_sk#42460, cc_call_center_id#42461, cc_name#42466, cc_manager#42471] spark_catalog.tpcds_iceberg_10g.call_center
+         :     :     :     :     :     +- Filter (((isnotnull(cr_call_center_sk#42501) AND isnotnull(cr_returned_date_sk#42517)) AND isnotnull(cr_returning_customer_sk#42497)) AND dynamicpruning#42654 [cr_returned_date_sk#42517])
+         :     :     :     :     :        :  +- Project [d_date_sk#42518]
+         :     :     :     :     :        :     +- Filter ((((isnotnull(d_year#42524) AND isnotnull(d_moy#42526)) AND (d_year#42524 = 1999)) AND (d_moy#42526 = 11)) AND isnotnull(d_date_sk#42518))
+         :     :     :     :     :        :        +- RelationV2[d_date_sk#42518, d_year#42524, d_moy#42526] spark_catalog.tpcds_iceberg_10g.date_dim
+         :     :     :     :     :        +- RelationV2[cr_returning_customer_sk#42497, cr_call_center_sk#42501, cr_net_loss#42516, cr_returned_date_sk#42517] spark_catalog.tpcds_iceberg_10g.catalog_returns
+         :     :     :     :     +- Project [d_date_sk#42518]
+         :     :     :     :        +- Filter ((((isnotnull(d_year#42524) AND isnotnull(d_moy#42526)) AND (d_year#42524 = 1999)) AND (d_moy#42526 = 11)) AND isnotnull(d_date_sk#42518))
+         :     :     :     :           +- RelationV2[d_date_sk#42518, d_year#42524, d_moy#42526] spark_catalog.tpcds_iceberg_10g.date_dim
+         :     :     :     +- Filter (((isnotnull(c_customer_sk#42546) AND isnotnull(c_current_addr_sk#42550)) AND isnotnull(c_current_cdemo_sk#42548)) AND isnotnull(c_current_hdemo_sk#42549))
+         :     :     :        +- RelationV2[c_customer_sk#42546, c_current_cdemo_sk#42548, c_current_hdemo_sk#42549, c_current_addr_sk#42550] spark_catalog.tpcds_iceberg_10g.customer
+         :     :     +- Project [ca_address_sk#42564]
+         :     :        +- Filter ((isnotnull(ca_gmt_offset#42575) AND (ca_gmt_offset#42575 = -7.00)) AND isnotnull(ca_address_sk#42564))
+         :     :           +- RelationV2[ca_address_sk#42564, ca_gmt_offset#42575] spark_catalog.tpcds_iceberg_10g.customer_address
+         :     +- Filter ((((cd_marital_status#42579 = M) AND (cd_education_status#42580 = Unknown)) OR ((cd_marital_status#42579 = W) AND (cd_education_status#42580 = Advanced Degree))) AND isnotnull(cd_demo_sk#42577))
+         :        +- RelationV2[cd_demo_sk#42577, cd_marital_status#42579, cd_education_status#42580] spark_catalog.tpcds_iceberg_10g.customer_demographics
+         +- Project [hd_demo_sk#42586]
+            +- Filter ((isnotnull(hd_buy_potential#42588) AND StartsWith(hd_buy_potential#42588, 0-500)) AND isnotnull(hd_demo_sk#42586))
+               +- RelationV2[hd_demo_sk#42586, hd_buy_potential#42588] spark_catalog.tpcds_iceberg_10g.household_demographics
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [Returns_Loss#42459 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(Returns_Loss#42459 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=31740]
+      +- HashAggregate(keys=[cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cd_marital_status#42579, cd_education_status#42580], functions=[sum(UnscaledValue(cr_net_loss#42516))], output=[Call_Center#42456, Call_Center_Name#42457, Manager#42458, Returns_Loss#42459])
+         +- Exchange hashpartitioning(cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cd_marital_status#42579, cd_education_status#42580, 200), ENSURE_REQUIREMENTS, [plan_id=31737]
+            +- HashAggregate(keys=[cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cd_marital_status#42579, cd_education_status#42580], functions=[partial_sum(UnscaledValue(cr_net_loss#42516))], output=[cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cd_marital_status#42579, cd_education_status#42580, sum#42656L])
+               +- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_net_loss#42516, cd_marital_status#42579, cd_education_status#42580]
+                  +- BroadcastHashJoin [c_current_hdemo_sk#42549], [hd_demo_sk#42586], Inner, BuildRight, false
+                     :- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_net_loss#42516, c_current_hdemo_sk#42549, cd_marital_status#42579, cd_education_status#42580]
+                     :  +- SortMergeJoin [c_current_cdemo_sk#42548], [cd_demo_sk#42577], Inner
+                     :     :- Sort [c_current_cdemo_sk#42548 ASC NULLS FIRST], false, 0
+                     :     :  +- Exchange hashpartitioning(c_current_cdemo_sk#42548, 200), ENSURE_REQUIREMENTS, [plan_id=31725]
+                     :     :     +- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_net_loss#42516, c_current_cdemo_sk#42548, c_current_hdemo_sk#42549]
+                     :     :        +- BroadcastHashJoin [c_current_addr_sk#42550], [ca_address_sk#42564], Inner, BuildRight, false
+                     :     :           :- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_net_loss#42516, c_current_cdemo_sk#42548, c_current_hdemo_sk#42549, c_current_addr_sk#42550]
+                     :     :           :  +- BroadcastHashJoin [cr_returning_customer_sk#42497], [c_customer_sk#42546], Inner, BuildRight, false
+                     :     :           :     :- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_returning_customer_sk#42497, cr_net_loss#42516]
+                     :     :           :     :  +- BroadcastHashJoin [cr_returned_date_sk#42517], [d_date_sk#42518], Inner, BuildRight, false
+                     :     :           :     :     :- Project [cc_call_center_id#42461, cc_name#42466, cc_manager#42471, cr_returning_customer_sk#42497, cr_net_loss#42516, cr_returned_date_sk#42517]
+                     :     :           :     :     :  +- BroadcastHashJoin [cc_call_center_sk#42460], [cr_call_center_sk#42501], Inner, BuildLeft, false
+                     :     :           :     :     :     :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=31708]
+                     :     :           :     :     :     :  +- Filter isnotnull(cc_call_center_sk#42460)
+                     :     :           :     :     :     :     +- BatchScan[cc_call_center_sk#42460, cc_call_center_id#42461, cc_name#42466, cc_manager#42471] spark_catalog.tpcds_iceberg_10g.call_center [filters=cc_call_center_sk IS NOT NULL] RuntimeFilters: []
+                     :     :           :     :     :     +- Filter ((isnotnull(cr_call_center_sk#42501) AND isnotnull(cr_returned_date_sk#42517)) AND isnotnull(cr_returning_customer_sk#42497))
+                     :     :           :     :     :        +- BatchScan[cr_returning_customer_sk#42497, cr_call_center_sk#42501, cr_net_loss#42516, cr_returned_date_sk#42517] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=cr_call_center_sk IS NOT NULL, cr_returned_date_sk IS NOT NULL, cr_returning_customer_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cr_returned_date_sk#42517 IN dynamicpruning#42654)]
+                     :     :           :     :     :              +- SubqueryAdaptiveBroadcast dynamicpruning#42654, 0, true, Project [d_date_sk#42518], [d_date_sk#42518]
+                     :     :           :     :     :                 +- AdaptiveSparkPlan isFinalPlan=false
+                     :     :           :     :     :                    +- Project [d_date_sk#42518]
+                     :     :           :     :     :                       +- Filter ((((isnotnull(d_year#42524) AND isnotnull(d_moy#42526)) AND (d_year#42524 = 1999)) AND (d_moy#42526 = 11)) AND isnotnull(d_date_sk#42518))
+                     :     :           :     :     :                          +- BatchScan[d_date_sk#42518, d_year#42524, d_moy#42526] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1999, d_moy = 11, d_date_sk IS NOT NULL] RuntimeFilters: []
+                     :     :           :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31712]
+                     :     :           :     :        +- Project [d_date_sk#42518]
+                     :     :           :     :           +- Filter ((((isnotnull(d_year#42524) AND isnotnull(d_moy#42526)) AND (d_year#42524 = 1999)) AND (d_moy#42526 = 11)) AND isnotnull(d_date_sk#42518))
+                     :     :           :     :              +- BatchScan[d_date_sk#42518, d_year#42524, d_moy#42526] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1999, d_moy = 11, d_date_sk IS NOT NULL] RuntimeFilters: []
+                     :     :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=31716]
+                     :     :           :        +- Filter (((isnotnull(c_customer_sk#42546) AND isnotnull(c_current_addr_sk#42550)) AND isnotnull(c_current_cdemo_sk#42548)) AND isnotnull(c_current_hdemo_sk#42549))
+                     :     :           :           +- BatchScan[c_customer_sk#42546, c_current_cdemo_sk#42548, c_current_hdemo_sk#42549, c_current_addr_sk#42550] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL, c_current_addr_sk IS NOT NULL, c_current_cdemo_sk IS NOT NULL, c_current_hdemo_sk IS NOT NULL] RuntimeFilters: []
+                     :     :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31720]
+                     :     :              +- Project [ca_address_sk#42564]
+                     :     :                 +- Filter ((isnotnull(ca_gmt_offset#42575) AND (ca_gmt_offset#42575 = -7.00)) AND isnotnull(ca_address_sk#42564))
+                     :     :                    +- BatchScan[ca_address_sk#42564, ca_gmt_offset#42575] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_gmt_offset IS NOT NULL, ca_gmt_offset = -7.00, ca_address_sk IS NOT NULL] RuntimeFilters: []
+                     :     +- Sort [cd_demo_sk#42577 ASC NULLS FIRST], false, 0
+                     :        +- Exchange hashpartitioning(cd_demo_sk#42577, 200), ENSURE_REQUIREMENTS, [plan_id=31726]
+                     :           +- Filter ((((cd_marital_status#42579 = M) AND (cd_education_status#42580 = Unknown)) OR ((cd_marital_status#42579 = W) AND (cd_education_status#42580 = Advanced Degree))) AND isnotnull(cd_demo_sk#42577))
+                     :              +- BatchScan[cd_demo_sk#42577, cd_marital_status#42579, cd_education_status#42580] spark_catalog.tpcds_iceberg_10g.customer_demographics [filters=((cd_marital_status = 'M' AND cd_education_status = 'Unknown') OR (cd_marital_status = 'W' AND cd_education_status = 'Advanced Degree')), cd_demo_sk IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31732]
+                        +- Project [hd_demo_sk#42586]
+                           +- Filter ((isnotnull(hd_buy_potential#42588) AND StartsWith(hd_buy_potential#42588, 0-500)) AND isnotnull(hd_demo_sk#42586))
+                              +- BatchScan[hd_demo_sk#42586, hd_buy_potential#42588] spark_catalog.tpcds_iceberg_10g.household_demographics [filters=hd_buy_potential IS NOT NULL, hd_buy_potential LIKE '"0-500"%', hd_demo_sk IS NOT NULL] RuntimeFilters: []
+

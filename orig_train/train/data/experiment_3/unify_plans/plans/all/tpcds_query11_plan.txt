@@ -1,0 +1,172 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [customer_id#7126 ASC NULLS FIRST, customer_first_name#7127 ASC NULLS FIRST, customer_last_name#7128 ASC NULLS FIRST, customer_email_address#7132 ASC NULLS FIRST], true
+      +- Project [customer_id#7126, customer_first_name#7127, customer_last_name#7128, customer_email_address#7132]
+         +- Join Inner, ((customer_id#6925 = customer_id#7146) AND (CASE WHEN (year_total#6943 > 0.00) THEN CheckOverflow((promote_precision(year_total#7154) / promote_precision(year_total#6943)), DecimalType(38,20)) ELSE 0E-20 END > CASE WHEN (year_total#6933 > 0.00) THEN CheckOverflow((promote_precision(year_total#7134) / promote_precision(year_total#6933)), DecimalType(38,20)) ELSE 0E-20 END))
+            :- Project [customer_id#6925, year_total#6933, customer_id#7126, customer_first_name#7127, customer_last_name#7128, customer_email_address#7132, year_total#7134, year_total#6943]
+            :  +- Join Inner, (customer_id#6925 = customer_id#6935)
+            :     :- Join Inner, (customer_id#7126 = customer_id#6925)
+            :     :  :- Filter (isnotnull(year_total#6933) AND (year_total#6933 > 0.00))
+            :     :  :  +- Aggregate [c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961, d_year#6992], [c_customer_id#6946 AS customer_id#6925, MakeDecimal(sum(UnscaledValue(CheckOverflow((promote_precision(cast(ss_ext_list_price#6979 as decimal(8,2))) - promote_precision(cast(ss_ext_discount_amt#6976 as decimal(8,2)))), DecimalType(8,2)))),18,2) AS year_total#6933]
+            :     :  :     +- Project [c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961, ss_ext_discount_amt#6976, ss_ext_list_price#6979, d_year#6992]
+            :     :  :        +- Join Inner, (ss_sold_date_sk#6985 = d_date_sk#6986)
+            :     :  :           :- Project [c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961, ss_ext_discount_amt#6976, ss_ext_list_price#6979, ss_sold_date_sk#6985]
+            :     :  :           :  +- Join Inner, (c_customer_sk#6945 = ss_customer_sk#6965)
+            :     :  :           :     :- Filter (isnotnull(c_customer_sk#6945) AND isnotnull(c_customer_id#6946))
+            :     :  :           :     :  +- RelationV2[c_customer_sk#6945, c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961] spark_catalog.tpcds_iceberg_10g.customer
+            :     :  :           :     +- Filter ((isnotnull(ss_customer_sk#6965) AND isnotnull(ss_sold_date_sk#6985)) AND dynamicpruning#8224 [ss_sold_date_sk#6985])
+            :     :  :           :        :  +- Filter ((isnotnull(d_year#6992) AND (d_year#6992 = 2001)) AND isnotnull(d_date_sk#6986))
+            :     :  :           :        :     +- RelationV2[d_date_sk#6986, d_year#6992] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :  :           :        +- RelationV2[ss_customer_sk#6965, ss_ext_discount_amt#6976, ss_ext_list_price#6979, ss_sold_date_sk#6985] spark_catalog.tpcds_iceberg_10g.store_sales
+            :     :  :           +- Filter ((isnotnull(d_year#6992) AND (d_year#6992 = 2001)) AND isnotnull(d_date_sk#6986))
+            :     :  :              +- RelationV2[d_date_sk#6986, d_year#6992] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :  +- Aggregate [c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653, d_year#7684], [c_customer_id#7638 AS customer_id#7126, c_first_name#7645 AS customer_first_name#7127, c_last_name#7646 AS customer_last_name#7128, c_email_address#7653 AS customer_email_address#7132, MakeDecimal(sum(UnscaledValue(CheckOverflow((promote_precision(cast(ss_ext_list_price#7671 as decimal(8,2))) - promote_precision(cast(ss_ext_discount_amt#7668 as decimal(8,2)))), DecimalType(8,2)))),18,2) AS year_total#7134]
+            :     :     +- Project [c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653, ss_ext_discount_amt#7668, ss_ext_list_price#7671, d_year#7684]
+            :     :        +- Join Inner, (ss_sold_date_sk#7677 = d_date_sk#7678)
+            :     :           :- Project [c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653, ss_ext_discount_amt#7668, ss_ext_list_price#7671, ss_sold_date_sk#7677]
+            :     :           :  +- Join Inner, (c_customer_sk#7637 = ss_customer_sk#7657)
+            :     :           :     :- Filter (isnotnull(c_customer_sk#7637) AND isnotnull(c_customer_id#7638))
+            :     :           :     :  +- RelationV2[c_customer_sk#7637, c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653] spark_catalog.tpcds_iceberg_10g.customer
+            :     :           :     +- Filter ((isnotnull(ss_customer_sk#7657) AND isnotnull(ss_sold_date_sk#7677)) AND dynamicpruning#8225 [ss_sold_date_sk#7677])
+            :     :           :        :  +- Filter ((isnotnull(d_year#7684) AND (d_year#7684 = 2002)) AND isnotnull(d_date_sk#7678))
+            :     :           :        :     +- RelationV2[d_date_sk#7678, d_year#7684] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :           :        +- RelationV2[ss_customer_sk#7657, ss_ext_discount_amt#7668, ss_ext_list_price#7671, ss_sold_date_sk#7677] spark_catalog.tpcds_iceberg_10g.store_sales
+            :     :           +- Filter ((isnotnull(d_year#7684) AND (d_year#7684 = 2002)) AND isnotnull(d_date_sk#7678))
+            :     :              +- RelationV2[d_date_sk#7678, d_year#7684] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     +- Filter (isnotnull(year_total#6943) AND (year_total#6943 > 0.00))
+            :        +- Aggregate [c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881, d_year#7923], [c_customer_id#7866 AS customer_id#6935, MakeDecimal(sum(UnscaledValue(CheckOverflow((promote_precision(cast(ws_ext_list_price#7907 as decimal(8,2))) - promote_precision(cast(ws_ext_discount_amt#7904 as decimal(8,2)))), DecimalType(8,2)))),18,2) AS year_total#6943]
+            :           +- Project [c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881, ws_ext_discount_amt#7904, ws_ext_list_price#7907, d_year#7923]
+            :              +- Join Inner, (ws_sold_date_sk#7916 = d_date_sk#7917)
+            :                 :- Project [c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881, ws_ext_discount_amt#7904, ws_ext_list_price#7907, ws_sold_date_sk#7916]
+            :                 :  +- Join Inner, (c_customer_sk#7865 = ws_bill_customer_sk#7886)
+            :                 :     :- Filter (isnotnull(c_customer_sk#7865) AND isnotnull(c_customer_id#7866))
+            :                 :     :  +- RelationV2[c_customer_sk#7865, c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881] spark_catalog.tpcds_iceberg_10g.customer
+            :                 :     +- Filter ((isnotnull(ws_bill_customer_sk#7886) AND isnotnull(ws_sold_date_sk#7916)) AND dynamicpruning#8226 [ws_sold_date_sk#7916])
+            :                 :        :  +- Filter ((isnotnull(d_year#7923) AND (d_year#7923 = 2001)) AND isnotnull(d_date_sk#7917))
+            :                 :        :     +- RelationV2[d_date_sk#7917, d_year#7923] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                 :        +- RelationV2[ws_bill_customer_sk#7886, ws_ext_discount_amt#7904, ws_ext_list_price#7907, ws_sold_date_sk#7916] spark_catalog.tpcds_iceberg_10g.web_sales
+            :                 +- Filter ((isnotnull(d_year#7923) AND (d_year#7923 = 2001)) AND isnotnull(d_date_sk#7917))
+            :                    +- RelationV2[d_date_sk#7917, d_year#7923] spark_catalog.tpcds_iceberg_10g.date_dim
+            +- Aggregate [c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040, d_year#8082], [c_customer_id#8025 AS customer_id#7146, MakeDecimal(sum(UnscaledValue(CheckOverflow((promote_precision(cast(ws_ext_list_price#8066 as decimal(8,2))) - promote_precision(cast(ws_ext_discount_amt#8063 as decimal(8,2)))), DecimalType(8,2)))),18,2) AS year_total#7154]
+               +- Project [c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040, ws_ext_discount_amt#8063, ws_ext_list_price#8066, d_year#8082]
+                  +- Join Inner, (ws_sold_date_sk#8075 = d_date_sk#8076)
+                     :- Project [c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040, ws_ext_discount_amt#8063, ws_ext_list_price#8066, ws_sold_date_sk#8075]
+                     :  +- Join Inner, (c_customer_sk#8024 = ws_bill_customer_sk#8045)
+                     :     :- Filter (isnotnull(c_customer_sk#8024) AND isnotnull(c_customer_id#8025))
+                     :     :  +- RelationV2[c_customer_sk#8024, c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040] spark_catalog.tpcds_iceberg_10g.customer
+                     :     +- Filter ((isnotnull(ws_bill_customer_sk#8045) AND isnotnull(ws_sold_date_sk#8075)) AND dynamicpruning#8227 [ws_sold_date_sk#8075])
+                     :        :  +- Filter ((isnotnull(d_year#8082) AND (d_year#8082 = 2002)) AND isnotnull(d_date_sk#8076))
+                     :        :     +- RelationV2[d_date_sk#8076, d_year#8082] spark_catalog.tpcds_iceberg_10g.date_dim
+                     :        +- RelationV2[ws_bill_customer_sk#8045, ws_ext_discount_amt#8063, ws_ext_list_price#8066, ws_sold_date_sk#8075] spark_catalog.tpcds_iceberg_10g.web_sales
+                     +- Filter ((isnotnull(d_year#8082) AND (d_year#8082 = 2002)) AND isnotnull(d_date_sk#8076))
+                        +- RelationV2[d_date_sk#8076, d_year#8082] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[customer_id#7126 ASC NULLS FIRST,customer_first_name#7127 ASC NULLS FIRST,customer_last_name#7128 ASC NULLS FIRST,customer_email_address#7132 ASC NULLS FIRST], output=[customer_id#7126,customer_first_name#7127,customer_last_name#7128,customer_email_address#7132])
+   +- Project [customer_id#7126, customer_first_name#7127, customer_last_name#7128, customer_email_address#7132]
+      +- SortMergeJoin [customer_id#6925], [customer_id#7146], Inner, (CASE WHEN (year_total#6943 > 0.00) THEN CheckOverflow((promote_precision(year_total#7154) / promote_precision(year_total#6943)), DecimalType(38,20)) ELSE 0E-20 END > CASE WHEN (year_total#6933 > 0.00) THEN CheckOverflow((promote_precision(year_total#7134) / promote_precision(year_total#6933)), DecimalType(38,20)) ELSE 0E-20 END)
+         :- Project [customer_id#6925, year_total#6933, customer_id#7126, customer_first_name#7127, customer_last_name#7128, customer_email_address#7132, year_total#7134, year_total#6943]
+         :  +- SortMergeJoin [customer_id#6925], [customer_id#6935], Inner
+         :     :- SortMergeJoin [customer_id#6925], [customer_id#7126], Inner
+         :     :  :- Sort [customer_id#6925 ASC NULLS FIRST], false, 0
+         :     :  :  +- Exchange hashpartitioning(customer_id#6925, 200), ENSURE_REQUIREMENTS, [plan_id=5522]
+         :     :  :     +- Filter (isnotnull(year_total#6933) AND (year_total#6933 > 0.00))
+         :     :  :        +- HashAggregate(keys=[c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961, d_year#6992], functions=[sum(UnscaledValue(CheckOverflow((promote_precision(cast(ss_ext_list_price#6979 as decimal(8,2))) - promote_precision(cast(ss_ext_discount_amt#6976 as decimal(8,2)))), DecimalType(8,2))))], output=[customer_id#6925, year_total#6933])
+         :     :  :           +- Exchange hashpartitioning(c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961, d_year#6992, 200), ENSURE_REQUIREMENTS, [plan_id=5502]
+         :     :  :              +- HashAggregate(keys=[c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961, d_year#6992], functions=[partial_sum(UnscaledValue(CheckOverflow((promote_precision(cast(ss_ext_list_price#6979 as decimal(8,2))) - promote_precision(cast(ss_ext_discount_amt#6976 as decimal(8,2)))), DecimalType(8,2))))], output=[c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961, d_year#6992, sum#8229L])
+         :     :  :                 +- Project [c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961, ss_ext_discount_amt#6976, ss_ext_list_price#6979, d_year#6992]
+         :     :  :                    +- BroadcastHashJoin [ss_sold_date_sk#6985], [d_date_sk#6986], Inner, BuildRight, false
+         :     :  :                       :- Project [c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961, ss_ext_discount_amt#6976, ss_ext_list_price#6979, ss_sold_date_sk#6985]
+         :     :  :                       :  +- SortMergeJoin [c_customer_sk#6945], [ss_customer_sk#6965], Inner
+         :     :  :                       :     :- Sort [c_customer_sk#6945 ASC NULLS FIRST], false, 0
+         :     :  :                       :     :  +- Exchange hashpartitioning(c_customer_sk#6945, 200), ENSURE_REQUIREMENTS, [plan_id=5491]
+         :     :  :                       :     :     +- Filter (isnotnull(c_customer_sk#6945) AND isnotnull(c_customer_id#6946))
+         :     :  :                       :     :        +- BatchScan[c_customer_sk#6945, c_customer_id#6946, c_first_name#6953, c_last_name#6954, c_preferred_cust_flag#6955, c_birth_country#6959, c_login#6960, c_email_address#6961] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL, c_customer_id IS NOT NULL] RuntimeFilters: []
+         :     :  :                       :     +- Sort [ss_customer_sk#6965 ASC NULLS FIRST], false, 0
+         :     :  :                       :        +- Exchange hashpartitioning(ss_customer_sk#6965, 200), ENSURE_REQUIREMENTS, [plan_id=5490]
+         :     :  :                       :           +- Filter (isnotnull(ss_customer_sk#6965) AND isnotnull(ss_sold_date_sk#6985))
+         :     :  :                       :              +- BatchScan[ss_customer_sk#6965, ss_ext_discount_amt#6976, ss_ext_list_price#6979, ss_sold_date_sk#6985] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_customer_sk IS NOT NULL, ss_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#6985 IN dynamicpruning#8224)]
+         :     :  :                       :                    +- SubqueryAdaptiveBroadcast dynamicpruning#8224, 0, true, Filter ((isnotnull(d_year#6992) AND (d_year#6992 = 2001)) AND isnotnull(d_date_sk#6986)), [d_date_sk#6986]
+         :     :  :                       :                       +- AdaptiveSparkPlan isFinalPlan=false
+         :     :  :                       :                          +- Filter ((isnotnull(d_year#6992) AND (d_year#6992 = 2001)) AND isnotnull(d_date_sk#6986))
+         :     :  :                       :                             +- BatchScan[d_date_sk#6986, d_year#6992] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     :  :                       +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=5497]
+         :     :  :                          +- Filter ((isnotnull(d_year#6992) AND (d_year#6992 = 2001)) AND isnotnull(d_date_sk#6986))
+         :     :  :                             +- BatchScan[d_date_sk#6986, d_year#6992] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     :  +- Sort [customer_id#7126 ASC NULLS FIRST], false, 0
+         :     :     +- Exchange hashpartitioning(customer_id#7126, 200), ENSURE_REQUIREMENTS, [plan_id=5523]
+         :     :        +- HashAggregate(keys=[c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653, d_year#7684], functions=[sum(UnscaledValue(CheckOverflow((promote_precision(cast(ss_ext_list_price#7671 as decimal(8,2))) - promote_precision(cast(ss_ext_discount_amt#7668 as decimal(8,2)))), DecimalType(8,2))))], output=[customer_id#7126, customer_first_name#7127, customer_last_name#7128, customer_email_address#7132, year_total#7134])
+         :     :           +- Exchange hashpartitioning(c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653, d_year#7684, 200), ENSURE_REQUIREMENTS, [plan_id=5518]
+         :     :              +- HashAggregate(keys=[c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653, d_year#7684], functions=[partial_sum(UnscaledValue(CheckOverflow((promote_precision(cast(ss_ext_list_price#7671 as decimal(8,2))) - promote_precision(cast(ss_ext_discount_amt#7668 as decimal(8,2)))), DecimalType(8,2))))], output=[c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653, d_year#7684, sum#8231L])
+         :     :                 +- Project [c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653, ss_ext_discount_amt#7668, ss_ext_list_price#7671, d_year#7684]
+         :     :                    +- BroadcastHashJoin [ss_sold_date_sk#7677], [d_date_sk#7678], Inner, BuildRight, false
+         :     :                       :- Project [c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653, ss_ext_discount_amt#7668, ss_ext_list_price#7671, ss_sold_date_sk#7677]
+         :     :                       :  +- SortMergeJoin [c_customer_sk#7637], [ss_customer_sk#7657], Inner
+         :     :                       :     :- Sort [c_customer_sk#7637 ASC NULLS FIRST], false, 0
+         :     :                       :     :  +- Exchange hashpartitioning(c_customer_sk#7637, 200), ENSURE_REQUIREMENTS, [plan_id=5507]
+         :     :                       :     :     +- Filter (isnotnull(c_customer_sk#7637) AND isnotnull(c_customer_id#7638))
+         :     :                       :     :        +- BatchScan[c_customer_sk#7637, c_customer_id#7638, c_first_name#7645, c_last_name#7646, c_preferred_cust_flag#7647, c_birth_country#7651, c_login#7652, c_email_address#7653] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL, c_customer_id IS NOT NULL] RuntimeFilters: []
+         :     :                       :     +- Sort [ss_customer_sk#7657 ASC NULLS FIRST], false, 0
+         :     :                       :        +- Exchange hashpartitioning(ss_customer_sk#7657, 200), ENSURE_REQUIREMENTS, [plan_id=5506]
+         :     :                       :           +- Filter (isnotnull(ss_customer_sk#7657) AND isnotnull(ss_sold_date_sk#7677))
+         :     :                       :              +- BatchScan[ss_customer_sk#7657, ss_ext_discount_amt#7668, ss_ext_list_price#7671, ss_sold_date_sk#7677] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_customer_sk IS NOT NULL, ss_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#7677 IN dynamicpruning#8225)]
+         :     :                       :                    +- SubqueryAdaptiveBroadcast dynamicpruning#8225, 0, true, Filter ((isnotnull(d_year#7684) AND (d_year#7684 = 2002)) AND isnotnull(d_date_sk#7678)), [d_date_sk#7678]
+         :     :                       :                       +- AdaptiveSparkPlan isFinalPlan=false
+         :     :                       :                          +- Filter ((isnotnull(d_year#7684) AND (d_year#7684 = 2002)) AND isnotnull(d_date_sk#7678))
+         :     :                       :                             +- BatchScan[d_date_sk#7678, d_year#7684] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     :                       +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=5513]
+         :     :                          +- Filter ((isnotnull(d_year#7684) AND (d_year#7684 = 2002)) AND isnotnull(d_date_sk#7678))
+         :     :                             +- BatchScan[d_date_sk#7678, d_year#7684] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     +- Sort [customer_id#6935 ASC NULLS FIRST], false, 0
+         :        +- Exchange hashpartitioning(customer_id#6935, 200), ENSURE_REQUIREMENTS, [plan_id=5545]
+         :           +- Filter (isnotnull(year_total#6943) AND (year_total#6943 > 0.00))
+         :              +- HashAggregate(keys=[c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881, d_year#7923], functions=[sum(UnscaledValue(CheckOverflow((promote_precision(cast(ws_ext_list_price#7907 as decimal(8,2))) - promote_precision(cast(ws_ext_discount_amt#7904 as decimal(8,2)))), DecimalType(8,2))))], output=[customer_id#6935, year_total#6943])
+         :                 +- Exchange hashpartitioning(c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881, d_year#7923, 200), ENSURE_REQUIREMENTS, [plan_id=5540]
+         :                    +- HashAggregate(keys=[c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881, d_year#7923], functions=[partial_sum(UnscaledValue(CheckOverflow((promote_precision(cast(ws_ext_list_price#7907 as decimal(8,2))) - promote_precision(cast(ws_ext_discount_amt#7904 as decimal(8,2)))), DecimalType(8,2))))], output=[c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881, d_year#7923, sum#8233L])
+         :                       +- Project [c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881, ws_ext_discount_amt#7904, ws_ext_list_price#7907, d_year#7923]
+         :                          +- BroadcastHashJoin [ws_sold_date_sk#7916], [d_date_sk#7917], Inner, BuildRight, false
+         :                             :- Project [c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881, ws_ext_discount_amt#7904, ws_ext_list_price#7907, ws_sold_date_sk#7916]
+         :                             :  +- SortMergeJoin [c_customer_sk#7865], [ws_bill_customer_sk#7886], Inner
+         :                             :     :- Sort [c_customer_sk#7865 ASC NULLS FIRST], false, 0
+         :                             :     :  +- Exchange hashpartitioning(c_customer_sk#7865, 200), ENSURE_REQUIREMENTS, [plan_id=5529]
+         :                             :     :     +- Filter (isnotnull(c_customer_sk#7865) AND isnotnull(c_customer_id#7866))
+         :                             :     :        +- BatchScan[c_customer_sk#7865, c_customer_id#7866, c_first_name#7873, c_last_name#7874, c_preferred_cust_flag#7875, c_birth_country#7879, c_login#7880, c_email_address#7881] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL, c_customer_id IS NOT NULL] RuntimeFilters: []
+         :                             :     +- Sort [ws_bill_customer_sk#7886 ASC NULLS FIRST], false, 0
+         :                             :        +- Exchange hashpartitioning(ws_bill_customer_sk#7886, 200), ENSURE_REQUIREMENTS, [plan_id=5528]
+         :                             :           +- Filter (isnotnull(ws_bill_customer_sk#7886) AND isnotnull(ws_sold_date_sk#7916))
+         :                             :              +- BatchScan[ws_bill_customer_sk#7886, ws_ext_discount_amt#7904, ws_ext_list_price#7907, ws_sold_date_sk#7916] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_bill_customer_sk IS NOT NULL, ws_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#7916 IN dynamicpruning#8226)]
+         :                             :                    +- SubqueryAdaptiveBroadcast dynamicpruning#8226, 0, true, Filter ((isnotnull(d_year#7923) AND (d_year#7923 = 2001)) AND isnotnull(d_date_sk#7917)), [d_date_sk#7917]
+         :                             :                       +- AdaptiveSparkPlan isFinalPlan=false
+         :                             :                          +- Filter ((isnotnull(d_year#7923) AND (d_year#7923 = 2001)) AND isnotnull(d_date_sk#7917))
+         :                             :                             +- BatchScan[d_date_sk#7917, d_year#7923] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                             +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=5535]
+         :                                +- Filter ((isnotnull(d_year#7923) AND (d_year#7923 = 2001)) AND isnotnull(d_date_sk#7917))
+         :                                   +- BatchScan[d_date_sk#7917, d_year#7923] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+         +- Sort [customer_id#7146 ASC NULLS FIRST], false, 0
+            +- Exchange hashpartitioning(customer_id#7146, 200), ENSURE_REQUIREMENTS, [plan_id=5566]
+               +- HashAggregate(keys=[c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040, d_year#8082], functions=[sum(UnscaledValue(CheckOverflow((promote_precision(cast(ws_ext_list_price#8066 as decimal(8,2))) - promote_precision(cast(ws_ext_discount_amt#8063 as decimal(8,2)))), DecimalType(8,2))))], output=[customer_id#7146, year_total#7154])
+                  +- Exchange hashpartitioning(c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040, d_year#8082, 200), ENSURE_REQUIREMENTS, [plan_id=5562]
+                     +- HashAggregate(keys=[c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040, d_year#8082], functions=[partial_sum(UnscaledValue(CheckOverflow((promote_precision(cast(ws_ext_list_price#8066 as decimal(8,2))) - promote_precision(cast(ws_ext_discount_amt#8063 as decimal(8,2)))), DecimalType(8,2))))], output=[c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040, d_year#8082, sum#8235L])
+                        +- Project [c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040, ws_ext_discount_amt#8063, ws_ext_list_price#8066, d_year#8082]
+                           +- BroadcastHashJoin [ws_sold_date_sk#8075], [d_date_sk#8076], Inner, BuildRight, false
+                              :- Project [c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040, ws_ext_discount_amt#8063, ws_ext_list_price#8066, ws_sold_date_sk#8075]
+                              :  +- SortMergeJoin [c_customer_sk#8024], [ws_bill_customer_sk#8045], Inner
+                              :     :- Sort [c_customer_sk#8024 ASC NULLS FIRST], false, 0
+                              :     :  +- Exchange hashpartitioning(c_customer_sk#8024, 200), ENSURE_REQUIREMENTS, [plan_id=5551]
+                              :     :     +- Filter (isnotnull(c_customer_sk#8024) AND isnotnull(c_customer_id#8025))
+                              :     :        +- BatchScan[c_customer_sk#8024, c_customer_id#8025, c_first_name#8032, c_last_name#8033, c_preferred_cust_flag#8034, c_birth_country#8038, c_login#8039, c_email_address#8040] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL, c_customer_id IS NOT NULL] RuntimeFilters: []
+                              :     +- Sort [ws_bill_customer_sk#8045 ASC NULLS FIRST], false, 0
+                              :        +- Exchange hashpartitioning(ws_bill_customer_sk#8045, 200), ENSURE_REQUIREMENTS, [plan_id=5550]
+                              :           +- Filter (isnotnull(ws_bill_customer_sk#8045) AND isnotnull(ws_sold_date_sk#8075))
+                              :              +- BatchScan[ws_bill_customer_sk#8045, ws_ext_discount_amt#8063, ws_ext_list_price#8066, ws_sold_date_sk#8075] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_bill_customer_sk IS NOT NULL, ws_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#8075 IN dynamicpruning#8227)]
+                              :                    +- SubqueryAdaptiveBroadcast dynamicpruning#8227, 0, true, Filter ((isnotnull(d_year#8082) AND (d_year#8082 = 2002)) AND isnotnull(d_date_sk#8076)), [d_date_sk#8076]
+                              :                       +- AdaptiveSparkPlan isFinalPlan=false
+                              :                          +- Filter ((isnotnull(d_year#8082) AND (d_year#8082 = 2002)) AND isnotnull(d_date_sk#8076))
+                              :                             +- BatchScan[d_date_sk#8076, d_year#8082] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+                              +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=5557]
+                                 +- Filter ((isnotnull(d_year#8082) AND (d_year#8082 = 2002)) AND isnotnull(d_date_sk#8076))
+                                    +- BatchScan[d_date_sk#8076, d_year#8082] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+

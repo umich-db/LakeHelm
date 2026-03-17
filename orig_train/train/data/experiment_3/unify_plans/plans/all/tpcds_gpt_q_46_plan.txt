@@ -1,0 +1,52 @@
+== Optimized Logical Plan ==
+Aggregate [c_first_name#6112, c_last_name#6113], [c_first_name#6112, c_last_name#6113, count(ss_ticket_number#6130L) AS total_transactions#6102L]
++- Project [c_first_name#6112, c_last_name#6113, ss_ticket_number#6130L]
+   +- Join Inner, (c_customer_sk#6104 = ss_customer_sk#6124)
+      :- Join LeftSemi, (c_customer_sk#6104 = ws_bill_customer_sk#6148)
+      :  :- Filter isnotnull(c_customer_sk#6104)
+      :  :  +- RelationV2[c_customer_sk#6104, c_first_name#6112, c_last_name#6113] spark_catalog.tpcds_iceberg_10g.customer
+      :  +- Aggregate [ws_bill_customer_sk#6148], [ws_bill_customer_sk#6148]
+      :     +- Project [ws_bill_customer_sk#6148]
+      :        +- Filter (isnotnull(ws_sales_price#6165) AND (ws_sales_price#6165 > 100.00))
+      :           +- RelationV2[ws_bill_customer_sk#6148, ws_sales_price#6165] spark_catalog.tpcds_iceberg_10g.web_sales
+      +- Join LeftSemi, (ss_customer_sk#6124 = ws_bill_customer_sk#6148)
+         :- Filter isnotnull(ss_customer_sk#6124)
+         :  +- RelationV2[ss_customer_sk#6124, ss_ticket_number#6130L] spark_catalog.tpcds_iceberg_10g.store_sales
+         +- Aggregate [ws_bill_customer_sk#6148], [ws_bill_customer_sk#6148]
+            +- Project [ws_bill_customer_sk#6148]
+               +- Filter (isnotnull(ws_sales_price#6165) AND (ws_sales_price#6165 > 100.00))
+                  +- RelationV2[ws_bill_customer_sk#6148, ws_sales_price#6165] spark_catalog.tpcds_iceberg_10g.web_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[c_first_name#6112, c_last_name#6113], functions=[count(ss_ticket_number#6130L)], output=[c_first_name#6112, c_last_name#6113, total_transactions#6102L])
+   +- Exchange hashpartitioning(c_first_name#6112, c_last_name#6113, 200), ENSURE_REQUIREMENTS, [plan_id=4705]
+      +- HashAggregate(keys=[c_first_name#6112, c_last_name#6113], functions=[partial_count(ss_ticket_number#6130L)], output=[c_first_name#6112, c_last_name#6113, count#6206L])
+         +- Project [c_first_name#6112, c_last_name#6113, ss_ticket_number#6130L]
+            +- SortMergeJoin [c_customer_sk#6104], [ss_customer_sk#6124], Inner
+               :- SortMergeJoin [c_customer_sk#6104], [ws_bill_customer_sk#6148], LeftSemi
+               :  :- Sort [c_customer_sk#6104 ASC NULLS FIRST], false, 0
+               :  :  +- Exchange hashpartitioning(c_customer_sk#6104, 200), ENSURE_REQUIREMENTS, [plan_id=4688]
+               :  :     +- Filter isnotnull(c_customer_sk#6104)
+               :  :        +- BatchScan[c_customer_sk#6104, c_first_name#6112, c_last_name#6113] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL] RuntimeFilters: []
+               :  +- Sort [ws_bill_customer_sk#6148 ASC NULLS FIRST], false, 0
+               :     +- HashAggregate(keys=[ws_bill_customer_sk#6148], functions=[], output=[ws_bill_customer_sk#6148])
+               :        +- Exchange hashpartitioning(ws_bill_customer_sk#6148, 200), ENSURE_REQUIREMENTS, [plan_id=4684]
+               :           +- HashAggregate(keys=[ws_bill_customer_sk#6148], functions=[], output=[ws_bill_customer_sk#6148])
+               :              +- Project [ws_bill_customer_sk#6148]
+               :                 +- Filter (isnotnull(ws_sales_price#6165) AND (ws_sales_price#6165 > 100.00))
+               :                    +- BatchScan[ws_bill_customer_sk#6148, ws_sales_price#6165] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sales_price IS NOT NULL, ws_sales_price > 100.00] RuntimeFilters: []
+               +- SortMergeJoin [ss_customer_sk#6124], [ws_bill_customer_sk#6148], LeftSemi
+                  :- Sort [ss_customer_sk#6124 ASC NULLS FIRST], false, 0
+                  :  +- Exchange hashpartitioning(ss_customer_sk#6124, 200), ENSURE_REQUIREMENTS, [plan_id=4696]
+                  :     +- Filter isnotnull(ss_customer_sk#6124)
+                  :        +- BatchScan[ss_customer_sk#6124, ss_ticket_number#6130L] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_customer_sk IS NOT NULL] RuntimeFilters: []
+                  +- Sort [ws_bill_customer_sk#6148 ASC NULLS FIRST], false, 0
+                     +- HashAggregate(keys=[ws_bill_customer_sk#6148], functions=[], output=[ws_bill_customer_sk#6148])
+                        +- Exchange hashpartitioning(ws_bill_customer_sk#6148, 200), ENSURE_REQUIREMENTS, [plan_id=4692]
+                           +- HashAggregate(keys=[ws_bill_customer_sk#6148], functions=[], output=[ws_bill_customer_sk#6148])
+                              +- Project [ws_bill_customer_sk#6148]
+                                 +- Filter (isnotnull(ws_sales_price#6165) AND (ws_sales_price#6165 > 100.00))
+                                    +- BatchScan[ws_bill_customer_sk#6148, ws_sales_price#6165] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sales_price IS NOT NULL, ws_sales_price > 100.00] RuntimeFilters: []
+

@@ -1,0 +1,71 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [i_item_id#14506 ASC NULLS FIRST], true
+      +- Aggregate [i_item_id#14506], [i_item_id#14506, avg(cs_quantity#14451) AS agg1#14430, cast((avg(UnscaledValue(cs_list_price#14453)) / 100.0) as decimal(11,6)) AS agg2#14431, cast((avg(UnscaledValue(cs_coupon_amt#14460)) / 100.0) as decimal(11,6)) AS agg3#14432, cast((avg(UnscaledValue(cs_sales_price#14454)) / 100.0) as decimal(11,6)) AS agg4#14433]
+         +- Project [cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460, i_item_id#14506]
+            +- Join Inner, (cs_promo_sk#14449 = p_promo_sk#14527)
+               :- Project [cs_promo_sk#14449, cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460, i_item_id#14506]
+               :  +- Join Inner, (cs_item_sk#14448 = i_item_sk#14505)
+               :     :- Project [cs_item_sk#14448, cs_promo_sk#14449, cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460]
+               :     :  +- Join Inner, (cs_sold_date_sk#14467 = d_date_sk#14477)
+               :     :     :- Project [cs_item_sk#14448, cs_promo_sk#14449, cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460, cs_sold_date_sk#14467]
+               :     :     :  +- Join Inner, (cs_bill_cdemo_sk#14437 = cd_demo_sk#14468)
+               :     :     :     :- Filter ((((isnotnull(cs_bill_cdemo_sk#14437) AND isnotnull(cs_sold_date_sk#14467)) AND isnotnull(cs_item_sk#14448)) AND isnotnull(cs_promo_sk#14449)) AND dynamicpruning#14599 [cs_sold_date_sk#14467])
+               :     :     :     :  :  +- Project [d_date_sk#14477]
+               :     :     :     :  :     +- Filter ((isnotnull(d_year#14483) AND (d_year#14483 = 1998)) AND isnotnull(d_date_sk#14477))
+               :     :     :     :  :        +- RelationV2[d_date_sk#14477, d_year#14483] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     :     :  +- RelationV2[cs_bill_cdemo_sk#14437, cs_item_sk#14448, cs_promo_sk#14449, cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460, cs_sold_date_sk#14467] spark_catalog.tpcds_iceberg_10g.catalog_sales
+               :     :     :     +- Project [cd_demo_sk#14468]
+               :     :     :        +- Filter ((((((isnotnull(cd_gender#14469) AND isnotnull(cd_marital_status#14470)) AND isnotnull(cd_education_status#14471)) AND (cd_gender#14469 = F)) AND (cd_marital_status#14470 = W)) AND (cd_education_status#14471 = Primary)) AND isnotnull(cd_demo_sk#14468))
+               :     :     :           +- RelationV2[cd_demo_sk#14468, cd_gender#14469, cd_marital_status#14470, cd_education_status#14471] spark_catalog.tpcds_iceberg_10g.customer_demographics
+               :     :     +- Project [d_date_sk#14477]
+               :     :        +- Filter ((isnotnull(d_year#14483) AND (d_year#14483 = 1998)) AND isnotnull(d_date_sk#14477))
+               :     :           +- RelationV2[d_date_sk#14477, d_year#14483] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     +- Filter isnotnull(i_item_sk#14505)
+               :        +- RelationV2[i_item_sk#14505, i_item_id#14506] spark_catalog.tpcds_iceberg_10g.item
+               +- Project [p_promo_sk#14527]
+                  +- Filter (((p_channel_email#14536 = N) OR (p_channel_event#14541 = N)) AND isnotnull(p_promo_sk#14527))
+                     +- RelationV2[p_promo_sk#14527, p_channel_email#14536, p_channel_event#14541] spark_catalog.tpcds_iceberg_10g.promotion
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[i_item_id#14506 ASC NULLS FIRST], output=[i_item_id#14506,agg1#14430,agg2#14431,agg3#14432,agg4#14433])
+   +- HashAggregate(keys=[i_item_id#14506], functions=[avg(cs_quantity#14451), avg(UnscaledValue(cs_list_price#14453)), avg(UnscaledValue(cs_coupon_amt#14460)), avg(UnscaledValue(cs_sales_price#14454))], output=[i_item_id#14506, agg1#14430, agg2#14431, agg3#14432, agg4#14433])
+      +- Exchange hashpartitioning(i_item_id#14506, 200), ENSURE_REQUIREMENTS, [plan_id=13135]
+         +- HashAggregate(keys=[i_item_id#14506], functions=[partial_avg(cs_quantity#14451), partial_avg(UnscaledValue(cs_list_price#14453)), partial_avg(UnscaledValue(cs_coupon_amt#14460)), partial_avg(UnscaledValue(cs_sales_price#14454))], output=[i_item_id#14506, sum#14608, count#14609L, sum#14610, count#14611L, sum#14612, count#14613L, sum#14614, count#14615L])
+            +- Project [cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460, i_item_id#14506]
+               +- BroadcastHashJoin [cs_promo_sk#14449], [p_promo_sk#14527], Inner, BuildRight, false
+                  :- Project [cs_promo_sk#14449, cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460, i_item_id#14506]
+                  :  +- BroadcastHashJoin [cs_item_sk#14448], [i_item_sk#14505], Inner, BuildRight, false
+                  :     :- Project [cs_item_sk#14448, cs_promo_sk#14449, cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460]
+                  :     :  +- BroadcastHashJoin [cs_sold_date_sk#14467], [d_date_sk#14477], Inner, BuildRight, false
+                  :     :     :- Project [cs_item_sk#14448, cs_promo_sk#14449, cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460, cs_sold_date_sk#14467]
+                  :     :     :  +- SortMergeJoin [cs_bill_cdemo_sk#14437], [cd_demo_sk#14468], Inner
+                  :     :     :     :- Sort [cs_bill_cdemo_sk#14437 ASC NULLS FIRST], false, 0
+                  :     :     :     :  +- Exchange hashpartitioning(cs_bill_cdemo_sk#14437, 200), ENSURE_REQUIREMENTS, [plan_id=13115]
+                  :     :     :     :     +- Filter (((isnotnull(cs_bill_cdemo_sk#14437) AND isnotnull(cs_sold_date_sk#14467)) AND isnotnull(cs_item_sk#14448)) AND isnotnull(cs_promo_sk#14449))
+                  :     :     :     :        +- BatchScan[cs_bill_cdemo_sk#14437, cs_item_sk#14448, cs_promo_sk#14449, cs_quantity#14451, cs_list_price#14453, cs_sales_price#14454, cs_coupon_amt#14460, cs_sold_date_sk#14467] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_bill_cdemo_sk IS NOT NULL, cs_sold_date_sk IS NOT NULL, cs_item_sk IS NOT NULL, cs_promo_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cs_sold_date_sk#14467 IN dynamicpruning#14599)]
+                  :     :     :     :              +- SubqueryAdaptiveBroadcast dynamicpruning#14599, 0, true, Project [d_date_sk#14477], [d_date_sk#14477]
+                  :     :     :     :                 +- AdaptiveSparkPlan isFinalPlan=false
+                  :     :     :     :                    +- Project [d_date_sk#14477]
+                  :     :     :     :                       +- Filter ((isnotnull(d_year#14483) AND (d_year#14483 = 1998)) AND isnotnull(d_date_sk#14477))
+                  :     :     :     :                          +- BatchScan[d_date_sk#14477, d_year#14483] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     :     +- Sort [cd_demo_sk#14468 ASC NULLS FIRST], false, 0
+                  :     :     :        +- Exchange hashpartitioning(cd_demo_sk#14468, 200), ENSURE_REQUIREMENTS, [plan_id=13116]
+                  :     :     :           +- Project [cd_demo_sk#14468]
+                  :     :     :              +- Filter ((((((isnotnull(cd_gender#14469) AND isnotnull(cd_marital_status#14470)) AND isnotnull(cd_education_status#14471)) AND (cd_gender#14469 = F)) AND (cd_marital_status#14470 = W)) AND (cd_education_status#14471 = Primary)) AND isnotnull(cd_demo_sk#14468))
+                  :     :     :                 +- BatchScan[cd_demo_sk#14468, cd_gender#14469, cd_marital_status#14470, cd_education_status#14471] spark_catalog.tpcds_iceberg_10g.customer_demographics [filters=cd_gender IS NOT NULL, cd_marital_status IS NOT NULL, cd_education_status IS NOT NULL, cd_gender = 'F', cd_marital_status = 'W', cd_education_status = 'Primary', cd_demo_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=13122]
+                  :     :        +- Project [d_date_sk#14477]
+                  :     :           +- Filter ((isnotnull(d_year#14483) AND (d_year#14483 = 1998)) AND isnotnull(d_date_sk#14477))
+                  :     :              +- BatchScan[d_date_sk#14477, d_year#14483] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=13126]
+                  :        +- Filter isnotnull(i_item_sk#14505)
+                  :           +- BatchScan[i_item_sk#14505, i_item_id#14506] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL] RuntimeFilters: []
+                  +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=13130]
+                     +- Project [p_promo_sk#14527]
+                        +- Filter (((p_channel_email#14536 = N) OR (p_channel_event#14541 = N)) AND isnotnull(p_promo_sk#14527))
+                           +- BatchScan[p_promo_sk#14527, p_channel_email#14536, p_channel_event#14541] spark_catalog.tpcds_iceberg_10g.promotion [filters=(p_channel_email = 'N' OR p_channel_event = 'N'), p_promo_sk IS NOT NULL] RuntimeFilters: []
+

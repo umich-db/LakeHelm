@@ -1,0 +1,22 @@
+== Parsed Logical Plan ==
+'Aggregate ['p.p_category], ['p.p_category, 'COUNT(1) AS part_count#16891]
++- 'SubqueryAlias p
+   +- 'UnresolvedRelation [part], [], false
+
+== Analyzed Logical Plan ==
+p_category: string, part_count: bigint
+Aggregate [p_category#16895], [p_category#16895, count(1) AS part_count#16891L]
++- SubqueryAlias p
+   +- SubqueryAlias spark_catalog.ssb_iceberg_10g.part
+      +- RelationV2[p_partkey#16892, p_name#16893, p_mfgr#16894, p_category#16895, p_brand#16896, p_color#16897, p_type#16898, p_size#16899, p_container#16900] spark_catalog.ssb_iceberg_10g.part
+
+== Optimized Logical Plan ==
+Aggregate [p_category#16895], [p_category#16895, count(1) AS part_count#16891L]
++- RelationV2[p_category#16895] spark_catalog.ssb_iceberg_10g.part
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[p_category#16895], functions=[count(1)], output=[p_category#16895, part_count#16891L])
+   +- HashAggregate(keys=[p_category#16895], functions=[partial_count(1)], output=[p_category#16895, count#16911L])
+      +- BatchScan[p_category#16895] spark_catalog.ssb_iceberg_10g.part [filters=] RuntimeFilters: []
+

@@ -1,0 +1,11 @@
+=== Optimized Logical Plan ===
+Aggregate [sum((l_extendedprice#11 * (1.0 - l_discount#12))) AS revenue#888]
++- Project [l_extendedprice#11, l_discount#12]
+   +- Join Inner, ((p_partkey#27L = l_partkey#7L) AND (((((((p_brand#30 = Brand#55) AND p_container#33 IN (SM CASE,SM BOX,SM PACK,SM PKG)) AND (l_quantity#10L >= 4)) AND (l_quantity#10L <= 14)) AND (p_size#32L <= 5)) OR (((((p_brand#30 = Brand#35) AND p_container#33 IN (MED BAG,MED BOX,MED PKG,MED PACK)) AND (l_quantity#10L >= 20)) AND (l_quantity#10L <= 30)) AND (p_size#32L <= 10))) OR (((((p_brand#30 = Brand#12) AND p_container#33 IN (LG CASE,LG BOX,LG PACK,LG PKG)) AND (l_quantity#10L >= 21)) AND (l_quantity#10L <= 31)) AND (p_size#32L <= 15))))
+      :- Project [l_partkey#7L, l_quantity#10L, l_extendedprice#11, l_discount#12]
+      :  +- Filter (((isnotnull(l_shipinstruct#19) AND (l_shipmode#20 IN (AIR,AIR REG) AND (l_shipinstruct#19 = DELIVER IN PERSON))) AND isnotnull(l_partkey#7L)) AND ((((l_quantity#10L >= 4) AND (l_quantity#10L <= 14)) OR ((l_quantity#10L >= 20) AND (l_quantity#10L <= 30))) OR ((l_quantity#10L >= 21) AND (l_quantity#10L <= 31))))
+      :     +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+      +- Project [p_partkey#27L, p_brand#30, p_size#32L, p_container#33]
+         +- Filter (((isnotnull(p_size#32L) AND (p_size#32L >= 1)) AND isnotnull(p_partkey#27L)) AND (((((p_brand#30 = Brand#55) AND p_container#33 IN (SM CASE,SM BOX,SM PACK,SM PKG)) AND (p_size#32L <= 5)) OR (((p_brand#30 = Brand#35) AND p_container#33 IN (MED BAG,MED BOX,MED PKG,MED PACK)) AND (p_size#32L <= 10))) OR (((p_brand#30 = Brand#12) AND p_container#33 IN (LG CASE,LG BOX,LG PACK,LG PKG)) AND (p_size#32L <= 15))))
+            +- Relation tpch_hudi_10g.part[_hoodie_commit_time#22,_hoodie_commit_seqno#23,_hoodie_record_key#24,_hoodie_partition_path#25,_hoodie_file_name#26,p_partkey#27L,p_name#28,p_mfgr#29,p_brand#30,p_type#31,p_size#32L,p_container#33,p_retailprice#34,p_comment#35] parquet
+=== Physical Plan ===

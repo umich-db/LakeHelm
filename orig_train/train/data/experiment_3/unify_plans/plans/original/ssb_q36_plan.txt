@@ -1,0 +1,22 @@
+== Parsed Logical Plan ==
+'Aggregate ['c.c_mktsegment], ['c.c_mktsegment, 'COUNT(1) AS cust_count#17555]
++- 'SubqueryAlias c
+   +- 'UnresolvedRelation [customer], [], false
+
+== Analyzed Logical Plan ==
+c_mktsegment: string, cust_count: bigint
+Aggregate [c_mktsegment#17563], [c_mktsegment#17563, count(1) AS cust_count#17555L]
++- SubqueryAlias c
+   +- SubqueryAlias spark_catalog.ssb_iceberg_10g.customer
+      +- RelationV2[c_custkey#17556, c_name#17557, c_address#17558, c_city#17559, c_nation#17560, c_region#17561, c_phone#17562, c_mktsegment#17563] spark_catalog.ssb_iceberg_10g.customer
+
+== Optimized Logical Plan ==
+Aggregate [c_mktsegment#17563], [c_mktsegment#17563, count(1) AS cust_count#17555L]
++- RelationV2[c_mktsegment#17563] spark_catalog.ssb_iceberg_10g.customer
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[c_mktsegment#17563], functions=[count(1)], output=[c_mktsegment#17563, cust_count#17555L])
+   +- HashAggregate(keys=[c_mktsegment#17563], functions=[partial_count(1)], output=[c_mktsegment#17563, count#17574L])
+      +- BatchScan[c_mktsegment#17563] spark_catalog.ssb_iceberg_10g.customer [filters=] RuntimeFilters: []
+

@@ -1,0 +1,121 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [c_customer_id#39174 ASC NULLS FIRST, c_salutation#39180 ASC NULLS FIRST, c_first_name#39181 ASC NULLS FIRST, c_last_name#39182 ASC NULLS FIRST, ca_street_number#39162 ASC NULLS FIRST, ca_street_name#39163 ASC NULLS FIRST, ca_street_type#39164 ASC NULLS FIRST, ca_suite_number#39165 ASC NULLS FIRST, ca_city#39166 ASC NULLS FIRST, ca_county#39167 ASC NULLS FIRST, ca_state#39168 ASC NULLS FIRST, ca_zip#39169 ASC NULLS FIRST, ca_country#39170 ASC NULLS FIRST, ca_gmt_offset#39171 ASC NULLS FIRST, ca_location_type#39172 ASC NULLS FIRST, ctr_total_return#39091 ASC NULLS FIRST], true
+      +- Project [c_customer_id#39174, c_salutation#39180, c_first_name#39181, c_last_name#39182, ca_street_number#39162, ca_street_name#39163, ca_street_type#39164, ca_suite_number#39165, ca_city#39166, ca_county#39167, ca_state#39168, ca_zip#39169, ca_country#39170, ca_gmt_offset#39171, ca_location_type#39172, ctr_total_return#39091]
+         +- Join Inner, (ca_address_sk#39160 = c_current_addr_sk#39177)
+            :- Project [ctr_total_return#39091, c_customer_id#39174, c_current_addr_sk#39177, c_salutation#39180, c_first_name#39181, c_last_name#39182]
+            :  +- Join Inner, (ctr_customer_sk#39089 = c_customer_sk#39173)
+            :     :- Project [ctr_customer_sk#39089, ctr_total_return#39091]
+            :     :  +- Join Inner, ((cast(ctr_total_return#39091 as decimal(24,7)) > (avg(ctr_total_return) * 1.2)#39208) AND (ctr_state#39090 = ctr_state#39090#39235))
+            :     :     :- Filter isnotnull(ctr_total_return#39091)
+            :     :     :  +- Aggregate [cr_returning_customer_sk#39098, ca_state#39155], [cr_returning_customer_sk#39098 AS ctr_customer_sk#39089, ca_state#39155 AS ctr_state#39090, MakeDecimal(sum(UnscaledValue(cr_return_amt_inc_tax#39111)),17,2) AS ctr_total_return#39091]
+            :     :     :     +- Project [cr_returning_customer_sk#39098, cr_return_amt_inc_tax#39111, ca_state#39155]
+            :     :     :        +- Join Inner, (cr_returning_addr_sk#39101 = ca_address_sk#39147)
+            :     :     :           :- Project [cr_returning_customer_sk#39098, cr_returning_addr_sk#39101, cr_return_amt_inc_tax#39111]
+            :     :     :           :  +- Join Inner, (cr_returned_date_sk#39118 = d_date_sk#39119)
+            :     :     :           :     :- Filter (((isnotnull(cr_returned_date_sk#39118) AND isnotnull(cr_returning_addr_sk#39101)) AND isnotnull(cr_returning_customer_sk#39098)) AND dynamicpruning#39270 [cr_returned_date_sk#39118])
+            :     :     :           :     :  :  +- Project [d_date_sk#39119]
+            :     :     :           :     :  :     +- Filter ((isnotnull(d_year#39125) AND (d_year#39125 = 1998)) AND isnotnull(d_date_sk#39119))
+            :     :     :           :     :  :        +- RelationV2[d_date_sk#39119, d_year#39125] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :     :           :     :  +- RelationV2[cr_returning_customer_sk#39098, cr_returning_addr_sk#39101, cr_return_amt_inc_tax#39111, cr_returned_date_sk#39118] spark_catalog.tpcds_iceberg_10g.catalog_returns
+            :     :     :           :     +- Project [d_date_sk#39119]
+            :     :     :           :        +- Filter ((isnotnull(d_year#39125) AND (d_year#39125 = 1998)) AND isnotnull(d_date_sk#39119))
+            :     :     :           :           +- RelationV2[d_date_sk#39119, d_year#39125] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :     :           +- Filter (isnotnull(ca_address_sk#39147) AND isnotnull(ca_state#39155))
+            :     :     :              +- RelationV2[ca_address_sk#39147, ca_state#39155] spark_catalog.tpcds_iceberg_10g.customer_address
+            :     :     +- Filter isnotnull((avg(ctr_total_return) * 1.2)#39208)
+            :     :        +- Aggregate [ctr_state#39090], [CheckOverflow((promote_precision(avg(ctr_total_return#39091)) * 1.200000), DecimalType(24,7)) AS (avg(ctr_total_return) * 1.2)#39208, ctr_state#39090 AS ctr_state#39090#39235]
+            :     :           +- Aggregate [cr_returning_customer_sk#39098, ca_state#39155], [ca_state#39155 AS ctr_state#39090, MakeDecimal(sum(UnscaledValue(cr_return_amt_inc_tax#39111)),17,2) AS ctr_total_return#39091]
+            :     :              +- Project [cr_returning_customer_sk#39098, cr_return_amt_inc_tax#39111, ca_state#39155]
+            :     :                 +- Join Inner, (cr_returning_addr_sk#39101 = ca_address_sk#39147)
+            :     :                    :- Project [cr_returning_customer_sk#39098, cr_returning_addr_sk#39101, cr_return_amt_inc_tax#39111]
+            :     :                    :  +- Join Inner, (cr_returned_date_sk#39118 = d_date_sk#39119)
+            :     :                    :     :- Filter ((isnotnull(cr_returned_date_sk#39118) AND isnotnull(cr_returning_addr_sk#39101)) AND dynamicpruning#39271 [cr_returned_date_sk#39118])
+            :     :                    :     :  :  +- Project [d_date_sk#39119]
+            :     :                    :     :  :     +- Filter ((isnotnull(d_year#39125) AND (d_year#39125 = 1998)) AND isnotnull(d_date_sk#39119))
+            :     :                    :     :  :        +- RelationV2[d_date_sk#39119, d_year#39125] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :                    :     :  +- RelationV2[cr_returning_customer_sk#39098, cr_returning_addr_sk#39101, cr_return_amt_inc_tax#39111, cr_returned_date_sk#39118] spark_catalog.tpcds_iceberg_10g.catalog_returns
+            :     :                    :     +- Project [d_date_sk#39119]
+            :     :                    :        +- Filter ((isnotnull(d_year#39125) AND (d_year#39125 = 1998)) AND isnotnull(d_date_sk#39119))
+            :     :                    :           +- RelationV2[d_date_sk#39119, d_year#39125] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :                    +- Filter (isnotnull(ca_address_sk#39147) AND isnotnull(ca_state#39155))
+            :     :                       +- RelationV2[ca_address_sk#39147, ca_state#39155] spark_catalog.tpcds_iceberg_10g.customer_address
+            :     +- Filter (isnotnull(c_customer_sk#39173) AND isnotnull(c_current_addr_sk#39177))
+            :        +- RelationV2[c_customer_sk#39173, c_customer_id#39174, c_current_addr_sk#39177, c_salutation#39180, c_first_name#39181, c_last_name#39182] spark_catalog.tpcds_iceberg_10g.customer
+            +- Filter ((isnotnull(ca_state#39168) AND (ca_state#39168 = IL)) AND isnotnull(ca_address_sk#39160))
+               +- RelationV2[ca_address_sk#39160, ca_street_number#39162, ca_street_name#39163, ca_street_type#39164, ca_suite_number#39165, ca_city#39166, ca_county#39167, ca_state#39168, ca_zip#39169, ca_country#39170, ca_gmt_offset#39171, ca_location_type#39172] spark_catalog.tpcds_iceberg_10g.customer_address
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[c_customer_id#39174 ASC NULLS FIRST,c_salutation#39180 ASC NULLS FIRST,c_first_name#39181 ASC NULLS FIRST,c_last_name#39182 ASC NULLS FIRST,ca_street_number#39162 ASC NULLS FIRST,ca_street_name#39163 ASC NULLS FIRST,ca_street_type#39164 ASC NULLS FIRST,ca_suite_number#39165 ASC NULLS FIRST,ca_city#39166 ASC NULLS FIRST,ca_county#39167 ASC NULLS FIRST,ca_state#39168 ASC NULLS FIRST,ca_zip#39169 ASC NULLS FIRST,ca_country#39170 ASC NULLS FIRST,ca_gmt_offset#39171 ASC NULLS FIRST,ca_location_type#39172 ASC NULLS FIRST,ctr_total_return#39091 ASC NULLS FIRST], output=[c_customer_id#39174,c_salutation#39180,c_first_name#39181,c_last_name#39182,ca_street_number#39162,ca_street_name#39163,ca_street_type#39164,ca_suite_number#39165,ca_city#39166,ca_county#39167,ca_state#39168,ca_zip#39169,ca_country#39170,ca_gmt_offset#39171,ca_location_type#39172,ctr_total_return#39091])
+   +- Project [c_customer_id#39174, c_salutation#39180, c_first_name#39181, c_last_name#39182, ca_street_number#39162, ca_street_name#39163, ca_street_type#39164, ca_suite_number#39165, ca_city#39166, ca_county#39167, ca_state#39168, ca_zip#39169, ca_country#39170, ca_gmt_offset#39171, ca_location_type#39172, ctr_total_return#39091]
+      +- SortMergeJoin [c_current_addr_sk#39177], [ca_address_sk#39160], Inner
+         :- Sort [c_current_addr_sk#39177 ASC NULLS FIRST], false, 0
+         :  +- Exchange hashpartitioning(c_current_addr_sk#39177, 200), ENSURE_REQUIREMENTS, [plan_id=28948]
+         :     +- Project [ctr_total_return#39091, c_customer_id#39174, c_current_addr_sk#39177, c_salutation#39180, c_first_name#39181, c_last_name#39182]
+         :        +- SortMergeJoin [ctr_customer_sk#39089], [c_customer_sk#39173], Inner
+         :           :- Sort [ctr_customer_sk#39089 ASC NULLS FIRST], false, 0
+         :           :  +- Exchange hashpartitioning(ctr_customer_sk#39089, 200), ENSURE_REQUIREMENTS, [plan_id=28940]
+         :           :     +- Project [ctr_customer_sk#39089, ctr_total_return#39091]
+         :           :        +- SortMergeJoin [ctr_state#39090], [ctr_state#39090#39235], Inner, (cast(ctr_total_return#39091 as decimal(24,7)) > (avg(ctr_total_return) * 1.2)#39208)
+         :           :           :- Sort [ctr_state#39090 ASC NULLS FIRST], false, 0
+         :           :           :  +- Exchange hashpartitioning(ctr_state#39090, 200), ENSURE_REQUIREMENTS, [plan_id=28933]
+         :           :           :     +- Filter isnotnull(ctr_total_return#39091)
+         :           :           :        +- HashAggregate(keys=[cr_returning_customer_sk#39098, ca_state#39155], functions=[sum(UnscaledValue(cr_return_amt_inc_tax#39111))], output=[ctr_customer_sk#39089, ctr_state#39090, ctr_total_return#39091])
+         :           :           :           +- Exchange hashpartitioning(cr_returning_customer_sk#39098, ca_state#39155, 200), ENSURE_REQUIREMENTS, [plan_id=28912]
+         :           :           :              +- HashAggregate(keys=[cr_returning_customer_sk#39098, ca_state#39155], functions=[partial_sum(UnscaledValue(cr_return_amt_inc_tax#39111))], output=[cr_returning_customer_sk#39098, ca_state#39155, sum#39273L])
+         :           :           :                 +- Project [cr_returning_customer_sk#39098, cr_return_amt_inc_tax#39111, ca_state#39155]
+         :           :           :                    +- BroadcastHashJoin [cr_returning_addr_sk#39101], [ca_address_sk#39147], Inner, BuildRight, false
+         :           :           :                       :- Project [cr_returning_customer_sk#39098, cr_returning_addr_sk#39101, cr_return_amt_inc_tax#39111]
+         :           :           :                       :  +- BroadcastHashJoin [cr_returned_date_sk#39118], [d_date_sk#39119], Inner, BuildRight, false
+         :           :           :                       :     :- Filter ((isnotnull(cr_returned_date_sk#39118) AND isnotnull(cr_returning_addr_sk#39101)) AND isnotnull(cr_returning_customer_sk#39098))
+         :           :           :                       :     :  +- BatchScan[cr_returning_customer_sk#39098, cr_returning_addr_sk#39101, cr_return_amt_inc_tax#39111, cr_returned_date_sk#39118] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=cr_returned_date_sk IS NOT NULL, cr_returning_addr_sk IS NOT NULL, cr_returning_customer_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cr_returned_date_sk#39118 IN dynamicpruning#39270)]
+         :           :           :                       :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#39270, 0, true, Project [d_date_sk#39119], [d_date_sk#39119]
+         :           :           :                       :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :           :           :                       :     :              +- Project [d_date_sk#39119]
+         :           :           :                       :     :                 +- Filter ((isnotnull(d_year#39125) AND (d_year#39125 = 1998)) AND isnotnull(d_date_sk#39119))
+         :           :           :                       :     :                    +- BatchScan[d_date_sk#39119, d_year#39125] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :           :           :                       :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=28903]
+         :           :           :                       :        +- Project [d_date_sk#39119]
+         :           :           :                       :           +- Filter ((isnotnull(d_year#39125) AND (d_year#39125 = 1998)) AND isnotnull(d_date_sk#39119))
+         :           :           :                       :              +- BatchScan[d_date_sk#39119, d_year#39125] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :           :           :                       +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=28907]
+         :           :           :                          +- Filter (isnotnull(ca_address_sk#39147) AND isnotnull(ca_state#39155))
+         :           :           :                             +- BatchScan[ca_address_sk#39147, ca_state#39155] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL, ca_state IS NOT NULL] RuntimeFilters: []
+         :           :           +- Sort [ctr_state#39090#39235 ASC NULLS FIRST], false, 0
+         :           :              +- Filter isnotnull((avg(ctr_total_return) * 1.2)#39208)
+         :           :                 +- HashAggregate(keys=[ctr_state#39090], functions=[avg(ctr_total_return#39091)], output=[(avg(ctr_total_return) * 1.2)#39208, ctr_state#39090#39235])
+         :           :                    +- Exchange hashpartitioning(ctr_state#39090, 200), ENSURE_REQUIREMENTS, [plan_id=28928]
+         :           :                       +- HashAggregate(keys=[ctr_state#39090], functions=[partial_avg(ctr_total_return#39091)], output=[ctr_state#39090, sum#39276, count#39277L])
+         :           :                          +- HashAggregate(keys=[cr_returning_customer_sk#39098, ca_state#39155], functions=[sum(UnscaledValue(cr_return_amt_inc_tax#39111))], output=[ctr_state#39090, ctr_total_return#39091])
+         :           :                             +- Exchange hashpartitioning(cr_returning_customer_sk#39098, ca_state#39155, 200), ENSURE_REQUIREMENTS, [plan_id=28924]
+         :           :                                +- HashAggregate(keys=[cr_returning_customer_sk#39098, ca_state#39155], functions=[partial_sum(UnscaledValue(cr_return_amt_inc_tax#39111))], output=[cr_returning_customer_sk#39098, ca_state#39155, sum#39279L])
+         :           :                                   +- Project [cr_returning_customer_sk#39098, cr_return_amt_inc_tax#39111, ca_state#39155]
+         :           :                                      +- BroadcastHashJoin [cr_returning_addr_sk#39101], [ca_address_sk#39147], Inner, BuildRight, false
+         :           :                                         :- Project [cr_returning_customer_sk#39098, cr_returning_addr_sk#39101, cr_return_amt_inc_tax#39111]
+         :           :                                         :  +- BroadcastHashJoin [cr_returned_date_sk#39118], [d_date_sk#39119], Inner, BuildRight, false
+         :           :                                         :     :- Filter (isnotnull(cr_returned_date_sk#39118) AND isnotnull(cr_returning_addr_sk#39101))
+         :           :                                         :     :  +- BatchScan[cr_returning_customer_sk#39098, cr_returning_addr_sk#39101, cr_return_amt_inc_tax#39111, cr_returned_date_sk#39118] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=cr_returned_date_sk IS NOT NULL, cr_returning_addr_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cr_returned_date_sk#39118 IN dynamicpruning#39271)]
+         :           :                                         :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#39271, 0, true, Project [d_date_sk#39119], [d_date_sk#39119]
+         :           :                                         :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :           :                                         :     :              +- Project [d_date_sk#39119]
+         :           :                                         :     :                 +- Filter ((isnotnull(d_year#39125) AND (d_year#39125 = 1998)) AND isnotnull(d_date_sk#39119))
+         :           :                                         :     :                    +- BatchScan[d_date_sk#39119, d_year#39125] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :           :                                         :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=28915]
+         :           :                                         :        +- Project [d_date_sk#39119]
+         :           :                                         :           +- Filter ((isnotnull(d_year#39125) AND (d_year#39125 = 1998)) AND isnotnull(d_date_sk#39119))
+         :           :                                         :              +- BatchScan[d_date_sk#39119, d_year#39125] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :           :                                         +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=28919]
+         :           :                                            +- Filter (isnotnull(ca_address_sk#39147) AND isnotnull(ca_state#39155))
+         :           :                                               +- BatchScan[ca_address_sk#39147, ca_state#39155] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL] RuntimeFilters: []
+         :           +- Sort [c_customer_sk#39173 ASC NULLS FIRST], false, 0
+         :              +- Exchange hashpartitioning(c_customer_sk#39173, 200), ENSURE_REQUIREMENTS, [plan_id=28941]
+         :                 +- Filter (isnotnull(c_customer_sk#39173) AND isnotnull(c_current_addr_sk#39177))
+         :                    +- BatchScan[c_customer_sk#39173, c_customer_id#39174, c_current_addr_sk#39177, c_salutation#39180, c_first_name#39181, c_last_name#39182] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL, c_current_addr_sk IS NOT NULL] RuntimeFilters: []
+         +- Sort [ca_address_sk#39160 ASC NULLS FIRST], false, 0
+            +- Exchange hashpartitioning(ca_address_sk#39160, 200), ENSURE_REQUIREMENTS, [plan_id=28949]
+               +- Filter ((isnotnull(ca_state#39168) AND (ca_state#39168 = IL)) AND isnotnull(ca_address_sk#39160))
+                  +- BatchScan[ca_address_sk#39160, ca_street_number#39162, ca_street_name#39163, ca_street_type#39164, ca_suite_number#39165, ca_city#39166, ca_county#39167, ca_state#39168, ca_zip#39169, ca_country#39170, ca_gmt_offset#39171, ca_location_type#39172] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_state IS NOT NULL, ca_state = 'IL', ca_address_sk IS NOT NULL] RuntimeFilters: []
+

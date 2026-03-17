@@ -1,0 +1,103 @@
+== Parsed Logical Plan ==
+'Project ['MIN('t.title) AS typical_european_movie#15476]
++- 'Filter ((((('ct.kind = production companies) AND 'mc.note LIKE %(theatrical)%) AND 'mc.note LIKE %(France)%) AND ('mi.info IN (Sweden,Norway,Germany,Denmark,Swedish,Denish,Norwegian,German) AND ('t.production_year > 2005))) AND (((('t.id = 'mi.movie_id) AND ('t.id = 'mc.movie_id)) AND ('mc.movie_id = 'mi.movie_id)) AND (('ct.id = 'mc.company_type_id) AND ('it.id = 'mi.info_type_id))))
+   +- 'Join Inner
+      :- 'Join Inner
+      :  :- 'Join Inner
+      :  :  :- 'Join Inner
+      :  :  :  :- 'SubqueryAlias ct
+      :  :  :  :  +- 'UnresolvedRelation [company_type], [], false
+      :  :  :  +- 'SubqueryAlias it
+      :  :  :     +- 'UnresolvedRelation [info_type], [], false
+      :  :  +- 'SubqueryAlias mc
+      :  :     +- 'UnresolvedRelation [movie_companies], [], false
+      :  +- 'SubqueryAlias mi
+      :     +- 'UnresolvedRelation [movie_info], [], false
+      +- 'SubqueryAlias t
+         +- 'UnresolvedRelation [title], [], false
+
+== Analyzed Logical Plan ==
+typical_european_movie: string
+Aggregate [min(title#15492) AS typical_european_movie#15476]
++- Filter (((((kind#15478 = production companies) AND note#15485 LIKE %(theatrical)%) AND note#15485 LIKE %(France)%) AND (info#15489 IN (Sweden,Norway,Germany,Denmark,Swedish,Denish,Norwegian,German) AND (production_year#15495L > cast(2005 as bigint)))) AND ((((id#15491L = movie_id#15487L) AND (id#15491L = movie_id#15482L)) AND (movie_id#15482L = movie_id#15487L)) AND ((id#15477L = company_type_id#15484L) AND (id#15479L = info_type_id#15488L))))
+   +- Join Inner
+      :- Join Inner
+      :  :- Join Inner
+      :  :  :- Join Inner
+      :  :  :  :- SubqueryAlias ct
+      :  :  :  :  +- SubqueryAlias spark_catalog.job_iceberg_10g.company_type
+      :  :  :  :     +- RelationV2[id#15477L, kind#15478] spark_catalog.job_iceberg_10g.company_type
+      :  :  :  +- SubqueryAlias it
+      :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.info_type
+      :  :  :        +- RelationV2[id#15479L, info#15480] spark_catalog.job_iceberg_10g.info_type
+      :  :  +- SubqueryAlias mc
+      :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.movie_companies
+      :  :        +- RelationV2[id#15481L, movie_id#15482L, company_id#15483L, company_type_id#15484L, note#15485] spark_catalog.job_iceberg_10g.movie_companies
+      :  +- SubqueryAlias mi
+      :     +- SubqueryAlias spark_catalog.job_iceberg_10g.movie_info
+      :        +- RelationV2[id#15486L, movie_id#15487L, info_type_id#15488L, info#15489, note#15490] spark_catalog.job_iceberg_10g.movie_info
+      +- SubqueryAlias t
+         +- SubqueryAlias spark_catalog.job_iceberg_10g.title
+            +- RelationV2[id#15491L, title#15492, imdb_index#15493, kind_id#15494L, production_year#15495L, imdb_id#15496L, phonetic_code#15497, episode_of_id#15498L, season_nr#15499L, episode_nr#15500L, series_years#15501, md5sum#15502] spark_catalog.job_iceberg_10g.title
+
+== Optimized Logical Plan ==
+Aggregate [min(title#15492) AS typical_european_movie#15476]
++- Project [title#15492]
+   +- Join Inner, ((id#15491L = movie_id#15487L) AND (id#15491L = movie_id#15482L))
+      :- Project [movie_id#15482L, movie_id#15487L]
+      :  +- Join Inner, (id#15479L = info_type_id#15488L)
+      :     :- Join Inner, (movie_id#15482L = movie_id#15487L)
+      :     :  :- Project [movie_id#15482L]
+      :     :  :  +- Join Inner, (id#15477L = company_type_id#15484L)
+      :     :  :     :- Project [id#15477L]
+      :     :  :     :  +- Filter ((isnotnull(kind#15478) AND (kind#15478 = production companies)) AND isnotnull(id#15477L))
+      :     :  :     :     +- RelationV2[id#15477L, kind#15478] spark_catalog.job_iceberg_10g.company_type
+      :     :  :     +- Project [movie_id#15482L, company_type_id#15484L]
+      :     :  :        +- Filter ((((isnotnull(note#15485) AND Contains(note#15485, (theatrical))) AND Contains(note#15485, (France))) AND isnotnull(company_type_id#15484L)) AND isnotnull(movie_id#15482L))
+      :     :  :           +- RelationV2[movie_id#15482L, company_type_id#15484L, note#15485] spark_catalog.job_iceberg_10g.movie_companies
+      :     :  +- Project [movie_id#15487L, info_type_id#15488L]
+      :     :     +- Filter ((info#15489 IN (Sweden,Norway,Germany,Denmark,Swedish,Denish,Norwegian,German) AND isnotnull(movie_id#15487L)) AND isnotnull(info_type_id#15488L))
+      :     :        +- RelationV2[movie_id#15487L, info_type_id#15488L, info#15489] spark_catalog.job_iceberg_10g.movie_info
+      :     +- Filter isnotnull(id#15479L)
+      :        +- RelationV2[id#15479L] spark_catalog.job_iceberg_10g.info_type
+      +- Project [id#15491L, title#15492]
+         +- Filter ((isnotnull(production_year#15495L) AND (production_year#15495L > 2005)) AND isnotnull(id#15491L))
+            +- RelationV2[id#15491L, title#15492, production_year#15495L] spark_catalog.job_iceberg_10g.title
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- SortAggregate(key=[], functions=[min(title#15492)], output=[typical_european_movie#15476])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=23881]
+      +- SortAggregate(key=[], functions=[partial_min(title#15492)], output=[min#15543])
+         +- Project [title#15492]
+            +- SortMergeJoin [movie_id#15487L, movie_id#15482L], [id#15491L, id#15491L], Inner
+               :- Sort [movie_id#15487L ASC NULLS FIRST, movie_id#15482L ASC NULLS FIRST], false, 0
+               :  +- Exchange hashpartitioning(movie_id#15487L, movie_id#15482L, 200), ENSURE_REQUIREMENTS, [plan_id=23873]
+               :     +- Project [movie_id#15482L, movie_id#15487L]
+               :        +- BroadcastHashJoin [info_type_id#15488L], [id#15479L], Inner, BuildRight, false
+               :           :- SortMergeJoin [movie_id#15482L], [movie_id#15487L], Inner
+               :           :  :- Sort [movie_id#15482L ASC NULLS FIRST], false, 0
+               :           :  :  +- Exchange hashpartitioning(movie_id#15482L, 200), ENSURE_REQUIREMENTS, [plan_id=23863]
+               :           :  :     +- Project [movie_id#15482L]
+               :           :  :        +- BroadcastHashJoin [id#15477L], [company_type_id#15484L], Inner, BuildLeft, false
+               :           :  :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=23857]
+               :           :  :           :  +- Project [id#15477L]
+               :           :  :           :     +- Filter ((isnotnull(kind#15478) AND (kind#15478 = production companies)) AND isnotnull(id#15477L))
+               :           :  :           :        +- BatchScan[id#15477L, kind#15478] spark_catalog.job_iceberg_10g.company_type [filters=kind IS NOT NULL, kind = 'production companies', id IS NOT NULL] RuntimeFilters: []
+               :           :  :           +- Project [movie_id#15482L, company_type_id#15484L]
+               :           :  :              +- Filter ((((isnotnull(note#15485) AND Contains(note#15485, (theatrical))) AND Contains(note#15485, (France))) AND isnotnull(company_type_id#15484L)) AND isnotnull(movie_id#15482L))
+               :           :  :                 +- BatchScan[movie_id#15482L, company_type_id#15484L, note#15485] spark_catalog.job_iceberg_10g.movie_companies [filters=note IS NOT NULL, company_type_id IS NOT NULL, movie_id IS NOT NULL] RuntimeFilters: []
+               :           :  +- Sort [movie_id#15487L ASC NULLS FIRST], false, 0
+               :           :     +- Exchange hashpartitioning(movie_id#15487L, 200), ENSURE_REQUIREMENTS, [plan_id=23862]
+               :           :        +- Project [movie_id#15487L, info_type_id#15488L]
+               :           :           +- Filter ((info#15489 IN (Sweden,Norway,Germany,Denmark,Swedish,Denish,Norwegian,German) AND isnotnull(movie_id#15487L)) AND isnotnull(info_type_id#15488L))
+               :           :              +- BatchScan[movie_id#15487L, info_type_id#15488L, info#15489] spark_catalog.job_iceberg_10g.movie_info [filters=info IN ('Sweden', 'Norway', 'Germany', 'Denmark', 'Swedish', 'Denish', 'Norwegian', 'German'), movie_id IS NOT NULL, info_type_id IS NOT NULL] RuntimeFilters: []
+               :           +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=23868]
+               :              +- Filter isnotnull(id#15479L)
+               :                 +- BatchScan[id#15479L] spark_catalog.job_iceberg_10g.info_type [filters=id IS NOT NULL] RuntimeFilters: []
+               +- Sort [id#15491L ASC NULLS FIRST, id#15491L ASC NULLS FIRST], false, 0
+                  +- Exchange hashpartitioning(id#15491L, id#15491L, 200), ENSURE_REQUIREMENTS, [plan_id=23874]
+                     +- Project [id#15491L, title#15492]
+                        +- Filter ((isnotnull(production_year#15495L) AND (production_year#15495L > 2005)) AND isnotnull(id#15491L))
+                           +- BatchScan[id#15491L, title#15492, production_year#15495L] spark_catalog.job_iceberg_10g.title [filters=production_year IS NOT NULL, production_year > 2005, id IS NOT NULL] RuntimeFilters: []
+

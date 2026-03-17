@@ -1,0 +1,37 @@
+== Optimized Logical Plan ==
+Sort [total_sales#9509 DESC NULLS LAST], true
++- Aggregate [s_store_name#9516, s_state#9535], [s_store_name#9516, s_state#9535, MakeDecimal(sum(UnscaledValue(ss_sales_price#9552)),17,2) AS total_sales#9509]
+   +- Project [s_store_name#9516, s_state#9535, ss_sales_price#9552]
+      +- Join Inner, (s_store_sk#9511 = ss_store_sk#9546)
+         :- Filter isnotnull(s_store_sk#9511)
+         :  +- RelationV2[s_store_sk#9511, s_store_name#9516, s_state#9535] spark_catalog.tpcds_iceberg_10g.store
+         +- Project [ss_store_sk#9546, ss_sales_price#9552]
+            +- Join LeftSemi, (ss_customer_sk#9542 = c_customer_sk#9563)
+               :- Filter isnotnull(ss_store_sk#9546)
+               :  +- RelationV2[ss_customer_sk#9542, ss_store_sk#9546, ss_sales_price#9552] spark_catalog.tpcds_iceberg_10g.store_sales
+               +- Project [c_customer_sk#9563]
+                  +- Filter (isnotnull(c_preferred_cust_flag#9573) AND (c_preferred_cust_flag#9573 = Y))
+                     +- RelationV2[c_customer_sk#9563, c_preferred_cust_flag#9573] spark_catalog.tpcds_iceberg_10g.customer
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_sales#9509 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_sales#9509 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=7192]
+      +- HashAggregate(keys=[s_store_name#9516, s_state#9535], functions=[sum(UnscaledValue(ss_sales_price#9552))], output=[s_store_name#9516, s_state#9535, total_sales#9509])
+         +- Exchange hashpartitioning(s_store_name#9516, s_state#9535, 200), ENSURE_REQUIREMENTS, [plan_id=7189]
+            +- HashAggregate(keys=[s_store_name#9516, s_state#9535], functions=[partial_sum(UnscaledValue(ss_sales_price#9552))], output=[s_store_name#9516, s_state#9535, sum#9609L])
+               +- Project [s_store_name#9516, s_state#9535, ss_sales_price#9552]
+                  +- BroadcastHashJoin [s_store_sk#9511], [ss_store_sk#9546], Inner, BuildLeft, false
+                     :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=7184]
+                     :  +- Filter isnotnull(s_store_sk#9511)
+                     :     +- BatchScan[s_store_sk#9511, s_store_name#9516, s_state#9535] spark_catalog.tpcds_iceberg_10g.store [filters=s_store_sk IS NOT NULL] RuntimeFilters: []
+                     +- Project [ss_store_sk#9546, ss_sales_price#9552]
+                        +- BroadcastHashJoin [ss_customer_sk#9542], [c_customer_sk#9563], LeftSemi, BuildRight, false
+                           :- Filter isnotnull(ss_store_sk#9546)
+                           :  +- BatchScan[ss_customer_sk#9542, ss_store_sk#9546, ss_sales_price#9552] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_store_sk IS NOT NULL] RuntimeFilters: []
+                           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=7180]
+                              +- Project [c_customer_sk#9563]
+                                 +- Filter (isnotnull(c_preferred_cust_flag#9573) AND (c_preferred_cust_flag#9573 = Y))
+                                    +- BatchScan[c_customer_sk#9563, c_preferred_cust_flag#9573] spark_catalog.tpcds_iceberg_10g.customer [filters=c_preferred_cust_flag IS NOT NULL, c_preferred_cust_flag = 'Y'] RuntimeFilters: []
+

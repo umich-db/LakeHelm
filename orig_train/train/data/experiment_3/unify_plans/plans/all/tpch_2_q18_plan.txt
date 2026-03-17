@@ -1,0 +1,29 @@
+=== Optimized Logical Plan ===
+Sort [o_totalprice#78 DESC NULLS LAST, o_orderdate#79 ASC NULLS FIRST], true
++- Aggregate [c_name#216, c_custkey#215L, o_orderkey#75L, o_orderdate#79, o_totalprice#78], [c_name#216, c_custkey#215L, o_orderkey#75L, o_orderdate#79, o_totalprice#78, sum(l_quantity#10L) AS sum(l_quantity)#1054L]
+   +- Project [c_custkey#215L, c_name#216, o_orderkey#75L, o_totalprice#78, o_orderdate#79, l_quantity#10L]
+      +- Join Inner, (o_orderkey#75L = l_orderkey#6L)
+         :- Project [c_custkey#215L, c_name#216, o_orderkey#75L, o_totalprice#78, o_orderdate#79]
+         :  +- Join Inner, (c_custkey#215L = o_custkey#76L)
+         :     :- Project [c_custkey#215L, c_name#216]
+         :     :  +- Filter isnotnull(c_custkey#215L)
+         :     :     +- Relation tpch_hudi_10g.customer[_hoodie_commit_time#210,_hoodie_commit_seqno#211,_hoodie_record_key#212,_hoodie_partition_path#213,_hoodie_file_name#214,c_custkey#215L,c_name#216,c_address#217,c_nationkey#218L,c_phone#219,c_acctbal#220,c_mktsegment#221,c_comment#222] parquet
+         :     +- Join LeftSemi, (o_orderkey#75L = l_orderkey#1037L)
+         :        :- Project [o_orderkey#75L, o_custkey#76L, o_totalprice#78, o_orderdate#79]
+         :        :  +- Filter (isnotnull(o_custkey#76L) AND isnotnull(o_orderkey#75L))
+         :        :     +- Relation tpch_hudi_10g.orders[_hoodie_commit_time#70,_hoodie_commit_seqno#71,_hoodie_record_key#72,_hoodie_partition_path#73,_hoodie_file_name#74,o_orderkey#75L,o_custkey#76L,o_orderstatus#77,o_totalprice#78,o_orderdate#79,o_orderpriority#80,o_clerk#81,o_shippriority#82L,o_comment#83] parquet
+         :        +- Project [l_orderkey#1037L]
+         :           +- Filter (isnotnull(sum(l_quantity#10L)#1031L) AND (sum(l_quantity#10L)#1031L > 314))
+         :              +- Aggregate [l_orderkey#1037L], [l_orderkey#1037L, sum(l_quantity#1041L) AS sum(l_quantity#10L)#1031L]
+         :                 +- Project [l_orderkey#1037L, l_quantity#1041L]
+         :                    +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1032,_hoodie_commit_seqno#1033,_hoodie_record_key#1034,_hoodie_partition_path#1035,_hoodie_file_name#1036,l_orderkey#1037L,l_partkey#1038L,l_suppkey#1039L,l_linenumber#1040L,l_quantity#1041L,l_extendedprice#1042,l_discount#1043,l_tax#1044,l_returnflag#1045,l_linestatus#1046,l_shipdate#1047,l_commitdate#1048,l_receiptdate#1049,l_shipinstruct#1050,l_shipmode#1051,l_comment#1052] parquet
+         +- Join LeftSemi, (l_orderkey#6L = l_orderkey#1037L)
+            :- Project [l_orderkey#6L, l_quantity#10L]
+            :  +- Filter isnotnull(l_orderkey#6L)
+            :     +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+            +- Project [l_orderkey#1037L]
+               +- Filter (isnotnull(sum(l_quantity#10L)#1031L) AND (sum(l_quantity#10L)#1031L > 314))
+                  +- Aggregate [l_orderkey#1037L], [l_orderkey#1037L, sum(l_quantity#1041L) AS sum(l_quantity#10L)#1031L]
+                     +- Project [l_orderkey#1037L, l_quantity#1041L]
+                        +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1032,_hoodie_commit_seqno#1033,_hoodie_record_key#1034,_hoodie_partition_path#1035,_hoodie_file_name#1036,l_orderkey#1037L,l_partkey#1038L,l_suppkey#1039L,l_linenumber#1040L,l_quantity#1041L,l_extendedprice#1042,l_discount#1043,l_tax#1044,l_returnflag#1045,l_linestatus#1046,l_shipdate#1047,l_commitdate#1048,l_receiptdate#1049,l_shipinstruct#1050,l_shipmode#1051,l_comment#1052] parquet
+=== Physical Plan ===

@@ -1,0 +1,15 @@
+=== Optimized Logical Plan ===
+Sort [supplier_cnt#421L DESC NULLS LAST, p_brand#30 ASC NULLS FIRST, p_type#31 ASC NULLS FIRST, p_size#32L ASC NULLS FIRST], true
++- Aggregate [p_brand#30, p_type#31, p_size#32L], [p_brand#30, p_type#31, p_size#32L, count(distinct ps_suppkey#135L) AS supplier_cnt#421L]
+   +- Project [ps_suppkey#135L, p_brand#30, p_type#31, p_size#32L]
+      +- Join Inner, (p_partkey#27L = ps_partkey#134L)
+         :- Join LeftAnti, ((ps_suppkey#135L = s_suppkey#122L) OR isnull((ps_suppkey#135L = s_suppkey#122L)))
+         :  :- Project [ps_partkey#134L, ps_suppkey#135L]
+         :  :  +- Filter isnotnull(ps_partkey#134L)
+         :  :     +- Relation tpch_hudi_10g.partsupp[_hoodie_commit_time#129,_hoodie_commit_seqno#130,_hoodie_record_key#131,_hoodie_partition_path#132,_hoodie_file_name#133,ps_partkey#134L,ps_suppkey#135L,ps_availqty#136L,ps_supplycost#137,ps_comment#138] parquet
+         :  +- Project [s_suppkey#122L]
+         :     +- Filter (isnotnull(s_comment#128) AND s_comment#128 LIKE %Customer%Complaints%)
+         :        +- Relation tpch_hudi_10g.supplier[_hoodie_commit_time#117,_hoodie_commit_seqno#118,_hoodie_record_key#119,_hoodie_partition_path#120,_hoodie_file_name#121,s_suppkey#122L,s_name#123,s_address#124,s_nationkey#125L,s_phone#126,s_acctbal#127,s_comment#128] parquet
+         +- Project [p_partkey#27L, p_brand#30, p_type#31, p_size#32L]
+            +- Filter (((isnotnull(p_brand#30) AND isnotnull(p_type#31)) AND ((NOT (p_brand#30 = Brand#15) AND NOT StartsWith(p_type#31, SMALL BURNISHED)) AND p_size#32L IN (49,48,36,13,30,5,27,45))) AND isnotnull(p_partkey#27L))
+               +- Relation tpch_hudi_10g.part[_hoodie_commit_time#22,_hoodie_commit_seqno#23,_hoodie_record_key#24,_hoodie_partition_path#25,_hoodie_file_name#26,p_partkey#27L,p_name#28,p_mfgr#29,p_brand#30,p_type#31,p_size#32L,p_container#33,p_retailprice#34,p_comment#35] parquet

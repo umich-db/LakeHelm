@@ -1,0 +1,28 @@
+== Optimized Logical Plan ==
+Sort [num_suppliers#23166L DESC NULLS LAST], true
++- Aggregate [n_name#23168], [n_name#23168, count(distinct s_suppkey#23171L) AS num_suppliers#23166L]
+   +- Project [n_name#23168, s_suppkey#23171L]
+      +- Join Inner, (n_nationkey#23167L = s_nationkey#23174L)
+         :- Filter isnotnull(n_nationkey#23167L)
+         :  +- RelationV2[n_nationkey#23167L, n_name#23168] spark_catalog.tpch_iceberg_10g.nation
+         +- Project [s_suppkey#23171L, s_nationkey#23174L]
+            +- Filter ((isnotnull(s_acctbal#23176) AND (s_acctbal#23176 > 5000.0)) AND isnotnull(s_nationkey#23174L))
+               +- RelationV2[s_suppkey#23171L, s_nationkey#23174L, s_acctbal#23176] spark_catalog.tpch_iceberg_10g.supplier
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_suppliers#23166L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[n_name#23168], functions=[count(distinct s_suppkey#23171L)], output=[n_name#23168, num_suppliers#23166L])
+      +- HashAggregate(keys=[n_name#23168], functions=[partial_count(distinct s_suppkey#23171L)], output=[n_name#23168, count#23198L])
+         +- HashAggregate(keys=[n_name#23168, s_suppkey#23171L], functions=[], output=[n_name#23168, s_suppkey#23171L])
+            +- HashAggregate(keys=[n_name#23168, s_suppkey#23171L], functions=[], output=[n_name#23168, s_suppkey#23171L])
+               +- Project [n_name#23168, s_suppkey#23171L]
+                  +- BroadcastHashJoin [n_nationkey#23167L], [s_nationkey#23174L], Inner, BuildLeft, false
+                     :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=27069]
+                     :  +- Filter isnotnull(n_nationkey#23167L)
+                     :     +- BatchScan[n_nationkey#23167L, n_name#23168] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL] RuntimeFilters: []
+                     +- Project [s_suppkey#23171L, s_nationkey#23174L]
+                        +- Filter ((isnotnull(s_acctbal#23176) AND (s_acctbal#23176 > 5000.0)) AND isnotnull(s_nationkey#23174L))
+                           +- BatchScan[s_suppkey#23171L, s_nationkey#23174L, s_acctbal#23176] spark_catalog.tpch_iceberg_10g.supplier [filters=s_acctbal IS NOT NULL, s_acctbal > 5000.0, s_nationkey IS NOT NULL] RuntimeFilters: []
+

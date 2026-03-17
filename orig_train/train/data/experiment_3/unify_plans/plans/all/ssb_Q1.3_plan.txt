@@ -1,0 +1,27 @@
+== Optimized Logical Plan ==
+Aggregate [sum(lo_revenue#29868L) AS revenue#29855L]
++- Project [lo_revenue#29868L]
+   +- Join Inner, (lo_orderdate#29861 = d_datekey#29874)
+      :- Project [lo_orderdate#29861, lo_revenue#29868L]
+      :  +- Filter ((((((isnotnull(lo_discount#29867L) AND isnotnull(lo_quantity#29864L)) AND (lo_discount#29867L >= 5)) AND (lo_discount#29867L <= 7)) AND (lo_quantity#29864L >= 26)) AND (lo_quantity#29864L <= 35)) AND isnotnull(lo_orderdate#29861))
+      :     +- RelationV2[lo_orderdate#29861, lo_quantity#29864L, lo_discount#29867L, lo_revenue#29868L] spark_catalog.ssb_iceberg_10g.lineorder
+      +- Project [d_datekey#29874]
+         +- Filter ((((isnotnull(d_weeknuminyear#29884) AND isnotnull(d_year#29877)) AND (d_weeknuminyear#29884 = 6)) AND (d_year#29877 = 1994)) AND isnotnull(d_datekey#29874))
+            +- RelationV2[d_datekey#29874, d_year#29877, d_weeknuminyear#29884] spark_catalog.ssb_iceberg_10g.date
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[sum(lo_revenue#29868L)], output=[revenue#29855L])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=35918]
+      +- HashAggregate(keys=[], functions=[partial_sum(lo_revenue#29868L)], output=[sum#29910L])
+         +- Project [lo_revenue#29868L]
+            +- BroadcastHashJoin [lo_orderdate#29861], [d_datekey#29874], Inner, BuildRight, false
+               :- Project [lo_orderdate#29861, lo_revenue#29868L]
+               :  +- Filter ((((((isnotnull(lo_discount#29867L) AND isnotnull(lo_quantity#29864L)) AND (lo_discount#29867L >= 5)) AND (lo_discount#29867L <= 7)) AND (lo_quantity#29864L >= 26)) AND (lo_quantity#29864L <= 35)) AND isnotnull(lo_orderdate#29861))
+               :     +- BatchScan[lo_orderdate#29861, lo_quantity#29864L, lo_discount#29867L, lo_revenue#29868L] spark_catalog.ssb_iceberg_10g.lineorder [filters=lo_discount IS NOT NULL, lo_quantity IS NOT NULL, lo_discount >= 5, lo_discount <= 7, lo_quantity >= 26, lo_quantity <= 35, lo_orderdate IS NOT NULL] RuntimeFilters: []
+               +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=35913]
+                  +- Project [d_datekey#29874]
+                     +- Filter ((((isnotnull(d_weeknuminyear#29884) AND isnotnull(d_year#29877)) AND (d_weeknuminyear#29884 = 6)) AND (d_year#29877 = 1994)) AND isnotnull(d_datekey#29874))
+                        +- BatchScan[d_datekey#29874, d_year#29877, d_weeknuminyear#29884] spark_catalog.ssb_iceberg_10g.date [filters=d_weeknuminyear IS NOT NULL, d_year IS NOT NULL, d_weeknuminyear = 6, d_year = 1994, d_datekey IS NOT NULL] RuntimeFilters: []
+

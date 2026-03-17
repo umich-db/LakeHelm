@@ -1,0 +1,41 @@
+== Parsed Logical Plan ==
+'Aggregate ['s.s_name], ['s.s_name, 'COUNT('lo.lo_orderkey) AS order_count#17087]
++- 'Join Inner, ('s.s_suppkey = 'lo.lo_suppkey)
+   :- 'SubqueryAlias s
+   :  +- 'UnresolvedRelation [supplier], [], false
+   +- 'SubqueryAlias lo
+      +- 'UnresolvedRelation [lineorder], [], false
+
+== Analyzed Logical Plan ==
+s_name: string, order_count: bigint
+Aggregate [s_name#17089], [s_name#17089, count(lo_orderkey#17095L) AS order_count#17087L]
++- Join Inner, (s_suppkey#17088 = lo_suppkey#17099)
+   :- SubqueryAlias s
+   :  +- SubqueryAlias spark_catalog.ssb_iceberg_10g.supplier
+   :     +- RelationV2[s_suppkey#17088, s_name#17089, s_address#17090, s_city#17091, s_nation#17092, s_region#17093, s_phone#17094] spark_catalog.ssb_iceberg_10g.supplier
+   +- SubqueryAlias lo
+      +- SubqueryAlias spark_catalog.ssb_iceberg_10g.lineorder
+         +- RelationV2[lo_orderkey#17095L, lo_linenumber#17096L, lo_custkey#17097, lo_partkey#17098, lo_suppkey#17099, lo_orderdate#17100, lo_orderpriotity#17101, lo_shippriotity#17102, lo_quantity#17103L, lo_extendedprice#17104L, lo_ordtotalprice#17105L, lo_discount#17106L, lo_revenue#17107L, lo_supplycost#17108L, lo_tax#17109L, lo_commitdate#17110, lo_shipmode#17111] spark_catalog.ssb_iceberg_10g.lineorder
+
+== Optimized Logical Plan ==
+Aggregate [s_name#17089], [s_name#17089, count(lo_orderkey#17095L) AS order_count#17087L]
++- Project [s_name#17089, lo_orderkey#17095L]
+   +- Join Inner, (s_suppkey#17088 = lo_suppkey#17099)
+      :- Filter isnotnull(s_suppkey#17088)
+      :  +- RelationV2[s_suppkey#17088, s_name#17089] spark_catalog.ssb_iceberg_10g.supplier
+      +- Filter isnotnull(lo_suppkey#17099)
+         +- RelationV2[lo_orderkey#17095L, lo_suppkey#17099] spark_catalog.ssb_iceberg_10g.lineorder
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[s_name#17089], functions=[count(lo_orderkey#17095L)], output=[s_name#17089, order_count#17087L])
+   +- Exchange hashpartitioning(s_name#17089, 200), ENSURE_REQUIREMENTS, [plan_id=25614]
+      +- HashAggregate(keys=[s_name#17089], functions=[partial_count(lo_orderkey#17095L)], output=[s_name#17089, count#17130L])
+         +- Project [s_name#17089, lo_orderkey#17095L]
+            +- BroadcastHashJoin [s_suppkey#17088], [lo_suppkey#17099], Inner, BuildLeft, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=25609]
+               :  +- Filter isnotnull(s_suppkey#17088)
+               :     +- BatchScan[s_suppkey#17088, s_name#17089] spark_catalog.ssb_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL] RuntimeFilters: []
+               +- Filter isnotnull(lo_suppkey#17099)
+                  +- BatchScan[lo_orderkey#17095L, lo_suppkey#17099] spark_catalog.ssb_iceberg_10g.lineorder [filters=lo_suppkey IS NOT NULL] RuntimeFilters: []
+

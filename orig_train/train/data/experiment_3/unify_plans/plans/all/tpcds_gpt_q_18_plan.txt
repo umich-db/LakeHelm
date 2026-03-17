@@ -1,0 +1,25 @@
+== Optimized Logical Plan ==
+Filter (isnotnull(total_sales#6689) AND (total_sales#6689 > 5000.00))
++- Aggregate [i_category#6702], [i_category#6702, MakeDecimal(sum(UnscaledValue(cs_sales_price#6732)),17,2) AS total_sales#6689]
+   +- Project [i_category#6702, cs_sales_price#6732]
+      +- Join Inner, (i_item_sk#6690 = cs_item_sk#6726)
+         :- Filter (i_category#6702 IN (Sports,Toys) AND isnotnull(i_item_sk#6690))
+         :  +- RelationV2[i_item_sk#6690, i_category#6702] spark_catalog.tpcds_iceberg_10g.item
+         +- Filter isnotnull(cs_item_sk#6726)
+            +- RelationV2[cs_item_sk#6726, cs_sales_price#6732] spark_catalog.tpcds_iceberg_10g.catalog_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Filter (isnotnull(total_sales#6689) AND (total_sales#6689 > 5000.00))
+   +- HashAggregate(keys=[i_category#6702], functions=[sum(UnscaledValue(cs_sales_price#6732))], output=[i_category#6702, total_sales#6689])
+      +- Exchange hashpartitioning(i_category#6702, 200), ENSURE_REQUIREMENTS, [plan_id=5060]
+         +- HashAggregate(keys=[i_category#6702], functions=[partial_sum(UnscaledValue(cs_sales_price#6732))], output=[i_category#6702, sum#6765L])
+            +- Project [i_category#6702, cs_sales_price#6732]
+               +- BroadcastHashJoin [i_item_sk#6690], [cs_item_sk#6726], Inner, BuildLeft, false
+                  :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=5055]
+                  :  +- Filter (i_category#6702 IN (Sports,Toys) AND isnotnull(i_item_sk#6690))
+                  :     +- BatchScan[i_item_sk#6690, i_category#6702] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IN ('Sports', 'Toys'), i_item_sk IS NOT NULL] RuntimeFilters: []
+                  +- Filter isnotnull(cs_item_sk#6726)
+                     +- BatchScan[cs_item_sk#6726, cs_sales_price#6732] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_item_sk IS NOT NULL] RuntimeFilters: []
+

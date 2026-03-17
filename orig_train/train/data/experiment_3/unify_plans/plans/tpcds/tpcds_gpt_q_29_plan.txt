@@ -1,0 +1,29 @@
+== Optimized Logical Plan ==
+Sort [promo_count#7283L DESC NULLS LAST], true
++- Aggregate [p_promo_name#7292], [p_promo_name#7292, count(1) AS promo_count#7283L]
+   +- Project [p_promo_name#7292]
+      +- Join LeftSemi, (p_promo_sk#7285 = ws_promo_sk#7320)
+         :- RelationV2[p_promo_sk#7285, p_promo_name#7292] spark_catalog.tpcds_iceberg_10g.promotion
+         +- Project [ws_promo_sk#7320]
+            +- Filter (isnotnull(ws_sales_price#7325) AND (ws_sales_price#7325 > 100.00))
+               +- RelationV2[ws_promo_sk#7320, ws_sales_price#7325] spark_catalog.tpcds_iceberg_10g.web_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [promo_count#7283L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(promo_count#7283L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=5489]
+      +- HashAggregate(keys=[p_promo_name#7292], functions=[count(1)], output=[p_promo_name#7292, promo_count#7283L])
+         +- Exchange hashpartitioning(p_promo_name#7292, 200), ENSURE_REQUIREMENTS, [plan_id=5486]
+            +- HashAggregate(keys=[p_promo_name#7292], functions=[partial_count(1)], output=[p_promo_name#7292, count#7356L])
+               +- Project [p_promo_name#7292]
+                  +- SortMergeJoin [p_promo_sk#7285], [ws_promo_sk#7320], LeftSemi
+                     :- Sort [p_promo_sk#7285 ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(p_promo_sk#7285, 200), ENSURE_REQUIREMENTS, [plan_id=5479]
+                     :     +- BatchScan[p_promo_sk#7285, p_promo_name#7292] spark_catalog.tpcds_iceberg_10g.promotion [filters=] RuntimeFilters: []
+                     +- Sort [ws_promo_sk#7320 ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(ws_promo_sk#7320, 200), ENSURE_REQUIREMENTS, [plan_id=5478]
+                           +- Project [ws_promo_sk#7320]
+                              +- Filter (isnotnull(ws_sales_price#7325) AND (ws_sales_price#7325 > 100.00))
+                                 +- BatchScan[ws_promo_sk#7320, ws_sales_price#7325] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sales_price IS NOT NULL, ws_sales_price > 100.00] RuntimeFilters: []
+

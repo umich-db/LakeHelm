@@ -1,0 +1,172 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [channel#24152 ASC NULLS FIRST, return_rank#24150 ASC NULLS FIRST, currency_rank#24151 ASC NULLS FIRST], true
+      +- Aggregate [channel#24152, item#24147, return_ratio#24148, return_rank#24150, currency_rank#24151], [channel#24152, item#24147, return_ratio#24148, return_rank#24150, currency_rank#24151]
+         +- Union false, false
+            :- Project [web AS channel#24152, item#24147, return_ratio#24148, return_rank#24150, currency_rank#24151]
+            :  +- Filter ((return_rank#24150 <= 10) OR (currency_rank#24151 <= 10))
+            :     +- Window [rank(currency_ratio#24149) windowspecdefinition(currency_ratio#24149 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS currency_rank#24151], [currency_ratio#24149 ASC NULLS FIRST]
+            :        +- Window [rank(return_ratio#24148) windowspecdefinition(return_ratio#24148 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS return_rank#24150], [return_ratio#24148 ASC NULLS FIRST]
+            :           +- Aggregate [ws_item_sk#24167], [ws_item_sk#24167 AS item#24147, CheckOverflow((promote_precision(cast(sum(coalesce(wr_return_quantity#24212, 0)) as decimal(15,4))) / promote_precision(cast(sum(coalesce(ws_quantity#24182, 0)) as decimal(15,4)))), DecimalType(35,20)) AS return_ratio#24148, CheckOverflow((promote_precision(cast(sum(coalesce(cast(wr_return_amt#24213 as decimal(12,2)), 0.00)) as decimal(15,4))) / promote_precision(cast(sum(coalesce(cast(ws_net_paid#24193 as decimal(12,2)), 0.00)) as decimal(15,4)))), DecimalType(35,20)) AS currency_ratio#24149]
+            :              +- Project [ws_item_sk#24167, ws_quantity#24182, ws_net_paid#24193, wr_return_quantity#24212, wr_return_amt#24213]
+            :                 +- Join Inner, (ws_sold_date_sk#24198 = d_date_sk#24223)
+            :                    :- Project [ws_item_sk#24167, ws_quantity#24182, ws_net_paid#24193, ws_sold_date_sk#24198, wr_return_quantity#24212, wr_return_amt#24213]
+            :                    :  +- Join Inner, ((ws_order_number#24181L = wr_order_number#24211L) AND (ws_item_sk#24167 = wr_item_sk#24200))
+            :                    :     :- Project [ws_item_sk#24167, ws_order_number#24181L, ws_quantity#24182, ws_net_paid#24193, ws_sold_date_sk#24198]
+            :                    :     :  +- Filter (((((((((isnotnull(ws_net_profit#24197) AND isnotnull(ws_net_paid#24193)) AND isnotnull(ws_quantity#24182)) AND (ws_net_profit#24197 > 1.00)) AND (ws_net_paid#24193 > 0.00)) AND (ws_quantity#24182 > 0)) AND isnotnull(ws_order_number#24181L)) AND isnotnull(ws_item_sk#24167)) AND isnotnull(ws_sold_date_sk#24198)) AND dynamicpruning#24596 [ws_sold_date_sk#24198])
+            :                    :     :     :  +- Project [d_date_sk#24223]
+            :                    :     :     :     +- Filter ((((isnotnull(d_year#24229) AND isnotnull(d_moy#24231)) AND (d_year#24229 = 2000)) AND (d_moy#24231 = 12)) AND isnotnull(d_date_sk#24223))
+            :                    :     :     :        +- RelationV2[d_date_sk#24223, d_year#24229, d_moy#24231] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                    :     :     +- RelationV2[ws_item_sk#24167, ws_order_number#24181L, ws_quantity#24182, ws_net_paid#24193, ws_net_profit#24197, ws_sold_date_sk#24198] spark_catalog.tpcds_iceberg_10g.web_sales
+            :                    :     +- Filter (((isnotnull(wr_return_amt#24213) AND (wr_return_amt#24213 > 10000.00)) AND isnotnull(wr_order_number#24211L)) AND isnotnull(wr_item_sk#24200))
+            :                    :        +- RelationV2[wr_item_sk#24200, wr_order_number#24211L, wr_return_quantity#24212, wr_return_amt#24213] spark_catalog.tpcds_iceberg_10g.web_returns
+            :                    +- Project [d_date_sk#24223]
+            :                       +- Filter ((((isnotnull(d_year#24229) AND isnotnull(d_moy#24231)) AND (d_year#24229 = 2000)) AND (d_moy#24231 = 12)) AND isnotnull(d_date_sk#24223))
+            :                          +- RelationV2[d_date_sk#24223, d_year#24229, d_moy#24231] spark_catalog.tpcds_iceberg_10g.date_dim
+            :- Project [catalog AS channel#24158, item#24153, return_ratio#24154, return_rank#24156, currency_rank#24157]
+            :  +- Filter ((return_rank#24156 <= 10) OR (currency_rank#24157 <= 10))
+            :     +- Window [rank(currency_ratio#24155) windowspecdefinition(currency_ratio#24155 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS currency_rank#24157], [currency_ratio#24155 ASC NULLS FIRST]
+            :        +- Window [rank(return_ratio#24154) windowspecdefinition(return_ratio#24154 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS return_rank#24156], [return_ratio#24154 ASC NULLS FIRST]
+            :           +- Aggregate [cs_item_sk#24265], [cs_item_sk#24265 AS item#24153, CheckOverflow((promote_precision(cast(sum(coalesce(cr_return_quantity#24301, 0)) as decimal(15,4))) / promote_precision(cast(sum(coalesce(cs_quantity#24268, 0)) as decimal(15,4)))), DecimalType(35,20)) AS return_ratio#24154, CheckOverflow((promote_precision(cast(sum(coalesce(cast(cr_return_amount#24302 as decimal(12,2)), 0.00)) as decimal(15,4))) / promote_precision(cast(sum(coalesce(cast(cs_net_paid#24279 as decimal(12,2)), 0.00)) as decimal(15,4)))), DecimalType(35,20)) AS currency_ratio#24155]
+            :              +- Project [cs_item_sk#24265, cs_quantity#24268, cs_net_paid#24279, cr_return_quantity#24301, cr_return_amount#24302]
+            :                 +- Join Inner, (cs_sold_date_sk#24284 = d_date_sk#24312)
+            :                    :- Project [cs_item_sk#24265, cs_quantity#24268, cs_net_paid#24279, cs_sold_date_sk#24284, cr_return_quantity#24301, cr_return_amount#24302]
+            :                    :  +- Join Inner, ((cs_order_number#24267L = cr_order_number#24300L) AND (cs_item_sk#24265 = cr_item_sk#24286))
+            :                    :     :- Project [cs_item_sk#24265, cs_order_number#24267L, cs_quantity#24268, cs_net_paid#24279, cs_sold_date_sk#24284]
+            :                    :     :  +- Filter (((((((((isnotnull(cs_net_profit#24283) AND isnotnull(cs_net_paid#24279)) AND isnotnull(cs_quantity#24268)) AND (cs_net_profit#24283 > 1.00)) AND (cs_net_paid#24279 > 0.00)) AND (cs_quantity#24268 > 0)) AND isnotnull(cs_order_number#24267L)) AND isnotnull(cs_item_sk#24265)) AND isnotnull(cs_sold_date_sk#24284)) AND dynamicpruning#24597 [cs_sold_date_sk#24284])
+            :                    :     :     :  +- Project [d_date_sk#24312]
+            :                    :     :     :     +- Filter ((((isnotnull(d_year#24318) AND isnotnull(d_moy#24320)) AND (d_year#24318 = 2000)) AND (d_moy#24320 = 12)) AND isnotnull(d_date_sk#24312))
+            :                    :     :     :        +- RelationV2[d_date_sk#24312, d_year#24318, d_moy#24320] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                    :     :     +- RelationV2[cs_item_sk#24265, cs_order_number#24267L, cs_quantity#24268, cs_net_paid#24279, cs_net_profit#24283, cs_sold_date_sk#24284] spark_catalog.tpcds_iceberg_10g.catalog_sales
+            :                    :     +- Filter (((isnotnull(cr_return_amount#24302) AND (cr_return_amount#24302 > 10000.00)) AND isnotnull(cr_order_number#24300L)) AND isnotnull(cr_item_sk#24286))
+            :                    :        +- RelationV2[cr_item_sk#24286, cr_order_number#24300L, cr_return_quantity#24301, cr_return_amount#24302] spark_catalog.tpcds_iceberg_10g.catalog_returns
+            :                    +- Project [d_date_sk#24312]
+            :                       +- Filter ((((isnotnull(d_year#24318) AND isnotnull(d_moy#24320)) AND (d_year#24318 = 2000)) AND (d_moy#24320 = 12)) AND isnotnull(d_date_sk#24312))
+            :                          +- RelationV2[d_date_sk#24312, d_year#24318, d_moy#24320] spark_catalog.tpcds_iceberg_10g.date_dim
+            +- Project [store AS channel#24164, item#24159, return_ratio#24160, return_rank#24162, currency_rank#24163]
+               +- Filter ((return_rank#24162 <= 10) OR (currency_rank#24163 <= 10))
+                  +- Window [rank(currency_ratio#24161) windowspecdefinition(currency_ratio#24161 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS currency_rank#24163], [currency_ratio#24161 ASC NULLS FIRST]
+                     +- Window [rank(return_ratio#24160) windowspecdefinition(return_ratio#24160 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS return_rank#24162], [return_ratio#24160 ASC NULLS FIRST]
+                        +- Aggregate [ss_item_sk#24341], [ss_item_sk#24341 AS item#24159, CheckOverflow((promote_precision(cast(sum(coalesce(sr_return_quantity#24372, 0)) as decimal(15,4))) / promote_precision(cast(sum(coalesce(ss_quantity#24349, 0)) as decimal(15,4)))), DecimalType(35,20)) AS return_ratio#24160, CheckOverflow((promote_precision(cast(sum(coalesce(cast(sr_return_amt#24373 as decimal(12,2)), 0.00)) as decimal(15,4))) / promote_precision(cast(sum(coalesce(cast(ss_net_paid#24359 as decimal(12,2)), 0.00)) as decimal(15,4)))), DecimalType(35,20)) AS currency_ratio#24161]
+                           +- Project [ss_item_sk#24341, ss_quantity#24349, ss_net_paid#24359, sr_return_quantity#24372, sr_return_amt#24373]
+                              +- Join Inner, (ss_sold_date_sk#24362 = d_date_sk#24383)
+                                 :- Project [ss_item_sk#24341, ss_quantity#24349, ss_net_paid#24359, ss_sold_date_sk#24362, sr_return_quantity#24372, sr_return_amt#24373]
+                                 :  +- Join Inner, ((ss_ticket_number#24348L = sr_ticket_number#24371L) AND (ss_item_sk#24341 = sr_item_sk#24364))
+                                 :     :- Project [ss_item_sk#24341, ss_ticket_number#24348L, ss_quantity#24349, ss_net_paid#24359, ss_sold_date_sk#24362]
+                                 :     :  +- Filter (((((((((isnotnull(ss_net_profit#24361) AND isnotnull(ss_net_paid#24359)) AND isnotnull(ss_quantity#24349)) AND (ss_net_profit#24361 > 1.00)) AND (ss_net_paid#24359 > 0.00)) AND (ss_quantity#24349 > 0)) AND isnotnull(ss_ticket_number#24348L)) AND isnotnull(ss_item_sk#24341)) AND isnotnull(ss_sold_date_sk#24362)) AND dynamicpruning#24598 [ss_sold_date_sk#24362])
+                                 :     :     :  +- Project [d_date_sk#24383]
+                                 :     :     :     +- Filter ((((isnotnull(d_year#24389) AND isnotnull(d_moy#24391)) AND (d_year#24389 = 2000)) AND (d_moy#24391 = 12)) AND isnotnull(d_date_sk#24383))
+                                 :     :     :        +- RelationV2[d_date_sk#24383, d_year#24389, d_moy#24391] spark_catalog.tpcds_iceberg_10g.date_dim
+                                 :     :     +- RelationV2[ss_item_sk#24341, ss_ticket_number#24348L, ss_quantity#24349, ss_net_paid#24359, ss_net_profit#24361, ss_sold_date_sk#24362] spark_catalog.tpcds_iceberg_10g.store_sales
+                                 :     +- Filter (((isnotnull(sr_return_amt#24373) AND (sr_return_amt#24373 > 10000.00)) AND isnotnull(sr_ticket_number#24371L)) AND isnotnull(sr_item_sk#24364))
+                                 :        +- RelationV2[sr_item_sk#24364, sr_ticket_number#24371L, sr_return_quantity#24372, sr_return_amt#24373] spark_catalog.tpcds_iceberg_10g.store_returns
+                                 +- Project [d_date_sk#24383]
+                                    +- Filter ((((isnotnull(d_year#24389) AND isnotnull(d_moy#24391)) AND (d_year#24389 = 2000)) AND (d_moy#24391 = 12)) AND isnotnull(d_date_sk#24383))
+                                       +- RelationV2[d_date_sk#24383, d_year#24389, d_moy#24391] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[channel#24152 ASC NULLS FIRST,return_rank#24150 ASC NULLS FIRST,currency_rank#24151 ASC NULLS FIRST], output=[channel#24152,item#24147,return_ratio#24148,return_rank#24150,currency_rank#24151])
+   +- HashAggregate(keys=[channel#24152, item#24147, return_ratio#24148, return_rank#24150, currency_rank#24151], functions=[], output=[channel#24152, item#24147, return_ratio#24148, return_rank#24150, currency_rank#24151])
+      +- Exchange hashpartitioning(channel#24152, item#24147, return_ratio#24148, return_rank#24150, currency_rank#24151, 200), ENSURE_REQUIREMENTS, [plan_id=18774]
+         +- HashAggregate(keys=[channel#24152, item#24147, return_ratio#24148, return_rank#24150, currency_rank#24151], functions=[], output=[channel#24152, item#24147, return_ratio#24148, return_rank#24150, currency_rank#24151])
+            +- Union
+               :- Project [web AS channel#24152, item#24147, return_ratio#24148, return_rank#24150, currency_rank#24151]
+               :  +- Filter ((return_rank#24150 <= 10) OR (currency_rank#24151 <= 10))
+               :     +- Window [rank(currency_ratio#24149) windowspecdefinition(currency_ratio#24149 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS currency_rank#24151], [currency_ratio#24149 ASC NULLS FIRST]
+               :        +- Sort [currency_ratio#24149 ASC NULLS FIRST], false, 0
+               :           +- Window [rank(return_ratio#24148) windowspecdefinition(return_ratio#24148 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS return_rank#24150], [return_ratio#24148 ASC NULLS FIRST]
+               :              +- Sort [return_ratio#24148 ASC NULLS FIRST], false, 0
+               :                 +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=18715]
+               :                    +- HashAggregate(keys=[ws_item_sk#24167], functions=[sum(coalesce(wr_return_quantity#24212, 0)), sum(coalesce(ws_quantity#24182, 0)), sum(coalesce(cast(wr_return_amt#24213 as decimal(12,2)), 0.00)), sum(coalesce(cast(ws_net_paid#24193 as decimal(12,2)), 0.00))], output=[item#24147, return_ratio#24148, currency_ratio#24149])
+               :                       +- Exchange hashpartitioning(ws_item_sk#24167, 200), ENSURE_REQUIREMENTS, [plan_id=18712]
+               :                          +- HashAggregate(keys=[ws_item_sk#24167], functions=[partial_sum(coalesce(wr_return_quantity#24212, 0)), partial_sum(coalesce(ws_quantity#24182, 0)), partial_sum(coalesce(cast(wr_return_amt#24213 as decimal(12,2)), 0.00)), partial_sum(coalesce(cast(ws_net_paid#24193 as decimal(12,2)), 0.00))], output=[ws_item_sk#24167, sum#24605L, sum#24606L, sum#24607, isEmpty#24608, sum#24609, isEmpty#24610])
+               :                             +- Project [ws_item_sk#24167, ws_quantity#24182, ws_net_paid#24193, wr_return_quantity#24212, wr_return_amt#24213]
+               :                                +- BroadcastHashJoin [ws_sold_date_sk#24198], [d_date_sk#24223], Inner, BuildRight, false
+               :                                   :- Project [ws_item_sk#24167, ws_quantity#24182, ws_net_paid#24193, ws_sold_date_sk#24198, wr_return_quantity#24212, wr_return_amt#24213]
+               :                                   :  +- SortMergeJoin [ws_order_number#24181L, ws_item_sk#24167], [wr_order_number#24211L, wr_item_sk#24200], Inner
+               :                                   :     :- Sort [ws_order_number#24181L ASC NULLS FIRST, ws_item_sk#24167 ASC NULLS FIRST], false, 0
+               :                                   :     :  +- Exchange hashpartitioning(ws_order_number#24181L, ws_item_sk#24167, 200), ENSURE_REQUIREMENTS, [plan_id=18700]
+               :                                   :     :     +- Project [ws_item_sk#24167, ws_order_number#24181L, ws_quantity#24182, ws_net_paid#24193, ws_sold_date_sk#24198]
+               :                                   :     :        +- Filter ((((((((isnotnull(ws_net_profit#24197) AND isnotnull(ws_net_paid#24193)) AND isnotnull(ws_quantity#24182)) AND (ws_net_profit#24197 > 1.00)) AND (ws_net_paid#24193 > 0.00)) AND (ws_quantity#24182 > 0)) AND isnotnull(ws_order_number#24181L)) AND isnotnull(ws_item_sk#24167)) AND isnotnull(ws_sold_date_sk#24198))
+               :                                   :     :           +- BatchScan[ws_item_sk#24167, ws_order_number#24181L, ws_quantity#24182, ws_net_paid#24193, ws_net_profit#24197, ws_sold_date_sk#24198] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_net_profit IS NOT NULL, ws_net_paid IS NOT NULL, ws_quantity IS NOT NULL, ws_net_profit > 1.00, ws_net_paid > 0.00, ws_quantity > 0, ws_order_number IS NOT NULL, ws_item_sk IS NOT NULL, ws_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#24198 IN dynamicpruning#24596)]
+               :                                   :     :                 +- SubqueryAdaptiveBroadcast dynamicpruning#24596, 0, true, Project [d_date_sk#24223], [d_date_sk#24223]
+               :                                   :     :                    +- AdaptiveSparkPlan isFinalPlan=false
+               :                                   :     :                       +- Project [d_date_sk#24223]
+               :                                   :     :                          +- Filter ((((isnotnull(d_year#24229) AND isnotnull(d_moy#24231)) AND (d_year#24229 = 2000)) AND (d_moy#24231 = 12)) AND isnotnull(d_date_sk#24223))
+               :                                   :     :                             +- BatchScan[d_date_sk#24223, d_year#24229, d_moy#24231] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 2000, d_moy = 12, d_date_sk IS NOT NULL] RuntimeFilters: []
+               :                                   :     +- Sort [wr_order_number#24211L ASC NULLS FIRST, wr_item_sk#24200 ASC NULLS FIRST], false, 0
+               :                                   :        +- Exchange hashpartitioning(wr_order_number#24211L, wr_item_sk#24200, 200), ENSURE_REQUIREMENTS, [plan_id=18701]
+               :                                   :           +- Filter (((isnotnull(wr_return_amt#24213) AND (wr_return_amt#24213 > 10000.00)) AND isnotnull(wr_order_number#24211L)) AND isnotnull(wr_item_sk#24200))
+               :                                   :              +- BatchScan[wr_item_sk#24200, wr_order_number#24211L, wr_return_quantity#24212, wr_return_amt#24213] spark_catalog.tpcds_iceberg_10g.web_returns [filters=wr_return_amt IS NOT NULL, wr_return_amt > 10000.00, wr_order_number IS NOT NULL, wr_item_sk IS NOT NULL] RuntimeFilters: []
+               :                                   +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=18707]
+               :                                      +- Project [d_date_sk#24223]
+               :                                         +- Filter ((((isnotnull(d_year#24229) AND isnotnull(d_moy#24231)) AND (d_year#24229 = 2000)) AND (d_moy#24231 = 12)) AND isnotnull(d_date_sk#24223))
+               :                                            +- BatchScan[d_date_sk#24223, d_year#24229, d_moy#24231] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 2000, d_moy = 12, d_date_sk IS NOT NULL] RuntimeFilters: []
+               :- Project [catalog AS channel#24158, item#24153, return_ratio#24154, return_rank#24156, currency_rank#24157]
+               :  +- Filter ((return_rank#24156 <= 10) OR (currency_rank#24157 <= 10))
+               :     +- Window [rank(currency_ratio#24155) windowspecdefinition(currency_ratio#24155 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS currency_rank#24157], [currency_ratio#24155 ASC NULLS FIRST]
+               :        +- Sort [currency_ratio#24155 ASC NULLS FIRST], false, 0
+               :           +- Window [rank(return_ratio#24154) windowspecdefinition(return_ratio#24154 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS return_rank#24156], [return_ratio#24154 ASC NULLS FIRST]
+               :              +- Sort [return_ratio#24154 ASC NULLS FIRST], false, 0
+               :                 +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=18739]
+               :                    +- HashAggregate(keys=[cs_item_sk#24265], functions=[sum(coalesce(cr_return_quantity#24301, 0)), sum(coalesce(cs_quantity#24268, 0)), sum(coalesce(cast(cr_return_amount#24302 as decimal(12,2)), 0.00)), sum(coalesce(cast(cs_net_paid#24279 as decimal(12,2)), 0.00))], output=[item#24153, return_ratio#24154, currency_ratio#24155])
+               :                       +- Exchange hashpartitioning(cs_item_sk#24265, 200), ENSURE_REQUIREMENTS, [plan_id=18736]
+               :                          +- HashAggregate(keys=[cs_item_sk#24265], functions=[partial_sum(coalesce(cr_return_quantity#24301, 0)), partial_sum(coalesce(cs_quantity#24268, 0)), partial_sum(coalesce(cast(cr_return_amount#24302 as decimal(12,2)), 0.00)), partial_sum(coalesce(cast(cs_net_paid#24279 as decimal(12,2)), 0.00))], output=[cs_item_sk#24265, sum#24617L, sum#24618L, sum#24619, isEmpty#24620, sum#24621, isEmpty#24622])
+               :                             +- Project [cs_item_sk#24265, cs_quantity#24268, cs_net_paid#24279, cr_return_quantity#24301, cr_return_amount#24302]
+               :                                +- BroadcastHashJoin [cs_sold_date_sk#24284], [d_date_sk#24312], Inner, BuildRight, false
+               :                                   :- Project [cs_item_sk#24265, cs_quantity#24268, cs_net_paid#24279, cs_sold_date_sk#24284, cr_return_quantity#24301, cr_return_amount#24302]
+               :                                   :  +- SortMergeJoin [cs_order_number#24267L, cs_item_sk#24265], [cr_order_number#24300L, cr_item_sk#24286], Inner
+               :                                   :     :- Sort [cs_order_number#24267L ASC NULLS FIRST, cs_item_sk#24265 ASC NULLS FIRST], false, 0
+               :                                   :     :  +- Exchange hashpartitioning(cs_order_number#24267L, cs_item_sk#24265, 200), ENSURE_REQUIREMENTS, [plan_id=18724]
+               :                                   :     :     +- Project [cs_item_sk#24265, cs_order_number#24267L, cs_quantity#24268, cs_net_paid#24279, cs_sold_date_sk#24284]
+               :                                   :     :        +- Filter ((((((((isnotnull(cs_net_profit#24283) AND isnotnull(cs_net_paid#24279)) AND isnotnull(cs_quantity#24268)) AND (cs_net_profit#24283 > 1.00)) AND (cs_net_paid#24279 > 0.00)) AND (cs_quantity#24268 > 0)) AND isnotnull(cs_order_number#24267L)) AND isnotnull(cs_item_sk#24265)) AND isnotnull(cs_sold_date_sk#24284))
+               :                                   :     :           +- BatchScan[cs_item_sk#24265, cs_order_number#24267L, cs_quantity#24268, cs_net_paid#24279, cs_net_profit#24283, cs_sold_date_sk#24284] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_net_profit IS NOT NULL, cs_net_paid IS NOT NULL, cs_quantity IS NOT NULL, cs_net_profit > 1.00, cs_net_paid > 0.00, cs_quantity > 0, cs_order_number IS NOT NULL, cs_item_sk IS NOT NULL, cs_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cs_sold_date_sk#24284 IN dynamicpruning#24597)]
+               :                                   :     :                 +- SubqueryAdaptiveBroadcast dynamicpruning#24597, 0, true, Project [d_date_sk#24312], [d_date_sk#24312]
+               :                                   :     :                    +- AdaptiveSparkPlan isFinalPlan=false
+               :                                   :     :                       +- Project [d_date_sk#24312]
+               :                                   :     :                          +- Filter ((((isnotnull(d_year#24318) AND isnotnull(d_moy#24320)) AND (d_year#24318 = 2000)) AND (d_moy#24320 = 12)) AND isnotnull(d_date_sk#24312))
+               :                                   :     :                             +- BatchScan[d_date_sk#24312, d_year#24318, d_moy#24320] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 2000, d_moy = 12, d_date_sk IS NOT NULL] RuntimeFilters: []
+               :                                   :     +- Sort [cr_order_number#24300L ASC NULLS FIRST, cr_item_sk#24286 ASC NULLS FIRST], false, 0
+               :                                   :        +- Exchange hashpartitioning(cr_order_number#24300L, cr_item_sk#24286, 200), ENSURE_REQUIREMENTS, [plan_id=18725]
+               :                                   :           +- Filter (((isnotnull(cr_return_amount#24302) AND (cr_return_amount#24302 > 10000.00)) AND isnotnull(cr_order_number#24300L)) AND isnotnull(cr_item_sk#24286))
+               :                                   :              +- BatchScan[cr_item_sk#24286, cr_order_number#24300L, cr_return_quantity#24301, cr_return_amount#24302] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=cr_return_amount IS NOT NULL, cr_return_amount > 10000.00, cr_order_number IS NOT NULL, cr_item_sk IS NOT NULL] RuntimeFilters: []
+               :                                   +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=18731]
+               :                                      +- Project [d_date_sk#24312]
+               :                                         +- Filter ((((isnotnull(d_year#24318) AND isnotnull(d_moy#24320)) AND (d_year#24318 = 2000)) AND (d_moy#24320 = 12)) AND isnotnull(d_date_sk#24312))
+               :                                            +- BatchScan[d_date_sk#24312, d_year#24318, d_moy#24320] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 2000, d_moy = 12, d_date_sk IS NOT NULL] RuntimeFilters: []
+               +- Project [store AS channel#24164, item#24159, return_ratio#24160, return_rank#24162, currency_rank#24163]
+                  +- Filter ((return_rank#24162 <= 10) OR (currency_rank#24163 <= 10))
+                     +- Window [rank(currency_ratio#24161) windowspecdefinition(currency_ratio#24161 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS currency_rank#24163], [currency_ratio#24161 ASC NULLS FIRST]
+                        +- Sort [currency_ratio#24161 ASC NULLS FIRST], false, 0
+                           +- Window [rank(return_ratio#24160) windowspecdefinition(return_ratio#24160 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS return_rank#24162], [return_ratio#24160 ASC NULLS FIRST]
+                              +- Sort [return_ratio#24160 ASC NULLS FIRST], false, 0
+                                 +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=18763]
+                                    +- HashAggregate(keys=[ss_item_sk#24341], functions=[sum(coalesce(sr_return_quantity#24372, 0)), sum(coalesce(ss_quantity#24349, 0)), sum(coalesce(cast(sr_return_amt#24373 as decimal(12,2)), 0.00)), sum(coalesce(cast(ss_net_paid#24359 as decimal(12,2)), 0.00))], output=[item#24159, return_ratio#24160, currency_ratio#24161])
+                                       +- Exchange hashpartitioning(ss_item_sk#24341, 200), ENSURE_REQUIREMENTS, [plan_id=18760]
+                                          +- HashAggregate(keys=[ss_item_sk#24341], functions=[partial_sum(coalesce(sr_return_quantity#24372, 0)), partial_sum(coalesce(ss_quantity#24349, 0)), partial_sum(coalesce(cast(sr_return_amt#24373 as decimal(12,2)), 0.00)), partial_sum(coalesce(cast(ss_net_paid#24359 as decimal(12,2)), 0.00))], output=[ss_item_sk#24341, sum#24629L, sum#24630L, sum#24631, isEmpty#24632, sum#24633, isEmpty#24634])
+                                             +- Project [ss_item_sk#24341, ss_quantity#24349, ss_net_paid#24359, sr_return_quantity#24372, sr_return_amt#24373]
+                                                +- BroadcastHashJoin [ss_sold_date_sk#24362], [d_date_sk#24383], Inner, BuildRight, false
+                                                   :- Project [ss_item_sk#24341, ss_quantity#24349, ss_net_paid#24359, ss_sold_date_sk#24362, sr_return_quantity#24372, sr_return_amt#24373]
+                                                   :  +- SortMergeJoin [ss_ticket_number#24348L, ss_item_sk#24341], [sr_ticket_number#24371L, sr_item_sk#24364], Inner
+                                                   :     :- Sort [ss_ticket_number#24348L ASC NULLS FIRST, ss_item_sk#24341 ASC NULLS FIRST], false, 0
+                                                   :     :  +- Exchange hashpartitioning(ss_ticket_number#24348L, ss_item_sk#24341, 200), ENSURE_REQUIREMENTS, [plan_id=18748]
+                                                   :     :     +- Project [ss_item_sk#24341, ss_ticket_number#24348L, ss_quantity#24349, ss_net_paid#24359, ss_sold_date_sk#24362]
+                                                   :     :        +- Filter ((((((((isnotnull(ss_net_profit#24361) AND isnotnull(ss_net_paid#24359)) AND isnotnull(ss_quantity#24349)) AND (ss_net_profit#24361 > 1.00)) AND (ss_net_paid#24359 > 0.00)) AND (ss_quantity#24349 > 0)) AND isnotnull(ss_ticket_number#24348L)) AND isnotnull(ss_item_sk#24341)) AND isnotnull(ss_sold_date_sk#24362))
+                                                   :     :           +- BatchScan[ss_item_sk#24341, ss_ticket_number#24348L, ss_quantity#24349, ss_net_paid#24359, ss_net_profit#24361, ss_sold_date_sk#24362] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_net_profit IS NOT NULL, ss_net_paid IS NOT NULL, ss_quantity IS NOT NULL, ss_net_profit > 1.00, ss_net_paid > 0.00, ss_quantity > 0, ss_ticket_number IS NOT NULL, ss_item_sk IS NOT NULL, ss_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#24362 IN dynamicpruning#24598)]
+                                                   :     :                 +- SubqueryAdaptiveBroadcast dynamicpruning#24598, 0, true, Project [d_date_sk#24383], [d_date_sk#24383]
+                                                   :     :                    +- AdaptiveSparkPlan isFinalPlan=false
+                                                   :     :                       +- Project [d_date_sk#24383]
+                                                   :     :                          +- Filter ((((isnotnull(d_year#24389) AND isnotnull(d_moy#24391)) AND (d_year#24389 = 2000)) AND (d_moy#24391 = 12)) AND isnotnull(d_date_sk#24383))
+                                                   :     :                             +- BatchScan[d_date_sk#24383, d_year#24389, d_moy#24391] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 2000, d_moy = 12, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                                   :     +- Sort [sr_ticket_number#24371L ASC NULLS FIRST, sr_item_sk#24364 ASC NULLS FIRST], false, 0
+                                                   :        +- Exchange hashpartitioning(sr_ticket_number#24371L, sr_item_sk#24364, 200), ENSURE_REQUIREMENTS, [plan_id=18749]
+                                                   :           +- Filter (((isnotnull(sr_return_amt#24373) AND (sr_return_amt#24373 > 10000.00)) AND isnotnull(sr_ticket_number#24371L)) AND isnotnull(sr_item_sk#24364))
+                                                   :              +- BatchScan[sr_item_sk#24364, sr_ticket_number#24371L, sr_return_quantity#24372, sr_return_amt#24373] spark_catalog.tpcds_iceberg_10g.store_returns [filters=sr_return_amt IS NOT NULL, sr_return_amt > 10000.00, sr_ticket_number IS NOT NULL, sr_item_sk IS NOT NULL] RuntimeFilters: []
+                                                   +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=18755]
+                                                      +- Project [d_date_sk#24383]
+                                                         +- Filter ((((isnotnull(d_year#24389) AND isnotnull(d_moy#24391)) AND (d_year#24389 = 2000)) AND (d_moy#24391 = 12)) AND isnotnull(d_date_sk#24383))
+                                                            +- BatchScan[d_date_sk#24383, d_year#24389, d_moy#24391] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 2000, d_moy = 12, d_date_sk IS NOT NULL] RuntimeFilters: []
+

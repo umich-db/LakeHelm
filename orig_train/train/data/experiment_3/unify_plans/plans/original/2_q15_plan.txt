@@ -1,0 +1,17 @@
+=== Optimized Logical Plan ===
+Sort [s_suppkey#122L ASC NULLS FIRST], true
++- Project [s_suppkey#122L, s_name#123, s_address#124, s_phone#126, total_revenue#291]
+   +- Join Inner, (s_suppkey#122L = supplier_no#290L)
+      :- Project [s_suppkey#122L, s_name#123, s_address#124, s_phone#126]
+      :  +- Filter isnotnull(s_suppkey#122L)
+      :     +- Relation tpch_hudi_10g.supplier[_hoodie_commit_time#117,_hoodie_commit_seqno#118,_hoodie_record_key#119,_hoodie_partition_path#120,_hoodie_file_name#121,s_suppkey#122L,s_name#123,s_address#124,s_nationkey#125L,s_phone#126,s_acctbal#127,s_comment#128] parquet
+      +- Filter (isnotnull(total_revenue#291) AND (total_revenue#291 = scalar-subquery#289 []))
+         :  +- Aggregate [max(total_revenue#291) AS max(total_revenue)#294]
+         :     +- Aggregate [l_suppkey#8L], [sum((l_extendedprice#11 * (1.0 - l_discount#12))) AS total_revenue#291]
+         :        +- Project [l_suppkey#8L, l_extendedprice#11, l_discount#12]
+         :           +- Filter (isnotnull(l_shipdate#16) AND ((cast(l_shipdate#16 as date) >= 1995-12-01) AND (cast(l_shipdate#16 as date) < 1996-03-01)))
+         :              +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+         +- Aggregate [l_suppkey#8L], [l_suppkey#8L AS supplier_no#290L, sum((l_extendedprice#11 * (1.0 - l_discount#12))) AS total_revenue#291]
+            +- Project [l_suppkey#8L, l_extendedprice#11, l_discount#12]
+               +- Filter ((isnotnull(l_shipdate#16) AND ((cast(l_shipdate#16 as date) >= 1995-12-01) AND (cast(l_shipdate#16 as date) < 1996-03-01))) AND isnotnull(l_suppkey#8L))
+                  +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet

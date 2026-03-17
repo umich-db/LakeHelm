@@ -1,0 +1,93 @@
+=== Optimized Logical Plan ===
+Project [CheckOverflow((promote_precision(cast(amc#42262L as decimal(15,4))) / promote_precision(cast(pmc#42263L as decimal(15,4)))), DecimalType(35,20)) AS am_pm_ratio#42264]
++- Join Inner
+   :- Aggregate [count(1) AS amc#42262L]
+   :  +- Project
+   :     +- Join Inner, (ws_web_page_sk#42276 = wp_web_page_sk#42314)
+   :        :- Project [ws_web_page_sk#42276]
+   :        :  +- Join Inner, (ws_sold_time_sk#42265 = t_time_sk#42304)
+   :        :     :- Project [ws_sold_time_sk#42265, ws_web_page_sk#42276]
+   :        :     :  +- Join Inner, (ws_ship_hdemo_sk#42274 = hd_demo_sk#42299)
+   :        :     :     :- Filter ((isnotnull(ws_ship_hdemo_sk#42274) AND isnotnull(ws_sold_time_sk#42265)) AND isnotnull(ws_web_page_sk#42276))
+   :        :     :     :  +- RelationV2[ws_sold_time_sk#42265, ws_ship_hdemo_sk#42274, ws_web_page_sk#42276] spark_catalog.tpcds_iceberg_10g.web_sales
+   :        :     :     +- Project [hd_demo_sk#42299]
+   :        :     :        +- Filter ((isnotnull(hd_dep_count#42302) AND (hd_dep_count#42302 = 8)) AND isnotnull(hd_demo_sk#42299))
+   :        :     :           +- RelationV2[hd_demo_sk#42299, hd_dep_count#42302] spark_catalog.tpcds_iceberg_10g.household_demographics
+   :        :     +- Project [t_time_sk#42304]
+   :        :        +- Filter (((isnotnull(t_hour#42307) AND (t_hour#42307 >= 6)) AND (t_hour#42307 <= 7)) AND isnotnull(t_time_sk#42304))
+   :        :           +- RelationV2[t_time_sk#42304, t_hour#42307] spark_catalog.tpcds_iceberg_10g.time_dim
+   :        +- Project [wp_web_page_sk#42314]
+   :           +- Filter (((isnotnull(wp_char_count#42324) AND (wp_char_count#42324 >= 5000)) AND (wp_char_count#42324 <= 5200)) AND isnotnull(wp_web_page_sk#42314))
+   :              +- RelationV2[wp_web_page_sk#42314, wp_char_count#42324] spark_catalog.tpcds_iceberg_10g.web_page
+   +- Aggregate [count(1) AS pmc#42263L]
+      +- Project
+         +- Join Inner, (ws_web_page_sk#42339 = wp_web_page_sk#42377)
+            :- Project [ws_web_page_sk#42339]
+            :  +- Join Inner, (ws_sold_time_sk#42328 = t_time_sk#42367)
+            :     :- Project [ws_sold_time_sk#42328, ws_web_page_sk#42339]
+            :     :  +- Join Inner, (ws_ship_hdemo_sk#42337 = hd_demo_sk#42362)
+            :     :     :- Filter ((isnotnull(ws_ship_hdemo_sk#42337) AND isnotnull(ws_sold_time_sk#42328)) AND isnotnull(ws_web_page_sk#42339))
+            :     :     :  +- RelationV2[ws_sold_time_sk#42328, ws_ship_hdemo_sk#42337, ws_web_page_sk#42339] spark_catalog.tpcds_iceberg_10g.web_sales
+            :     :     +- Project [hd_demo_sk#42362]
+            :     :        +- Filter ((isnotnull(hd_dep_count#42365) AND (hd_dep_count#42365 = 8)) AND isnotnull(hd_demo_sk#42362))
+            :     :           +- RelationV2[hd_demo_sk#42362, hd_dep_count#42365] spark_catalog.tpcds_iceberg_10g.household_demographics
+            :     +- Project [t_time_sk#42367]
+            :        +- Filter (((isnotnull(t_hour#42370) AND (t_hour#42370 >= 14)) AND (t_hour#42370 <= 15)) AND isnotnull(t_time_sk#42367))
+            :           +- RelationV2[t_time_sk#42367, t_hour#42370] spark_catalog.tpcds_iceberg_10g.time_dim
+            +- Project [wp_web_page_sk#42377]
+               +- Filter (((isnotnull(wp_char_count#42387) AND (wp_char_count#42387 >= 5000)) AND (wp_char_count#42387 <= 5200)) AND isnotnull(wp_web_page_sk#42377))
+                  +- RelationV2[wp_web_page_sk#42377, wp_char_count#42387] spark_catalog.tpcds_iceberg_10g.web_page
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- Project [CheckOverflow((promote_precision(cast(amc#42262L as decimal(15,4))) / promote_precision(cast(pmc#42263L as decimal(15,4)))), DecimalType(35,20)) AS am_pm_ratio#42264]
+   +- BroadcastNestedLoopJoin BuildRight, Inner
+      :- HashAggregate(keys=[], functions=[count(1)], output=[amc#42262L])
+      :  +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=31533]
+      :     +- HashAggregate(keys=[], functions=[partial_count(1)], output=[count#42453L])
+      :        +- Project
+      :           +- BroadcastHashJoin [ws_web_page_sk#42276], [wp_web_page_sk#42314], Inner, BuildRight, false
+      :              :- Project [ws_web_page_sk#42276]
+      :              :  +- BroadcastHashJoin [ws_sold_time_sk#42265], [t_time_sk#42304], Inner, BuildRight, false
+      :              :     :- Project [ws_sold_time_sk#42265, ws_web_page_sk#42276]
+      :              :     :  +- BroadcastHashJoin [ws_ship_hdemo_sk#42274], [hd_demo_sk#42299], Inner, BuildRight, false
+      :              :     :     :- Filter ((isnotnull(ws_ship_hdemo_sk#42274) AND isnotnull(ws_sold_time_sk#42265)) AND isnotnull(ws_web_page_sk#42276))
+      :              :     :     :  +- BatchScan[ws_sold_time_sk#42265, ws_ship_hdemo_sk#42274, ws_web_page_sk#42276] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_ship_hdemo_sk IS NOT NULL, ws_sold_time_sk IS NOT NULL, ws_web_page_sk IS NOT NULL] RuntimeFilters: []
+      :              :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31520]
+      :              :     :        +- Project [hd_demo_sk#42299]
+      :              :     :           +- Filter ((isnotnull(hd_dep_count#42302) AND (hd_dep_count#42302 = 8)) AND isnotnull(hd_demo_sk#42299))
+      :              :     :              +- BatchScan[hd_demo_sk#42299, hd_dep_count#42302] spark_catalog.tpcds_iceberg_10g.household_demographics [filters=hd_dep_count IS NOT NULL, hd_dep_count = 8, hd_demo_sk IS NOT NULL] RuntimeFilters: []
+      :              :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31524]
+      :              :        +- Project [t_time_sk#42304]
+      :              :           +- Filter (((isnotnull(t_hour#42307) AND (t_hour#42307 >= 6)) AND (t_hour#42307 <= 7)) AND isnotnull(t_time_sk#42304))
+      :              :              +- BatchScan[t_time_sk#42304, t_hour#42307] spark_catalog.tpcds_iceberg_10g.time_dim [filters=t_hour IS NOT NULL, t_hour >= 6, t_hour <= 7, t_time_sk IS NOT NULL] RuntimeFilters: []
+      :              +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31528]
+      :                 +- Project [wp_web_page_sk#42314]
+      :                    +- Filter (((isnotnull(wp_char_count#42324) AND (wp_char_count#42324 >= 5000)) AND (wp_char_count#42324 <= 5200)) AND isnotnull(wp_web_page_sk#42314))
+      :                       +- BatchScan[wp_web_page_sk#42314, wp_char_count#42324] spark_catalog.tpcds_iceberg_10g.web_page [filters=wp_char_count IS NOT NULL, wp_char_count >= 5000, wp_char_count <= 5200, wp_web_page_sk IS NOT NULL] RuntimeFilters: []
+      +- BroadcastExchange IdentityBroadcastMode, [plan_id=31551]
+         +- HashAggregate(keys=[], functions=[count(1)], output=[pmc#42263L])
+            +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=31548]
+               +- HashAggregate(keys=[], functions=[partial_count(1)], output=[count#42455L])
+                  +- Project
+                     +- BroadcastHashJoin [ws_web_page_sk#42339], [wp_web_page_sk#42377], Inner, BuildRight, false
+                        :- Project [ws_web_page_sk#42339]
+                        :  +- BroadcastHashJoin [ws_sold_time_sk#42328], [t_time_sk#42367], Inner, BuildRight, false
+                        :     :- Project [ws_sold_time_sk#42328, ws_web_page_sk#42339]
+                        :     :  +- BroadcastHashJoin [ws_ship_hdemo_sk#42337], [hd_demo_sk#42362], Inner, BuildRight, false
+                        :     :     :- Filter ((isnotnull(ws_ship_hdemo_sk#42337) AND isnotnull(ws_sold_time_sk#42328)) AND isnotnull(ws_web_page_sk#42339))
+                        :     :     :  +- BatchScan[ws_sold_time_sk#42328, ws_ship_hdemo_sk#42337, ws_web_page_sk#42339] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_ship_hdemo_sk IS NOT NULL, ws_sold_time_sk IS NOT NULL, ws_web_page_sk IS NOT NULL] RuntimeFilters: []
+                        :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31535]
+                        :     :        +- Project [hd_demo_sk#42362]
+                        :     :           +- Filter ((isnotnull(hd_dep_count#42365) AND (hd_dep_count#42365 = 8)) AND isnotnull(hd_demo_sk#42362))
+                        :     :              +- BatchScan[hd_demo_sk#42362, hd_dep_count#42365] spark_catalog.tpcds_iceberg_10g.household_demographics [filters=hd_dep_count IS NOT NULL, hd_dep_count = 8, hd_demo_sk IS NOT NULL] RuntimeFilters: []
+                        :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31539]
+                        :        +- Project [t_time_sk#42367]
+                        :           +- Filter (((isnotnull(t_hour#42370) AND (t_hour#42370 >= 14)) AND (t_hour#42370 <= 15)) AND isnotnull(t_time_sk#42367))
+                        :              +- BatchScan[t_time_sk#42367, t_hour#42370] spark_catalog.tpcds_iceberg_10g.time_dim [filters=t_hour IS NOT NULL, t_hour >= 14, t_hour <= 15, t_time_sk IS NOT NULL] RuntimeFilters: []
+                        +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=31543]
+                           +- Project [wp_web_page_sk#42377]
+                              +- Filter (((isnotnull(wp_char_count#42387) AND (wp_char_count#42387 >= 5000)) AND (wp_char_count#42387 <= 5200)) AND isnotnull(wp_web_page_sk#42377))
+                                 +- BatchScan[wp_web_page_sk#42377, wp_char_count#42387] spark_catalog.tpcds_iceberg_10g.web_page [filters=wp_char_count IS NOT NULL, wp_char_count >= 5000, wp_char_count <= 5200, wp_web_page_sk IS NOT NULL] RuntimeFilters: []
+

@@ -1,0 +1,146 @@
+=== Optimized Logical Plan ===
+Filter (isnotnull(paid#13660) AND (cast(paid#13660 as decimal(33,8)) > cast(scalar-subquery#13661 [] as decimal(33,8))))
+:  +- Aggregate [CheckOverflow((0.050000 * promote_precision(avg(netpaid#13662))), DecimalType(24,8)) AS (0.05 * avg(netpaid))#13821]
+:     +- Aggregate [c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750], [MakeDecimal(sum(UnscaledValue(ss_sales_price#13675)),17,2) AS netpaid#13662]
+:        +- Project [ss_sales_price#13675, s_store_name#13711, s_state#13730, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755, c_first_name#13765, c_last_name#13766, ca_state#13783]
+:           +- Join Inner, ((c_birth_country#13771 = upper(ca_country#13785)) AND (s_zip#13731 = ca_zip#13784))
+:              :- Project [ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755, c_first_name#13765, c_last_name#13766, c_birth_country#13771]
+:              :  +- Join Inner, (ss_customer_sk#13665 = c_customer_sk#13757)
+:              :     :- Project [ss_customer_sk#13665, ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755]
+:              :     :  +- Join Inner, (ss_item_sk#13664 = i_item_sk#13735)
+:              :     :     :- Project [ss_item_sk#13664, ss_customer_sk#13665, ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731]
+:              :     :     :  +- Join Inner, (ss_store_sk#13669 = s_store_sk#13706)
+:              :     :     :     :- Project [ss_item_sk#13664, ss_customer_sk#13665, ss_store_sk#13669, ss_sales_price#13675]
+:              :     :     :     :  +- Join Inner, ((ss_ticket_number#13671L = sr_ticket_number#13694L) AND (ss_item_sk#13664 = sr_item_sk#13687))
+:              :     :     :     :     :- Filter (((isnotnull(ss_ticket_number#13671L) AND isnotnull(ss_item_sk#13664)) AND isnotnull(ss_store_sk#13669)) AND isnotnull(ss_customer_sk#13665))
+:              :     :     :     :     :  +- RelationV2[ss_item_sk#13664, ss_customer_sk#13665, ss_store_sk#13669, ss_ticket_number#13671L, ss_sales_price#13675] spark_catalog.tpcds_iceberg_10g.store_sales
+:              :     :     :     :     +- Filter (isnotnull(sr_ticket_number#13694L) AND isnotnull(sr_item_sk#13687))
+:              :     :     :     :        +- RelationV2[sr_item_sk#13687, sr_ticket_number#13694L] spark_catalog.tpcds_iceberg_10g.store_returns
+:              :     :     :     +- Project [s_store_sk#13706, s_store_name#13711, s_state#13730, s_zip#13731]
+:              :     :     :        +- Filter (((isnotnull(s_market_id#13716) AND (s_market_id#13716 = 7)) AND isnotnull(s_store_sk#13706)) AND isnotnull(s_zip#13731))
+:              :     :     :           +- RelationV2[s_store_sk#13706, s_store_name#13711, s_market_id#13716, s_state#13730, s_zip#13731] spark_catalog.tpcds_iceberg_10g.store
+:              :     :     +- Filter isnotnull(i_item_sk#13735)
+:              :     :        +- RelationV2[i_item_sk#13735, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755] spark_catalog.tpcds_iceberg_10g.item
+:              :     +- Filter (isnotnull(c_customer_sk#13757) AND isnotnull(c_birth_country#13771))
+:              :        +- RelationV2[c_customer_sk#13757, c_first_name#13765, c_last_name#13766, c_birth_country#13771] spark_catalog.tpcds_iceberg_10g.customer
+:              +- Filter (isnotnull(ca_country#13785) AND isnotnull(ca_zip#13784))
+:                 +- RelationV2[ca_state#13783, ca_zip#13784, ca_country#13785] spark_catalog.tpcds_iceberg_10g.customer_address
++- Aggregate [c_last_name#13766, c_first_name#13765, s_store_name#13711], [c_last_name#13766, c_first_name#13765, s_store_name#13711, sum(netpaid#13662) AS paid#13660]
+   +- Aggregate [c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750], [c_last_name#13766, c_first_name#13765, s_store_name#13711, MakeDecimal(sum(UnscaledValue(ss_sales_price#13675)),17,2) AS netpaid#13662]
+      +- Project [ss_sales_price#13675, s_store_name#13711, s_state#13730, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755, c_first_name#13765, c_last_name#13766, ca_state#13783]
+         +- Join Inner, ((c_birth_country#13771 = upper(ca_country#13785)) AND (s_zip#13731 = ca_zip#13784))
+            :- Project [ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755, c_first_name#13765, c_last_name#13766, c_birth_country#13771]
+            :  +- Join Inner, (ss_customer_sk#13665 = c_customer_sk#13757)
+            :     :- Project [ss_customer_sk#13665, ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755]
+            :     :  +- Join Inner, (ss_item_sk#13664 = i_item_sk#13735)
+            :     :     :- Project [ss_item_sk#13664, ss_customer_sk#13665, ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731]
+            :     :     :  +- Join Inner, (ss_store_sk#13669 = s_store_sk#13706)
+            :     :     :     :- Project [ss_item_sk#13664, ss_customer_sk#13665, ss_store_sk#13669, ss_sales_price#13675]
+            :     :     :     :  +- Join Inner, ((ss_ticket_number#13671L = sr_ticket_number#13694L) AND (ss_item_sk#13664 = sr_item_sk#13687))
+            :     :     :     :     :- Filter (((isnotnull(ss_ticket_number#13671L) AND isnotnull(ss_item_sk#13664)) AND isnotnull(ss_store_sk#13669)) AND isnotnull(ss_customer_sk#13665))
+            :     :     :     :     :  +- RelationV2[ss_item_sk#13664, ss_customer_sk#13665, ss_store_sk#13669, ss_ticket_number#13671L, ss_sales_price#13675] spark_catalog.tpcds_iceberg_10g.store_sales
+            :     :     :     :     +- Filter (isnotnull(sr_ticket_number#13694L) AND isnotnull(sr_item_sk#13687))
+            :     :     :     :        +- RelationV2[sr_item_sk#13687, sr_ticket_number#13694L] spark_catalog.tpcds_iceberg_10g.store_returns
+            :     :     :     +- Project [s_store_sk#13706, s_store_name#13711, s_state#13730, s_zip#13731]
+            :     :     :        +- Filter (((isnotnull(s_market_id#13716) AND (s_market_id#13716 = 7)) AND isnotnull(s_store_sk#13706)) AND isnotnull(s_zip#13731))
+            :     :     :           +- RelationV2[s_store_sk#13706, s_store_name#13711, s_market_id#13716, s_state#13730, s_zip#13731] spark_catalog.tpcds_iceberg_10g.store
+            :     :     +- Filter ((isnotnull(i_color#13752) AND (i_color#13752 = orchid)) AND isnotnull(i_item_sk#13735))
+            :     :        +- RelationV2[i_item_sk#13735, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755] spark_catalog.tpcds_iceberg_10g.item
+            :     +- Filter (isnotnull(c_customer_sk#13757) AND isnotnull(c_birth_country#13771))
+            :        +- RelationV2[c_customer_sk#13757, c_first_name#13765, c_last_name#13766, c_birth_country#13771] spark_catalog.tpcds_iceberg_10g.customer
+            +- Filter (isnotnull(ca_country#13785) AND isnotnull(ca_zip#13784))
+               +- RelationV2[ca_state#13783, ca_zip#13784, ca_country#13785] spark_catalog.tpcds_iceberg_10g.customer_address
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- Filter (isnotnull(paid#13660) AND (cast(paid#13660 as decimal(33,8)) > cast(Subquery subquery#13661, [id=#12426] as decimal(33,8))))
+   :  +- Subquery subquery#13661, [id=#12426]
+   :     +- AdaptiveSparkPlan isFinalPlan=false
+   :        +- HashAggregate(keys=[], functions=[avg(netpaid#13662)], output=[(0.05 * avg(netpaid))#13821])
+   :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=12424]
+   :              +- HashAggregate(keys=[], functions=[partial_avg(netpaid#13662)], output=[sum#13889, count#13890L])
+   :                 +- HashAggregate(keys=[c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750], functions=[sum(UnscaledValue(ss_sales_price#13675))], output=[netpaid#13662])
+   :                    +- Exchange hashpartitioning(c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750, 200), ENSURE_REQUIREMENTS, [plan_id=12420]
+   :                       +- HashAggregate(keys=[c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750], functions=[partial_sum(UnscaledValue(ss_sales_price#13675))], output=[c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750, sum#13892L])
+   :                          +- Project [ss_sales_price#13675, s_store_name#13711, s_state#13730, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755, c_first_name#13765, c_last_name#13766, ca_state#13783]
+   :                             +- SortMergeJoin [c_birth_country#13771, s_zip#13731], [upper(ca_country#13785), ca_zip#13784], Inner
+   :                                :- Sort [c_birth_country#13771 ASC NULLS FIRST, s_zip#13731 ASC NULLS FIRST], false, 0
+   :                                :  +- Exchange hashpartitioning(c_birth_country#13771, s_zip#13731, 200), ENSURE_REQUIREMENTS, [plan_id=12412]
+   :                                :     +- Project [ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755, c_first_name#13765, c_last_name#13766, c_birth_country#13771]
+   :                                :        +- SortMergeJoin [ss_customer_sk#13665], [c_customer_sk#13757], Inner
+   :                                :           :- Sort [ss_customer_sk#13665 ASC NULLS FIRST], false, 0
+   :                                :           :  +- Exchange hashpartitioning(ss_customer_sk#13665, 200), ENSURE_REQUIREMENTS, [plan_id=12404]
+   :                                :           :     +- Project [ss_customer_sk#13665, ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755]
+   :                                :           :        +- BroadcastHashJoin [ss_item_sk#13664], [i_item_sk#13735], Inner, BuildRight, false
+   :                                :           :           :- Project [ss_item_sk#13664, ss_customer_sk#13665, ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731]
+   :                                :           :           :  +- BroadcastHashJoin [ss_store_sk#13669], [s_store_sk#13706], Inner, BuildRight, false
+   :                                :           :           :     :- Project [ss_item_sk#13664, ss_customer_sk#13665, ss_store_sk#13669, ss_sales_price#13675]
+   :                                :           :           :     :  +- SortMergeJoin [ss_ticket_number#13671L, ss_item_sk#13664], [sr_ticket_number#13694L, sr_item_sk#13687], Inner
+   :                                :           :           :     :     :- Sort [ss_ticket_number#13671L ASC NULLS FIRST, ss_item_sk#13664 ASC NULLS FIRST], false, 0
+   :                                :           :           :     :     :  +- Exchange hashpartitioning(ss_ticket_number#13671L, ss_item_sk#13664, 200), ENSURE_REQUIREMENTS, [plan_id=12388]
+   :                                :           :           :     :     :     +- Filter (((isnotnull(ss_ticket_number#13671L) AND isnotnull(ss_item_sk#13664)) AND isnotnull(ss_store_sk#13669)) AND isnotnull(ss_customer_sk#13665))
+   :                                :           :           :     :     :        +- BatchScan[ss_item_sk#13664, ss_customer_sk#13665, ss_store_sk#13669, ss_ticket_number#13671L, ss_sales_price#13675] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_ticket_number IS NOT NULL, ss_item_sk IS NOT NULL, ss_store_sk IS NOT NULL, ss_customer_sk IS NOT NULL] RuntimeFilters: []
+   :                                :           :           :     :     +- Sort [sr_ticket_number#13694L ASC NULLS FIRST, sr_item_sk#13687 ASC NULLS FIRST], false, 0
+   :                                :           :           :     :        +- Exchange hashpartitioning(sr_ticket_number#13694L, sr_item_sk#13687, 200), ENSURE_REQUIREMENTS, [plan_id=12389]
+   :                                :           :           :     :           +- Filter (isnotnull(sr_ticket_number#13694L) AND isnotnull(sr_item_sk#13687))
+   :                                :           :           :     :              +- BatchScan[sr_item_sk#13687, sr_ticket_number#13694L] spark_catalog.tpcds_iceberg_10g.store_returns [filters=sr_ticket_number IS NOT NULL, sr_item_sk IS NOT NULL] RuntimeFilters: []
+   :                                :           :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=12395]
+   :                                :           :           :        +- Project [s_store_sk#13706, s_store_name#13711, s_state#13730, s_zip#13731]
+   :                                :           :           :           +- Filter (((isnotnull(s_market_id#13716) AND (s_market_id#13716 = 7)) AND isnotnull(s_store_sk#13706)) AND isnotnull(s_zip#13731))
+   :                                :           :           :              +- BatchScan[s_store_sk#13706, s_store_name#13711, s_market_id#13716, s_state#13730, s_zip#13731] spark_catalog.tpcds_iceberg_10g.store [filters=s_market_id IS NOT NULL, s_market_id = 7, s_store_sk IS NOT NULL, s_zip IS NOT NULL] RuntimeFilters: []
+   :                                :           :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=12399]
+   :                                :           :              +- Filter isnotnull(i_item_sk#13735)
+   :                                :           :                 +- BatchScan[i_item_sk#13735, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL] RuntimeFilters: []
+   :                                :           +- Sort [c_customer_sk#13757 ASC NULLS FIRST], false, 0
+   :                                :              +- Exchange hashpartitioning(c_customer_sk#13757, 200), ENSURE_REQUIREMENTS, [plan_id=12405]
+   :                                :                 +- Filter (isnotnull(c_customer_sk#13757) AND isnotnull(c_birth_country#13771))
+   :                                :                    +- BatchScan[c_customer_sk#13757, c_first_name#13765, c_last_name#13766, c_birth_country#13771] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL, c_birth_country IS NOT NULL] RuntimeFilters: []
+   :                                +- Sort [upper(ca_country#13785) ASC NULLS FIRST, ca_zip#13784 ASC NULLS FIRST], false, 0
+   :                                   +- Exchange hashpartitioning(upper(ca_country#13785), ca_zip#13784, 200), ENSURE_REQUIREMENTS, [plan_id=12413]
+   :                                      +- Filter (isnotnull(ca_country#13785) AND isnotnull(ca_zip#13784))
+   :                                         +- BatchScan[ca_state#13783, ca_zip#13784, ca_country#13785] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_country IS NOT NULL, ca_zip IS NOT NULL] RuntimeFilters: []
+   +- HashAggregate(keys=[c_last_name#13766, c_first_name#13765, s_store_name#13711], functions=[sum(netpaid#13662)], output=[c_last_name#13766, c_first_name#13765, s_store_name#13711, paid#13660])
+      +- Exchange hashpartitioning(c_last_name#13766, c_first_name#13765, s_store_name#13711, 200), ENSURE_REQUIREMENTS, [plan_id=12481]
+         +- HashAggregate(keys=[c_last_name#13766, c_first_name#13765, s_store_name#13711], functions=[partial_sum(netpaid#13662)], output=[c_last_name#13766, c_first_name#13765, s_store_name#13711, sum#13883, isEmpty#13884])
+            +- HashAggregate(keys=[c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750], functions=[sum(UnscaledValue(ss_sales_price#13675))], output=[c_last_name#13766, c_first_name#13765, s_store_name#13711, netpaid#13662])
+               +- Exchange hashpartitioning(c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750, 200), ENSURE_REQUIREMENTS, [plan_id=12477]
+                  +- HashAggregate(keys=[c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750], functions=[partial_sum(UnscaledValue(ss_sales_price#13675))], output=[c_last_name#13766, c_first_name#13765, s_store_name#13711, ca_state#13783, s_state#13730, i_color#13752, i_current_price#13740, i_manager_id#13755, i_units#13753, i_size#13750, sum#13886L])
+                     +- Project [ss_sales_price#13675, s_store_name#13711, s_state#13730, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755, c_first_name#13765, c_last_name#13766, ca_state#13783]
+                        +- SortMergeJoin [c_birth_country#13771, s_zip#13731], [upper(ca_country#13785), ca_zip#13784], Inner
+                           :- Sort [c_birth_country#13771 ASC NULLS FIRST, s_zip#13731 ASC NULLS FIRST], false, 0
+                           :  +- Exchange hashpartitioning(c_birth_country#13771, s_zip#13731, 200), ENSURE_REQUIREMENTS, [plan_id=12469]
+                           :     +- Project [ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755, c_first_name#13765, c_last_name#13766, c_birth_country#13771]
+                           :        +- SortMergeJoin [ss_customer_sk#13665], [c_customer_sk#13757], Inner
+                           :           :- Sort [ss_customer_sk#13665 ASC NULLS FIRST], false, 0
+                           :           :  +- Exchange hashpartitioning(ss_customer_sk#13665, 200), ENSURE_REQUIREMENTS, [plan_id=12461]
+                           :           :     +- Project [ss_customer_sk#13665, ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755]
+                           :           :        +- BroadcastHashJoin [ss_item_sk#13664], [i_item_sk#13735], Inner, BuildRight, false
+                           :           :           :- Project [ss_item_sk#13664, ss_customer_sk#13665, ss_sales_price#13675, s_store_name#13711, s_state#13730, s_zip#13731]
+                           :           :           :  +- BroadcastHashJoin [ss_store_sk#13669], [s_store_sk#13706], Inner, BuildRight, false
+                           :           :           :     :- Project [ss_item_sk#13664, ss_customer_sk#13665, ss_store_sk#13669, ss_sales_price#13675]
+                           :           :           :     :  +- SortMergeJoin [ss_ticket_number#13671L, ss_item_sk#13664], [sr_ticket_number#13694L, sr_item_sk#13687], Inner
+                           :           :           :     :     :- Sort [ss_ticket_number#13671L ASC NULLS FIRST, ss_item_sk#13664 ASC NULLS FIRST], false, 0
+                           :           :           :     :     :  +- Exchange hashpartitioning(ss_ticket_number#13671L, ss_item_sk#13664, 200), ENSURE_REQUIREMENTS, [plan_id=12445]
+                           :           :           :     :     :     +- Filter (((isnotnull(ss_ticket_number#13671L) AND isnotnull(ss_item_sk#13664)) AND isnotnull(ss_store_sk#13669)) AND isnotnull(ss_customer_sk#13665))
+                           :           :           :     :     :        +- BatchScan[ss_item_sk#13664, ss_customer_sk#13665, ss_store_sk#13669, ss_ticket_number#13671L, ss_sales_price#13675] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_ticket_number IS NOT NULL, ss_item_sk IS NOT NULL, ss_store_sk IS NOT NULL, ss_customer_sk IS NOT NULL] RuntimeFilters: []
+                           :           :           :     :     +- Sort [sr_ticket_number#13694L ASC NULLS FIRST, sr_item_sk#13687 ASC NULLS FIRST], false, 0
+                           :           :           :     :        +- Exchange hashpartitioning(sr_ticket_number#13694L, sr_item_sk#13687, 200), ENSURE_REQUIREMENTS, [plan_id=12446]
+                           :           :           :     :           +- Filter (isnotnull(sr_ticket_number#13694L) AND isnotnull(sr_item_sk#13687))
+                           :           :           :     :              +- BatchScan[sr_item_sk#13687, sr_ticket_number#13694L] spark_catalog.tpcds_iceberg_10g.store_returns [filters=sr_ticket_number IS NOT NULL, sr_item_sk IS NOT NULL] RuntimeFilters: []
+                           :           :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=12452]
+                           :           :           :        +- Project [s_store_sk#13706, s_store_name#13711, s_state#13730, s_zip#13731]
+                           :           :           :           +- Filter (((isnotnull(s_market_id#13716) AND (s_market_id#13716 = 7)) AND isnotnull(s_store_sk#13706)) AND isnotnull(s_zip#13731))
+                           :           :           :              +- BatchScan[s_store_sk#13706, s_store_name#13711, s_market_id#13716, s_state#13730, s_zip#13731] spark_catalog.tpcds_iceberg_10g.store [filters=s_market_id IS NOT NULL, s_market_id = 7, s_store_sk IS NOT NULL, s_zip IS NOT NULL] RuntimeFilters: []
+                           :           :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=12456]
+                           :           :              +- Filter ((isnotnull(i_color#13752) AND (i_color#13752 = orchid)) AND isnotnull(i_item_sk#13735))
+                           :           :                 +- BatchScan[i_item_sk#13735, i_current_price#13740, i_size#13750, i_color#13752, i_units#13753, i_manager_id#13755] spark_catalog.tpcds_iceberg_10g.item [filters=i_color IS NOT NULL, i_color = 'orchid', i_item_sk IS NOT NULL] RuntimeFilters: []
+                           :           +- Sort [c_customer_sk#13757 ASC NULLS FIRST], false, 0
+                           :              +- Exchange hashpartitioning(c_customer_sk#13757, 200), ENSURE_REQUIREMENTS, [plan_id=12462]
+                           :                 +- Filter (isnotnull(c_customer_sk#13757) AND isnotnull(c_birth_country#13771))
+                           :                    +- BatchScan[c_customer_sk#13757, c_first_name#13765, c_last_name#13766, c_birth_country#13771] spark_catalog.tpcds_iceberg_10g.customer [filters=c_customer_sk IS NOT NULL, c_birth_country IS NOT NULL] RuntimeFilters: []
+                           +- Sort [upper(ca_country#13785) ASC NULLS FIRST, ca_zip#13784 ASC NULLS FIRST], false, 0
+                              +- Exchange hashpartitioning(upper(ca_country#13785), ca_zip#13784, 200), ENSURE_REQUIREMENTS, [plan_id=12470]
+                                 +- Filter (isnotnull(ca_country#13785) AND isnotnull(ca_zip#13784))
+                                    +- BatchScan[ca_state#13783, ca_zip#13784, ca_country#13785] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_country IS NOT NULL, ca_zip IS NOT NULL] RuntimeFilters: []
+

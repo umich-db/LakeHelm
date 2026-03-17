@@ -1,0 +1,48 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [qoh#12550 ASC NULLS FIRST, i_product_name#12626 ASC NULLS FIRST, i_brand#12627 ASC NULLS FIRST, i_class#12628 ASC NULLS FIRST, i_category#12629 ASC NULLS FIRST], true
+      +- Aggregate [i_product_name#12626, i_brand#12627, i_class#12628, i_category#12629, spark_grouping_id#12625L], [i_product_name#12626, i_brand#12627, i_class#12628, i_category#12629, avg(inv_quantity_on_hand#12553) AS qoh#12550]
+         +- Expand [[inv_quantity_on_hand#12553, i_product_name#12604, i_brand#12591, i_class#12593, i_category#12595, 0], [inv_quantity_on_hand#12553, i_product_name#12604, i_brand#12591, i_class#12593, null, 1], [inv_quantity_on_hand#12553, i_product_name#12604, i_brand#12591, null, null, 3], [inv_quantity_on_hand#12553, i_product_name#12604, null, null, null, 7], [inv_quantity_on_hand#12553, null, null, null, null, 15]], [inv_quantity_on_hand#12553, i_product_name#12626, i_brand#12627, i_class#12628, i_category#12629, spark_grouping_id#12625L]
+            +- Project [inv_quantity_on_hand#12553, i_product_name#12604, i_brand#12591, i_class#12593, i_category#12595]
+               +- Join Inner, (inv_item_sk#12551 = i_item_sk#12583)
+                  :- Project [inv_item_sk#12551, inv_quantity_on_hand#12553]
+                  :  +- Join Inner, (inv_date_sk#12554 = d_date_sk#12555)
+                  :     :- Filter ((isnotnull(inv_date_sk#12554) AND isnotnull(inv_item_sk#12551)) AND dynamicpruning#12645 [inv_date_sk#12554])
+                  :     :  :  +- Project [d_date_sk#12555]
+                  :     :  :     +- Filter (((isnotnull(d_month_seq#12558) AND (d_month_seq#12558 >= 1212)) AND (d_month_seq#12558 <= 1223)) AND isnotnull(d_date_sk#12555))
+                  :     :  :        +- RelationV2[d_date_sk#12555, d_month_seq#12558] spark_catalog.tpcds_iceberg_10g.date_dim
+                  :     :  +- RelationV2[inv_item_sk#12551, inv_quantity_on_hand#12553, inv_date_sk#12554] spark_catalog.tpcds_iceberg_10g.inventory
+                  :     +- Project [d_date_sk#12555]
+                  :        +- Filter (((isnotnull(d_month_seq#12558) AND (d_month_seq#12558 >= 1212)) AND (d_month_seq#12558 <= 1223)) AND isnotnull(d_date_sk#12555))
+                  :           +- RelationV2[d_date_sk#12555, d_month_seq#12558] spark_catalog.tpcds_iceberg_10g.date_dim
+                  +- Filter isnotnull(i_item_sk#12583)
+                     +- RelationV2[i_item_sk#12583, i_brand#12591, i_class#12593, i_category#12595, i_product_name#12604] spark_catalog.tpcds_iceberg_10g.item
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[qoh#12550 ASC NULLS FIRST,i_product_name#12626 ASC NULLS FIRST,i_brand#12627 ASC NULLS FIRST,i_class#12628 ASC NULLS FIRST,i_category#12629 ASC NULLS FIRST], output=[i_product_name#12626,i_brand#12627,i_class#12628,i_category#12629,qoh#12550])
+   +- HashAggregate(keys=[i_product_name#12626, i_brand#12627, i_class#12628, i_category#12629, spark_grouping_id#12625L], functions=[avg(inv_quantity_on_hand#12553)], output=[i_product_name#12626, i_brand#12627, i_class#12628, i_category#12629, qoh#12550])
+      +- Exchange hashpartitioning(i_product_name#12626, i_brand#12627, i_class#12628, i_category#12629, spark_grouping_id#12625L, 200), ENSURE_REQUIREMENTS, [plan_id=10890]
+         +- HashAggregate(keys=[i_product_name#12626, i_brand#12627, i_class#12628, i_category#12629, spark_grouping_id#12625L], functions=[partial_avg(inv_quantity_on_hand#12553)], output=[i_product_name#12626, i_brand#12627, i_class#12628, i_category#12629, spark_grouping_id#12625L, sum#12648, count#12649L])
+            +- Expand [[inv_quantity_on_hand#12553, i_product_name#12604, i_brand#12591, i_class#12593, i_category#12595, 0], [inv_quantity_on_hand#12553, i_product_name#12604, i_brand#12591, i_class#12593, null, 1], [inv_quantity_on_hand#12553, i_product_name#12604, i_brand#12591, null, null, 3], [inv_quantity_on_hand#12553, i_product_name#12604, null, null, null, 7], [inv_quantity_on_hand#12553, null, null, null, null, 15]], [inv_quantity_on_hand#12553, i_product_name#12626, i_brand#12627, i_class#12628, i_category#12629, spark_grouping_id#12625L]
+               +- Project [inv_quantity_on_hand#12553, i_product_name#12604, i_brand#12591, i_class#12593, i_category#12595]
+                  +- BroadcastHashJoin [inv_item_sk#12551], [i_item_sk#12583], Inner, BuildRight, false
+                     :- Project [inv_item_sk#12551, inv_quantity_on_hand#12553]
+                     :  +- BroadcastHashJoin [inv_date_sk#12554], [d_date_sk#12555], Inner, BuildRight, false
+                     :     :- Filter (isnotnull(inv_date_sk#12554) AND isnotnull(inv_item_sk#12551))
+                     :     :  +- BatchScan[inv_item_sk#12551, inv_quantity_on_hand#12553, inv_date_sk#12554] spark_catalog.tpcds_iceberg_10g.inventory [filters=inv_date_sk IS NOT NULL, inv_item_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(inv_date_sk#12554 IN dynamicpruning#12645)]
+                     :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#12645, 0, true, Project [d_date_sk#12555], [d_date_sk#12555]
+                     :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                     :     :              +- Project [d_date_sk#12555]
+                     :     :                 +- Filter (((isnotnull(d_month_seq#12558) AND (d_month_seq#12558 >= 1212)) AND (d_month_seq#12558 <= 1223)) AND isnotnull(d_date_sk#12555))
+                     :     :                    +- BatchScan[d_date_sk#12555, d_month_seq#12558] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IS NOT NULL, d_month_seq >= 1212, d_month_seq <= 1223, d_date_sk IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=10880]
+                     :        +- Project [d_date_sk#12555]
+                     :           +- Filter (((isnotnull(d_month_seq#12558) AND (d_month_seq#12558 >= 1212)) AND (d_month_seq#12558 <= 1223)) AND isnotnull(d_date_sk#12555))
+                     :              +- BatchScan[d_date_sk#12555, d_month_seq#12558] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_month_seq IS NOT NULL, d_month_seq >= 1212, d_month_seq <= 1223, d_date_sk IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=10884]
+                        +- Filter isnotnull(i_item_sk#12583)
+                           +- BatchScan[i_item_sk#12583, i_brand#12591, i_class#12593, i_category#12595, i_product_name#12604] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL] RuntimeFilters: []
+

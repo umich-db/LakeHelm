@@ -1,0 +1,132 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [cd_gender#32682 ASC NULLS FIRST, cd_marital_status#32683 ASC NULLS FIRST, cd_education_status#32684 ASC NULLS FIRST, cd_purchase_estimate#32685 ASC NULLS FIRST, cd_credit_rating#32686 ASC NULLS FIRST], true
+      +- Aggregate [cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cd_purchase_estimate#32685, cd_credit_rating#32686], [cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, count(1) AS cnt1#32644L, cd_purchase_estimate#32685, count(1) AS cnt2#32645L, cd_credit_rating#32686, count(1) AS cnt3#32646L]
+         +- Project [cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cd_purchase_estimate#32685, cd_credit_rating#32686]
+            +- Join Inner, (cd_demo_sk#32681 = c_current_cdemo_sk#32652)
+               :- Project [c_current_cdemo_sk#32652]
+               :  +- Join Inner, (c_current_addr_sk#32654 = ca_address_sk#32668)
+               :     :- Project [c_current_cdemo_sk#32652, c_current_addr_sk#32654]
+               :     :  +- Join LeftAnti, (c_customer_sk#32650 = cs_ship_customer_sk#32832)
+               :     :     :- Join LeftAnti, (c_customer_sk#32650 = ws_bill_customer_sk#32757)
+               :     :     :  :- Join LeftSemi, (c_customer_sk#32650 = ss_customer_sk#32695)
+               :     :     :  :  :- Filter (isnotnull(c_current_addr_sk#32654) AND isnotnull(c_current_cdemo_sk#32652))
+               :     :     :  :  :  +- RelationV2[c_customer_sk#32650, c_current_cdemo_sk#32652, c_current_addr_sk#32654] spark_catalog.tpcds_iceberg_10g.customer
+               :     :     :  :  +- Project [ss_customer_sk#32695]
+               :     :     :  :     +- Join Inner, (ss_sold_date_sk#32715 = d_date_sk#32716)
+               :     :     :  :        :- Project [ss_customer_sk#32695, ss_sold_date_sk#32715]
+               :     :     :  :        :  +- Filter (isnotnull(ss_sold_date_sk#32715) AND dynamicpruning#33107 [ss_sold_date_sk#32715])
+               :     :     :  :        :     :  +- Project [d_date_sk#32716]
+               :     :     :  :        :     :     +- Filter (((((isnotnull(d_year#32722) AND isnotnull(d_moy#32724)) AND (d_year#32722 = 1999)) AND (d_moy#32724 >= 1)) AND (d_moy#32724 <= 3)) AND isnotnull(d_date_sk#32716))
+               :     :     :  :        :     :        +- RelationV2[d_date_sk#32716, d_date_id#32717, d_date#32718, d_month_seq#32719, d_week_seq#32720, d_quarter_seq#32721, d_year#32722, d_dow#32723, d_moy#32724, d_dom#32725, d_qoy#32726, d_fy_year#32727, d_fy_quarter_seq#32728, d_fy_week_seq#32729, d_day_name#32730, d_quarter_name#32731, d_holiday#32732, d_weekend#32733, d_following_holiday#32734, d_first_dom#32735, d_last_dom#32736, d_same_day_ly#32737, d_same_day_lq#32738, d_current_day#32739, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     :  :        :     +- RelationV2[ss_sold_time_sk#32693, ss_item_sk#32694, ss_customer_sk#32695, ss_cdemo_sk#32696, ss_hdemo_sk#32697, ss_addr_sk#32698, ss_store_sk#32699, ss_promo_sk#32700, ss_ticket_number#32701L, ss_quantity#32702, ss_wholesale_cost#32703, ss_list_price#32704, ss_sales_price#32705, ss_ext_discount_amt#32706, ss_ext_sales_price#32707, ss_ext_wholesale_cost#32708, ss_ext_list_price#32709, ss_ext_tax#32710, ss_coupon_amt#32711, ss_net_paid#32712, ss_net_paid_inc_tax#32713, ss_net_profit#32714, ss_sold_date_sk#32715] spark_catalog.tpcds_iceberg_10g.store_sales
+               :     :     :  :        +- Project [d_date_sk#32716]
+               :     :     :  :           +- Filter (((((isnotnull(d_year#32722) AND isnotnull(d_moy#32724)) AND (d_year#32722 = 1999)) AND (d_moy#32724 >= 1)) AND (d_moy#32724 <= 3)) AND isnotnull(d_date_sk#32716))
+               :     :     :  :              +- RelationV2[d_date_sk#32716, d_date_id#32717, d_date#32718, d_month_seq#32719, d_week_seq#32720, d_quarter_seq#32721, d_year#32722, d_dow#32723, d_moy#32724, d_dom#32725, d_qoy#32726, d_fy_year#32727, d_fy_quarter_seq#32728, d_fy_week_seq#32729, d_day_name#32730, d_quarter_name#32731, d_holiday#32732, d_weekend#32733, d_following_holiday#32734, d_first_dom#32735, d_last_dom#32736, d_same_day_ly#32737, d_same_day_lq#32738, d_current_day#32739, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     :  +- Project [ws_bill_customer_sk#32757]
+               :     :     :     +- Join Inner, (ws_sold_date_sk#32787 = d_date_sk#32788)
+               :     :     :        :- Project [ws_bill_customer_sk#32757, ws_sold_date_sk#32787]
+               :     :     :        :  +- Filter (isnotnull(ws_sold_date_sk#32787) AND dynamicpruning#33108 [ws_sold_date_sk#32787])
+               :     :     :        :     :  +- Project [d_date_sk#32788]
+               :     :     :        :     :     +- Filter (((((isnotnull(d_year#32794) AND isnotnull(d_moy#32796)) AND (d_year#32794 = 1999)) AND (d_moy#32796 >= 1)) AND (d_moy#32796 <= 3)) AND isnotnull(d_date_sk#32788))
+               :     :     :        :     :        +- RelationV2[d_date_sk#32788, d_date_id#32789, d_date#32790, d_month_seq#32791, d_week_seq#32792, d_quarter_seq#32793, d_year#32794, d_dow#32795, d_moy#32796, d_dom#32797, d_qoy#32798, d_fy_year#32799, d_fy_quarter_seq#32800, d_fy_week_seq#32801, d_day_name#32802, d_quarter_name#32803, d_holiday#32804, d_weekend#32805, d_following_holiday#32806, d_first_dom#32807, d_last_dom#32808, d_same_day_ly#32809, d_same_day_lq#32810, d_current_day#32811, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     :        :     +- RelationV2[ws_sold_time_sk#32754, ws_ship_date_sk#32755, ws_item_sk#32756, ws_bill_customer_sk#32757, ws_bill_cdemo_sk#32758, ws_bill_hdemo_sk#32759, ws_bill_addr_sk#32760, ws_ship_customer_sk#32761, ws_ship_cdemo_sk#32762, ws_ship_hdemo_sk#32763, ws_ship_addr_sk#32764, ws_web_page_sk#32765, ws_web_site_sk#32766, ws_ship_mode_sk#32767, ws_warehouse_sk#32768, ws_promo_sk#32769, ws_order_number#32770L, ws_quantity#32771, ws_wholesale_cost#32772, ws_list_price#32773, ws_sales_price#32774, ws_ext_discount_amt#32775, ws_ext_sales_price#32776, ws_ext_wholesale_cost#32777, ... 10 more fields] spark_catalog.tpcds_iceberg_10g.web_sales
+               :     :     :        +- Project [d_date_sk#32788]
+               :     :     :           +- Filter (((((isnotnull(d_year#32794) AND isnotnull(d_moy#32796)) AND (d_year#32794 = 1999)) AND (d_moy#32796 >= 1)) AND (d_moy#32796 <= 3)) AND isnotnull(d_date_sk#32788))
+               :     :     :              +- RelationV2[d_date_sk#32788, d_date_id#32789, d_date#32790, d_month_seq#32791, d_week_seq#32792, d_quarter_seq#32793, d_year#32794, d_dow#32795, d_moy#32796, d_dom#32797, d_qoy#32798, d_fy_year#32799, d_fy_quarter_seq#32800, d_fy_week_seq#32801, d_day_name#32802, d_quarter_name#32803, d_holiday#32804, d_weekend#32805, d_following_holiday#32806, d_first_dom#32807, d_last_dom#32808, d_same_day_ly#32809, d_same_day_lq#32810, d_current_day#32811, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     +- Project [cs_ship_customer_sk#32832]
+               :     :        +- Join Inner, (cs_sold_date_sk#32859 = d_date_sk#32860)
+               :     :           :- Project [cs_ship_customer_sk#32832, cs_sold_date_sk#32859]
+               :     :           :  +- Filter (isnotnull(cs_sold_date_sk#32859) AND dynamicpruning#33109 [cs_sold_date_sk#32859])
+               :     :           :     :  +- Project [d_date_sk#32860]
+               :     :           :     :     +- Filter (((((isnotnull(d_year#32866) AND isnotnull(d_moy#32868)) AND (d_year#32866 = 1999)) AND (d_moy#32868 >= 1)) AND (d_moy#32868 <= 3)) AND isnotnull(d_date_sk#32860))
+               :     :           :     :        +- RelationV2[d_date_sk#32860, d_date_id#32861, d_date#32862, d_month_seq#32863, d_week_seq#32864, d_quarter_seq#32865, d_year#32866, d_dow#32867, d_moy#32868, d_dom#32869, d_qoy#32870, d_fy_year#32871, d_fy_quarter_seq#32872, d_fy_week_seq#32873, d_day_name#32874, d_quarter_name#32875, d_holiday#32876, d_weekend#32877, d_following_holiday#32878, d_first_dom#32879, d_last_dom#32880, d_same_day_ly#32881, d_same_day_lq#32882, d_current_day#32883, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :           :     +- RelationV2[cs_sold_time_sk#32826, cs_ship_date_sk#32827, cs_bill_customer_sk#32828, cs_bill_cdemo_sk#32829, cs_bill_hdemo_sk#32830, cs_bill_addr_sk#32831, cs_ship_customer_sk#32832, cs_ship_cdemo_sk#32833, cs_ship_hdemo_sk#32834, cs_ship_addr_sk#32835, cs_call_center_sk#32836, cs_catalog_page_sk#32837, cs_ship_mode_sk#32838, cs_warehouse_sk#32839, cs_item_sk#32840, cs_promo_sk#32841, cs_order_number#32842L, cs_quantity#32843, cs_wholesale_cost#32844, cs_list_price#32845, cs_sales_price#32846, cs_ext_discount_amt#32847, cs_ext_sales_price#32848, cs_ext_wholesale_cost#32849, ... 10 more fields] spark_catalog.tpcds_iceberg_10g.catalog_sales
+               :     :           +- Project [d_date_sk#32860]
+               :     :              +- Filter (((((isnotnull(d_year#32866) AND isnotnull(d_moy#32868)) AND (d_year#32866 = 1999)) AND (d_moy#32868 >= 1)) AND (d_moy#32868 <= 3)) AND isnotnull(d_date_sk#32860))
+               :     :                 +- RelationV2[d_date_sk#32860, d_date_id#32861, d_date#32862, d_month_seq#32863, d_week_seq#32864, d_quarter_seq#32865, d_year#32866, d_dow#32867, d_moy#32868, d_dom#32869, d_qoy#32870, d_fy_year#32871, d_fy_quarter_seq#32872, d_fy_week_seq#32873, d_day_name#32874, d_quarter_name#32875, d_holiday#32876, d_weekend#32877, d_following_holiday#32878, d_first_dom#32879, d_last_dom#32880, d_same_day_ly#32881, d_same_day_lq#32882, d_current_day#32883, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     +- Project [ca_address_sk#32668]
+               :        +- Filter (ca_state#32676 IN (CO,IL,MN) AND isnotnull(ca_address_sk#32668))
+               :           +- RelationV2[ca_address_sk#32668, ca_state#32676] spark_catalog.tpcds_iceberg_10g.customer_address
+               +- Filter isnotnull(cd_demo_sk#32681)
+                  +- RelationV2[cd_demo_sk#32681, cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cd_purchase_estimate#32685, cd_credit_rating#32686] spark_catalog.tpcds_iceberg_10g.customer_demographics
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[cd_gender#32682 ASC NULLS FIRST,cd_marital_status#32683 ASC NULLS FIRST,cd_education_status#32684 ASC NULLS FIRST,cd_purchase_estimate#32685 ASC NULLS FIRST,cd_credit_rating#32686 ASC NULLS FIRST], output=[cd_gender#32682,cd_marital_status#32683,cd_education_status#32684,cnt1#32644L,cd_purchase_estimate#32685,cnt2#32645L,cd_credit_rating#32686,cnt3#32646L])
+   +- HashAggregate(keys=[cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cd_purchase_estimate#32685, cd_credit_rating#32686], functions=[count(1)], output=[cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cnt1#32644L, cd_purchase_estimate#32685, cnt2#32645L, cd_credit_rating#32686, cnt3#32646L])
+      +- Exchange hashpartitioning(cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cd_purchase_estimate#32685, cd_credit_rating#32686, 200), ENSURE_REQUIREMENTS, [plan_id=24812]
+         +- HashAggregate(keys=[cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cd_purchase_estimate#32685, cd_credit_rating#32686], functions=[partial_count(1)], output=[cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cd_purchase_estimate#32685, cd_credit_rating#32686, count#33111L])
+            +- Project [cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cd_purchase_estimate#32685, cd_credit_rating#32686]
+               +- SortMergeJoin [c_current_cdemo_sk#32652], [cd_demo_sk#32681], Inner
+                  :- Sort [c_current_cdemo_sk#32652 ASC NULLS FIRST], false, 0
+                  :  +- Exchange hashpartitioning(c_current_cdemo_sk#32652, 200), ENSURE_REQUIREMENTS, [plan_id=24804]
+                  :     +- Project [c_current_cdemo_sk#32652]
+                  :        +- BroadcastHashJoin [c_current_addr_sk#32654], [ca_address_sk#32668], Inner, BuildRight, false
+                  :           :- Project [c_current_cdemo_sk#32652, c_current_addr_sk#32654]
+                  :           :  +- SortMergeJoin [c_customer_sk#32650], [cs_ship_customer_sk#32832], LeftAnti
+                  :           :     :- SortMergeJoin [c_customer_sk#32650], [ws_bill_customer_sk#32757], LeftAnti
+                  :           :     :  :- SortMergeJoin [c_customer_sk#32650], [ss_customer_sk#32695], LeftSemi
+                  :           :     :  :  :- Sort [c_customer_sk#32650 ASC NULLS FIRST], false, 0
+                  :           :     :  :  :  +- Exchange hashpartitioning(c_customer_sk#32650, 200), ENSURE_REQUIREMENTS, [plan_id=24777]
+                  :           :     :  :  :     +- Filter (isnotnull(c_current_addr_sk#32654) AND isnotnull(c_current_cdemo_sk#32652))
+                  :           :     :  :  :        +- BatchScan[c_customer_sk#32650, c_current_cdemo_sk#32652, c_current_addr_sk#32654] spark_catalog.tpcds_iceberg_10g.customer [filters=c_current_addr_sk IS NOT NULL, c_current_cdemo_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     :  :  +- Sort [ss_customer_sk#32695 ASC NULLS FIRST], false, 0
+                  :           :     :  :     +- Exchange hashpartitioning(ss_customer_sk#32695, 200), ENSURE_REQUIREMENTS, [plan_id=24776]
+                  :           :     :  :        +- Project [ss_customer_sk#32695]
+                  :           :     :  :           +- BroadcastHashJoin [ss_sold_date_sk#32715], [d_date_sk#32716], Inner, BuildRight, false
+                  :           :     :  :              :- Project [ss_customer_sk#32695, ss_sold_date_sk#32715]
+                  :           :     :  :              :  +- Filter isnotnull(ss_sold_date_sk#32715)
+                  :           :     :  :              :     +- BatchScan[ss_sold_time_sk#32693, ss_item_sk#32694, ss_customer_sk#32695, ss_cdemo_sk#32696, ss_hdemo_sk#32697, ss_addr_sk#32698, ss_store_sk#32699, ss_promo_sk#32700, ss_ticket_number#32701L, ss_quantity#32702, ss_wholesale_cost#32703, ss_list_price#32704, ss_sales_price#32705, ss_ext_discount_amt#32706, ss_ext_sales_price#32707, ss_ext_wholesale_cost#32708, ss_ext_list_price#32709, ss_ext_tax#32710, ss_coupon_amt#32711, ss_net_paid#32712, ss_net_paid_inc_tax#32713, ss_net_profit#32714, ss_sold_date_sk#32715] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#32715 IN dynamicpruning#33107)]
+                  :           :     :  :              :           +- SubqueryAdaptiveBroadcast dynamicpruning#33107, 0, true, Project [d_date_sk#32716], [d_date_sk#32716]
+                  :           :     :  :              :              +- AdaptiveSparkPlan isFinalPlan=false
+                  :           :     :  :              :                 +- Project [d_date_sk#32716]
+                  :           :     :  :              :                    +- Filter (((((isnotnull(d_year#32722) AND isnotnull(d_moy#32724)) AND (d_year#32722 = 1999)) AND (d_moy#32724 >= 1)) AND (d_moy#32724 <= 3)) AND isnotnull(d_date_sk#32716))
+                  :           :     :  :              :                       +- BatchScan[d_date_sk#32716, d_date_id#32717, d_date#32718, d_month_seq#32719, d_week_seq#32720, d_quarter_seq#32721, d_year#32722, d_dow#32723, d_moy#32724, d_dom#32725, d_qoy#32726, d_fy_year#32727, d_fy_quarter_seq#32728, d_fy_week_seq#32729, d_day_name#32730, d_quarter_name#32731, d_holiday#32732, d_weekend#32733, d_following_holiday#32734, d_first_dom#32735, d_last_dom#32736, d_same_day_ly#32737, d_same_day_lq#32738, d_current_day#32739, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1999, d_moy >= 1, d_moy <= 3, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     :  :              +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=24771]
+                  :           :     :  :                 +- Project [d_date_sk#32716]
+                  :           :     :  :                    +- Filter (((((isnotnull(d_year#32722) AND isnotnull(d_moy#32724)) AND (d_year#32722 = 1999)) AND (d_moy#32724 >= 1)) AND (d_moy#32724 <= 3)) AND isnotnull(d_date_sk#32716))
+                  :           :     :  :                       +- BatchScan[d_date_sk#32716, d_date_id#32717, d_date#32718, d_month_seq#32719, d_week_seq#32720, d_quarter_seq#32721, d_year#32722, d_dow#32723, d_moy#32724, d_dom#32725, d_qoy#32726, d_fy_year#32727, d_fy_quarter_seq#32728, d_fy_week_seq#32729, d_day_name#32730, d_quarter_name#32731, d_holiday#32732, d_weekend#32733, d_following_holiday#32734, d_first_dom#32735, d_last_dom#32736, d_same_day_ly#32737, d_same_day_lq#32738, d_current_day#32739, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1999, d_moy >= 1, d_moy <= 3, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     :  +- Sort [ws_bill_customer_sk#32757 ASC NULLS FIRST], false, 0
+                  :           :     :     +- Exchange hashpartitioning(ws_bill_customer_sk#32757, 200), ENSURE_REQUIREMENTS, [plan_id=24786]
+                  :           :     :        +- Project [ws_bill_customer_sk#32757]
+                  :           :     :           +- BroadcastHashJoin [ws_sold_date_sk#32787], [d_date_sk#32788], Inner, BuildRight, false
+                  :           :     :              :- Project [ws_bill_customer_sk#32757, ws_sold_date_sk#32787]
+                  :           :     :              :  +- Filter isnotnull(ws_sold_date_sk#32787)
+                  :           :     :              :     +- BatchScan[ws_sold_time_sk#32754, ws_ship_date_sk#32755, ws_item_sk#32756, ws_bill_customer_sk#32757, ws_bill_cdemo_sk#32758, ws_bill_hdemo_sk#32759, ws_bill_addr_sk#32760, ws_ship_customer_sk#32761, ws_ship_cdemo_sk#32762, ws_ship_hdemo_sk#32763, ws_ship_addr_sk#32764, ws_web_page_sk#32765, ws_web_site_sk#32766, ws_ship_mode_sk#32767, ws_warehouse_sk#32768, ws_promo_sk#32769, ws_order_number#32770L, ws_quantity#32771, ws_wholesale_cost#32772, ws_list_price#32773, ws_sales_price#32774, ws_ext_discount_amt#32775, ws_ext_sales_price#32776, ws_ext_wholesale_cost#32777, ... 10 more fields] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#32787 IN dynamicpruning#33108)]
+                  :           :     :              :           +- SubqueryAdaptiveBroadcast dynamicpruning#33108, 0, true, Project [d_date_sk#32788], [d_date_sk#32788]
+                  :           :     :              :              +- AdaptiveSparkPlan isFinalPlan=false
+                  :           :     :              :                 +- Project [d_date_sk#32788]
+                  :           :     :              :                    +- Filter (((((isnotnull(d_year#32794) AND isnotnull(d_moy#32796)) AND (d_year#32794 = 1999)) AND (d_moy#32796 >= 1)) AND (d_moy#32796 <= 3)) AND isnotnull(d_date_sk#32788))
+                  :           :     :              :                       +- BatchScan[d_date_sk#32788, d_date_id#32789, d_date#32790, d_month_seq#32791, d_week_seq#32792, d_quarter_seq#32793, d_year#32794, d_dow#32795, d_moy#32796, d_dom#32797, d_qoy#32798, d_fy_year#32799, d_fy_quarter_seq#32800, d_fy_week_seq#32801, d_day_name#32802, d_quarter_name#32803, d_holiday#32804, d_weekend#32805, d_following_holiday#32806, d_first_dom#32807, d_last_dom#32808, d_same_day_ly#32809, d_same_day_lq#32810, d_current_day#32811, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1999, d_moy >= 1, d_moy <= 3, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     :              +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=24781]
+                  :           :     :                 +- Project [d_date_sk#32788]
+                  :           :     :                    +- Filter (((((isnotnull(d_year#32794) AND isnotnull(d_moy#32796)) AND (d_year#32794 = 1999)) AND (d_moy#32796 >= 1)) AND (d_moy#32796 <= 3)) AND isnotnull(d_date_sk#32788))
+                  :           :     :                       +- BatchScan[d_date_sk#32788, d_date_id#32789, d_date#32790, d_month_seq#32791, d_week_seq#32792, d_quarter_seq#32793, d_year#32794, d_dow#32795, d_moy#32796, d_dom#32797, d_qoy#32798, d_fy_year#32799, d_fy_quarter_seq#32800, d_fy_week_seq#32801, d_day_name#32802, d_quarter_name#32803, d_holiday#32804, d_weekend#32805, d_following_holiday#32806, d_first_dom#32807, d_last_dom#32808, d_same_day_ly#32809, d_same_day_lq#32810, d_current_day#32811, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1999, d_moy >= 1, d_moy <= 3, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     +- Sort [cs_ship_customer_sk#32832 ASC NULLS FIRST], false, 0
+                  :           :        +- Exchange hashpartitioning(cs_ship_customer_sk#32832, 200), ENSURE_REQUIREMENTS, [plan_id=24794]
+                  :           :           +- Project [cs_ship_customer_sk#32832]
+                  :           :              +- BroadcastHashJoin [cs_sold_date_sk#32859], [d_date_sk#32860], Inner, BuildRight, false
+                  :           :                 :- Project [cs_ship_customer_sk#32832, cs_sold_date_sk#32859]
+                  :           :                 :  +- Filter isnotnull(cs_sold_date_sk#32859)
+                  :           :                 :     +- BatchScan[cs_sold_time_sk#32826, cs_ship_date_sk#32827, cs_bill_customer_sk#32828, cs_bill_cdemo_sk#32829, cs_bill_hdemo_sk#32830, cs_bill_addr_sk#32831, cs_ship_customer_sk#32832, cs_ship_cdemo_sk#32833, cs_ship_hdemo_sk#32834, cs_ship_addr_sk#32835, cs_call_center_sk#32836, cs_catalog_page_sk#32837, cs_ship_mode_sk#32838, cs_warehouse_sk#32839, cs_item_sk#32840, cs_promo_sk#32841, cs_order_number#32842L, cs_quantity#32843, cs_wholesale_cost#32844, cs_list_price#32845, cs_sales_price#32846, cs_ext_discount_amt#32847, cs_ext_sales_price#32848, cs_ext_wholesale_cost#32849, ... 10 more fields] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cs_sold_date_sk#32859 IN dynamicpruning#33109)]
+                  :           :                 :           +- SubqueryAdaptiveBroadcast dynamicpruning#33109, 0, true, Project [d_date_sk#32860], [d_date_sk#32860]
+                  :           :                 :              +- AdaptiveSparkPlan isFinalPlan=false
+                  :           :                 :                 +- Project [d_date_sk#32860]
+                  :           :                 :                    +- Filter (((((isnotnull(d_year#32866) AND isnotnull(d_moy#32868)) AND (d_year#32866 = 1999)) AND (d_moy#32868 >= 1)) AND (d_moy#32868 <= 3)) AND isnotnull(d_date_sk#32860))
+                  :           :                 :                       +- BatchScan[d_date_sk#32860, d_date_id#32861, d_date#32862, d_month_seq#32863, d_week_seq#32864, d_quarter_seq#32865, d_year#32866, d_dow#32867, d_moy#32868, d_dom#32869, d_qoy#32870, d_fy_year#32871, d_fy_quarter_seq#32872, d_fy_week_seq#32873, d_day_name#32874, d_quarter_name#32875, d_holiday#32876, d_weekend#32877, d_following_holiday#32878, d_first_dom#32879, d_last_dom#32880, d_same_day_ly#32881, d_same_day_lq#32882, d_current_day#32883, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1999, d_moy >= 1, d_moy <= 3, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :           :                 +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=24789]
+                  :           :                    +- Project [d_date_sk#32860]
+                  :           :                       +- Filter (((((isnotnull(d_year#32866) AND isnotnull(d_moy#32868)) AND (d_year#32866 = 1999)) AND (d_moy#32868 >= 1)) AND (d_moy#32868 <= 3)) AND isnotnull(d_date_sk#32860))
+                  :           :                          +- BatchScan[d_date_sk#32860, d_date_id#32861, d_date#32862, d_month_seq#32863, d_week_seq#32864, d_quarter_seq#32865, d_year#32866, d_dow#32867, d_moy#32868, d_dom#32869, d_qoy#32870, d_fy_year#32871, d_fy_quarter_seq#32872, d_fy_week_seq#32873, d_day_name#32874, d_quarter_name#32875, d_holiday#32876, d_weekend#32877, d_following_holiday#32878, d_first_dom#32879, d_last_dom#32880, d_same_day_ly#32881, d_same_day_lq#32882, d_current_day#32883, ... 4 more fields] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_moy IS NOT NULL, d_year = 1999, d_moy >= 1, d_moy <= 3, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=24799]
+                  :              +- Project [ca_address_sk#32668]
+                  :                 +- Filter (ca_state#32676 IN (CO,IL,MN) AND isnotnull(ca_address_sk#32668))
+                  :                    +- BatchScan[ca_address_sk#32668, ca_state#32676] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_state IN ('CO', 'IL', 'MN'), ca_address_sk IS NOT NULL] RuntimeFilters: []
+                  +- Sort [cd_demo_sk#32681 ASC NULLS FIRST], false, 0
+                     +- Exchange hashpartitioning(cd_demo_sk#32681, 200), ENSURE_REQUIREMENTS, [plan_id=24805]
+                        +- Filter isnotnull(cd_demo_sk#32681)
+                           +- BatchScan[cd_demo_sk#32681, cd_gender#32682, cd_marital_status#32683, cd_education_status#32684, cd_purchase_estimate#32685, cd_credit_rating#32686] spark_catalog.tpcds_iceberg_10g.customer_demographics [filters=cd_demo_sk IS NOT NULL] RuntimeFilters: []
+

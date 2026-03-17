@@ -1,0 +1,50 @@
+== Optimized Logical Plan ==
+Sort [d_year#29505 ASC NULLS FIRST, p_brand#29522 ASC NULLS FIRST], true
++- Aggregate [d_year#29505, p_brand#29522], [sum(lo_revenue#29496L) AS lo_revenue#29483L, d_year#29505, p_brand#29522]
+   +- Project [lo_revenue#29496L, d_year#29505, p_brand#29522]
+      +- Join Inner, (lo_suppkey#29488 = s_suppkey#29527)
+         :- Project [lo_suppkey#29488, lo_revenue#29496L, d_year#29505, p_brand#29522]
+         :  +- Join Inner, (lo_partkey#29487 = p_partkey#29518)
+         :     :- Project [lo_partkey#29487, lo_suppkey#29488, lo_revenue#29496L, d_year#29505]
+         :     :  +- Join LeftOuter, (lo_orderdate#29489 = d_datekey#29502)
+         :     :     :- Filter (isnotnull(lo_partkey#29487) AND isnotnull(lo_suppkey#29488))
+         :     :     :  +- RelationV2[lo_partkey#29487, lo_suppkey#29488, lo_orderdate#29489, lo_revenue#29496L] spark_catalog.ssb_iceberg_10g.lineorder
+         :     :     +- Filter isnotnull(d_datekey#29502)
+         :     :        +- RelationV2[d_datekey#29502, d_year#29505] spark_catalog.ssb_iceberg_10g.date
+         :     +- Filter ((isnotnull(p_brand#29522) AND (p_brand#29522 = MFGR#2221)) AND isnotnull(p_partkey#29518))
+         :        +- RelationV2[p_partkey#29518, p_brand#29522] spark_catalog.ssb_iceberg_10g.part
+         +- Project [s_suppkey#29527]
+            +- Filter ((isnotnull(s_region#29532) AND (s_region#29532 = EUROPE)) AND isnotnull(s_suppkey#29527))
+               +- RelationV2[s_suppkey#29527, s_region#29532] spark_catalog.ssb_iceberg_10g.supplier
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [d_year#29505 ASC NULLS FIRST, p_brand#29522 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(d_year#29505 ASC NULLS FIRST, p_brand#29522 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=35568]
+      +- HashAggregate(keys=[d_year#29505, p_brand#29522], functions=[sum(lo_revenue#29496L)], output=[lo_revenue#29483L, d_year#29505, p_brand#29522])
+         +- Exchange hashpartitioning(d_year#29505, p_brand#29522, 200), ENSURE_REQUIREMENTS, [plan_id=35565]
+            +- HashAggregate(keys=[d_year#29505, p_brand#29522], functions=[partial_sum(lo_revenue#29496L)], output=[d_year#29505, p_brand#29522, sum#29569L])
+               +- Project [lo_revenue#29496L, d_year#29505, p_brand#29522]
+                  +- BroadcastHashJoin [lo_suppkey#29488], [s_suppkey#29527], Inner, BuildRight, false
+                     :- Project [lo_suppkey#29488, lo_revenue#29496L, d_year#29505, p_brand#29522]
+                     :  +- SortMergeJoin [lo_partkey#29487], [p_partkey#29518], Inner
+                     :     :- Sort [lo_partkey#29487 ASC NULLS FIRST], false, 0
+                     :     :  +- Exchange hashpartitioning(lo_partkey#29487, 200), ENSURE_REQUIREMENTS, [plan_id=35553]
+                     :     :     +- Project [lo_partkey#29487, lo_suppkey#29488, lo_revenue#29496L, d_year#29505]
+                     :     :        +- BroadcastHashJoin [lo_orderdate#29489], [d_datekey#29502], LeftOuter, BuildRight, false
+                     :     :           :- Filter (isnotnull(lo_partkey#29487) AND isnotnull(lo_suppkey#29488))
+                     :     :           :  +- BatchScan[lo_partkey#29487, lo_suppkey#29488, lo_orderdate#29489, lo_revenue#29496L] spark_catalog.ssb_iceberg_10g.lineorder [filters=lo_partkey IS NOT NULL, lo_suppkey IS NOT NULL] RuntimeFilters: []
+                     :     :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=35548]
+                     :     :              +- Project [d_datekey#29502, d_year#29505]
+                     :     :                 +- Filter isnotnull(d_datekey#29502)
+                     :     :                    +- BatchScan[d_datekey#29502, d_year#29505] spark_catalog.ssb_iceberg_10g.date [filters=d_datekey IS NOT NULL] RuntimeFilters: []
+                     :     +- Sort [p_partkey#29518 ASC NULLS FIRST], false, 0
+                     :        +- Exchange hashpartitioning(p_partkey#29518, 200), ENSURE_REQUIREMENTS, [plan_id=35554]
+                     :           +- Filter ((isnotnull(p_brand#29522) AND (p_brand#29522 = MFGR#2221)) AND isnotnull(p_partkey#29518))
+                     :              +- BatchScan[p_partkey#29518, p_brand#29522] spark_catalog.ssb_iceberg_10g.part [filters=p_brand IS NOT NULL, p_brand = 'MFGR#2221', p_partkey IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=35560]
+                        +- Project [s_suppkey#29527]
+                           +- Filter ((isnotnull(s_region#29532) AND (s_region#29532 = EUROPE)) AND isnotnull(s_suppkey#29527))
+                              +- BatchScan[s_suppkey#29527, s_region#29532] spark_catalog.ssb_iceberg_10g.supplier [filters=s_region IS NOT NULL, s_region = 'EUROPE', s_suppkey IS NOT NULL] RuntimeFilters: []
+

@@ -1,0 +1,11 @@
+=== Optimized Logical Plan ===
+Aggregate [((100.0 * sum(CASE WHEN StartsWith(p_type#31, PROMO) THEN (l_extendedprice#11 * (1.0 - l_discount#12)) ELSE 0.0 END)) / sum((l_extendedprice#11 * (1.0 - l_discount#12)))) AS promo_revenue#0]
++- Project [l_extendedprice#11, l_discount#12, p_type#31]
+   +- Join Inner, (l_partkey#7L = p_partkey#27L)
+      :- Project [l_partkey#7L, l_extendedprice#11, l_discount#12]
+      :  +- Filter ((isnotnull(l_shipdate#16) AND ((cast(l_shipdate#16 as date) >= 1997-10-01) AND (cast(l_shipdate#16 as date) < 1997-11-01))) AND isnotnull(l_partkey#7L))
+      :     +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+      +- Project [p_partkey#27L, p_type#31]
+         +- Filter isnotnull(p_partkey#27L)
+            +- Relation tpch_hudi_10g.part[_hoodie_commit_time#22,_hoodie_commit_seqno#23,_hoodie_record_key#24,_hoodie_partition_path#25,_hoodie_file_name#26,p_partkey#27L,p_name#28,p_mfgr#29,p_brand#30,p_type#31,p_size#32L,p_container#33,p_retailprice#34,p_comment#35] parquet
+=== Physical Plan ===

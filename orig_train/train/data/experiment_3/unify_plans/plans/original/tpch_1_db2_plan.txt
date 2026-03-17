@@ -1,0 +1,157 @@
+== Parsed Logical Plan ==
+'Sort ['s_acctbal DESC NULLS LAST, 'n_name ASC NULLS FIRST, 's_name ASC NULLS FIRST, 'p_partkey ASC NULLS FIRST], true
++- 'Project ['s_acctbal, 's_name, 'n_name, 'p_partkey, 'p_mfgr, 's_address, 's_phone, 's_comment]
+   +- 'Filter (((('p_partkey = 'ps_partkey) AND ('s_suppkey = 'ps_suppkey)) AND (('p_size = 50) AND 'p_type LIKE %STEEL)) AND ((('s_nationkey = 'n_nationkey) AND ('n_regionkey = 'r_regionkey)) AND (('r_name = MIDDLE EAST) AND ('ps_supplycost = scalar-subquery#10402 []))))
+      :  +- 'Project [unresolvedalias('min('ps_supplycost), None)]
+      :     +- 'Filter (((('p_partkey = 'ps_partkey) AND ('s_suppkey = 'ps_suppkey)) AND ('s_nationkey = 'n_nationkey)) AND (('n_regionkey = 'r_regionkey) AND ('r_name = MIDDLE EAST)))
+      :        +- 'Join Inner
+      :           :- 'Join Inner
+      :           :  :- 'Join Inner
+      :           :  :  :- 'UnresolvedRelation [partsupp], [], false
+      :           :  :  +- 'UnresolvedRelation [supplier], [], false
+      :           :  +- 'UnresolvedRelation [nation], [], false
+      :           +- 'UnresolvedRelation [region], [], false
+      +- 'Join Inner
+         :- 'Join Inner
+         :  :- 'Join Inner
+         :  :  :- 'Join Inner
+         :  :  :  :- 'UnresolvedRelation [part], [], false
+         :  :  :  +- 'UnresolvedRelation [supplier], [], false
+         :  :  +- 'UnresolvedRelation [partsupp], [], false
+         :  +- 'UnresolvedRelation [nation], [], false
+         +- 'UnresolvedRelation [region], [], false
+
+== Analyzed Logical Plan ==
+s_acctbal: double, s_name: string, n_name: string, p_partkey: bigint, p_mfgr: string, s_address: string, s_phone: string, s_comment: string
+Sort [s_acctbal#10423 DESC NULLS LAST, n_name#10431 ASC NULLS FIRST, s_name#10419 ASC NULLS FIRST, p_partkey#10409L ASC NULLS FIRST], true
++- Project [s_acctbal#10423, s_name#10419, n_name#10431, p_partkey#10409L, p_mfgr#10411, s_address#10420, s_phone#10422, s_comment#10424]
+   +- Filter ((((p_partkey#10409L = ps_partkey#10425L) AND (s_suppkey#10418L = ps_suppkey#10426L)) AND ((p_size#10414L = cast(50 as bigint)) AND p_type#10413 LIKE %STEEL)) AND (((s_nationkey#10421L = n_nationkey#10430L) AND (n_regionkey#10432L = r_regionkey#10434L)) AND ((r_name#10435 = MIDDLE EAST) AND (ps_supplycost#10428 = scalar-subquery#10402 [p_partkey#10409L]))))
+      :  +- Aggregate [min(ps_supplycost#10440) AS min(ps_supplycost)#10477]
+      :     +- Filter ((((outer(p_partkey#10409L) = ps_partkey#10437L) AND (s_suppkey#10442L = ps_suppkey#10438L)) AND (s_nationkey#10445L = n_nationkey#10449L)) AND ((n_regionkey#10451L = r_regionkey#10453L) AND (r_name#10454 = MIDDLE EAST)))
+      :        +- Join Inner
+      :           :- Join Inner
+      :           :  :- Join Inner
+      :           :  :  :- SubqueryAlias spark_catalog.tpch_iceberg_10g.partsupp
+      :           :  :  :  +- RelationV2[ps_partkey#10437L, ps_suppkey#10438L, ps_availqty#10439L, ps_supplycost#10440, ps_comment#10441] spark_catalog.tpch_iceberg_10g.partsupp
+      :           :  :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.supplier
+      :           :  :     +- RelationV2[s_suppkey#10442L, s_name#10443, s_address#10444, s_nationkey#10445L, s_phone#10446, s_acctbal#10447, s_comment#10448] spark_catalog.tpch_iceberg_10g.supplier
+      :           :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.nation
+      :           :     +- RelationV2[n_nationkey#10449L, n_name#10450, n_regionkey#10451L, n_comment#10452] spark_catalog.tpch_iceberg_10g.nation
+      :           +- SubqueryAlias spark_catalog.tpch_iceberg_10g.region
+      :              +- RelationV2[r_regionkey#10453L, r_name#10454, r_comment#10455] spark_catalog.tpch_iceberg_10g.region
+      +- Join Inner
+         :- Join Inner
+         :  :- Join Inner
+         :  :  :- Join Inner
+         :  :  :  :- SubqueryAlias spark_catalog.tpch_iceberg_10g.part
+         :  :  :  :  +- RelationV2[p_partkey#10409L, p_name#10410, p_mfgr#10411, p_brand#10412, p_type#10413, p_size#10414L, p_container#10415, p_retailprice#10416, p_comment#10417] spark_catalog.tpch_iceberg_10g.part
+         :  :  :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.supplier
+         :  :  :     +- RelationV2[s_suppkey#10418L, s_name#10419, s_address#10420, s_nationkey#10421L, s_phone#10422, s_acctbal#10423, s_comment#10424] spark_catalog.tpch_iceberg_10g.supplier
+         :  :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.partsupp
+         :  :     +- RelationV2[ps_partkey#10425L, ps_suppkey#10426L, ps_availqty#10427L, ps_supplycost#10428, ps_comment#10429] spark_catalog.tpch_iceberg_10g.partsupp
+         :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.nation
+         :     +- RelationV2[n_nationkey#10430L, n_name#10431, n_regionkey#10432L, n_comment#10433] spark_catalog.tpch_iceberg_10g.nation
+         +- SubqueryAlias spark_catalog.tpch_iceberg_10g.region
+            +- RelationV2[r_regionkey#10434L, r_name#10435, r_comment#10436] spark_catalog.tpch_iceberg_10g.region
+
+== Optimized Logical Plan ==
+Sort [s_acctbal#10423 DESC NULLS LAST, n_name#10431 ASC NULLS FIRST, s_name#10419 ASC NULLS FIRST, p_partkey#10409L ASC NULLS FIRST], true
++- Project [s_acctbal#10423, s_name#10419, n_name#10431, p_partkey#10409L, p_mfgr#10411, s_address#10420, s_phone#10422, s_comment#10424]
+   +- Join Inner, (n_regionkey#10432L = r_regionkey#10434L)
+      :- Project [p_partkey#10409L, p_mfgr#10411, s_name#10419, s_address#10420, s_phone#10422, s_acctbal#10423, s_comment#10424, n_name#10431, n_regionkey#10432L]
+      :  +- Join Inner, (s_nationkey#10421L = n_nationkey#10430L)
+      :     :- Project [p_partkey#10409L, p_mfgr#10411, s_name#10419, s_address#10420, s_nationkey#10421L, s_phone#10422, s_acctbal#10423, s_comment#10424]
+      :     :  +- Join Inner, (s_suppkey#10418L = ps_suppkey#10426L)
+      :     :     :- Project [p_partkey#10409L, p_mfgr#10411, ps_suppkey#10426L]
+      :     :     :  +- Join Inner, ((knownfloatingpointnormalized(normalizenanandzero(ps_supplycost#10428)) = knownfloatingpointnormalized(normalizenanandzero(min(ps_supplycost)#10477))) AND (p_partkey#10409L = ps_partkey#10437L))
+      :     :     :     :- Project [p_partkey#10409L, p_mfgr#10411, ps_suppkey#10426L, ps_supplycost#10428]
+      :     :     :     :  +- Join Inner, (p_partkey#10409L = ps_partkey#10425L)
+      :     :     :     :     :- Project [p_partkey#10409L, p_mfgr#10411]
+      :     :     :     :     :  +- Filter ((((isnotnull(p_size#10414L) AND isnotnull(p_type#10413)) AND (p_size#10414L = 50)) AND EndsWith(p_type#10413, STEEL)) AND isnotnull(p_partkey#10409L))
+      :     :     :     :     :     +- RelationV2[p_partkey#10409L, p_mfgr#10411, p_type#10413, p_size#10414L] spark_catalog.tpch_iceberg_10g.part
+      :     :     :     :     +- Filter ((isnotnull(ps_partkey#10425L) AND isnotnull(ps_supplycost#10428)) AND isnotnull(ps_suppkey#10426L))
+      :     :     :     :        +- RelationV2[ps_partkey#10425L, ps_suppkey#10426L, ps_supplycost#10428] spark_catalog.tpch_iceberg_10g.partsupp
+      :     :     :     +- Filter isnotnull(min(ps_supplycost)#10477)
+      :     :     :        +- Aggregate [ps_partkey#10437L], [min(ps_supplycost#10440) AS min(ps_supplycost)#10477, ps_partkey#10437L]
+      :     :     :           +- Project [ps_partkey#10437L, ps_supplycost#10440]
+      :     :     :              +- Join Inner, (n_regionkey#10451L = r_regionkey#10453L)
+      :     :     :                 :- Project [ps_partkey#10437L, ps_supplycost#10440, n_regionkey#10451L]
+      :     :     :                 :  +- Join Inner, (s_nationkey#10445L = n_nationkey#10449L)
+      :     :     :                 :     :- Project [ps_partkey#10437L, ps_supplycost#10440, s_nationkey#10445L]
+      :     :     :                 :     :  +- Join Inner, (s_suppkey#10442L = ps_suppkey#10438L)
+      :     :     :                 :     :     :- Filter (isnotnull(ps_suppkey#10438L) AND isnotnull(ps_partkey#10437L))
+      :     :     :                 :     :     :  +- RelationV2[ps_partkey#10437L, ps_suppkey#10438L, ps_supplycost#10440] spark_catalog.tpch_iceberg_10g.partsupp
+      :     :     :                 :     :     +- Filter (isnotnull(s_suppkey#10442L) AND isnotnull(s_nationkey#10445L))
+      :     :     :                 :     :        +- RelationV2[s_suppkey#10442L, s_nationkey#10445L] spark_catalog.tpch_iceberg_10g.supplier
+      :     :     :                 :     +- Filter (isnotnull(n_nationkey#10449L) AND isnotnull(n_regionkey#10451L))
+      :     :     :                 :        +- RelationV2[n_nationkey#10449L, n_regionkey#10451L] spark_catalog.tpch_iceberg_10g.nation
+      :     :     :                 +- Project [r_regionkey#10453L]
+      :     :     :                    +- Filter ((isnotnull(r_name#10454) AND (r_name#10454 = MIDDLE EAST)) AND isnotnull(r_regionkey#10453L))
+      :     :     :                       +- RelationV2[r_regionkey#10453L, r_name#10454] spark_catalog.tpch_iceberg_10g.region
+      :     :     +- Filter (isnotnull(s_suppkey#10418L) AND isnotnull(s_nationkey#10421L))
+      :     :        +- RelationV2[s_suppkey#10418L, s_name#10419, s_address#10420, s_nationkey#10421L, s_phone#10422, s_acctbal#10423, s_comment#10424] spark_catalog.tpch_iceberg_10g.supplier
+      :     +- Filter (isnotnull(n_nationkey#10430L) AND isnotnull(n_regionkey#10432L))
+      :        +- RelationV2[n_nationkey#10430L, n_name#10431, n_regionkey#10432L] spark_catalog.tpch_iceberg_10g.nation
+      +- Project [r_regionkey#10434L]
+         +- Filter ((isnotnull(r_name#10435) AND (r_name#10435 = MIDDLE EAST)) AND isnotnull(r_regionkey#10434L))
+            +- RelationV2[r_regionkey#10434L, r_name#10435] spark_catalog.tpch_iceberg_10g.region
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [s_acctbal#10423 DESC NULLS LAST, n_name#10431 ASC NULLS FIRST, s_name#10419 ASC NULLS FIRST, p_partkey#10409L ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(s_acctbal#10423 DESC NULLS LAST, n_name#10431 ASC NULLS FIRST, s_name#10419 ASC NULLS FIRST, p_partkey#10409L ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=12115]
+      +- Project [s_acctbal#10423, s_name#10419, n_name#10431, p_partkey#10409L, p_mfgr#10411, s_address#10420, s_phone#10422, s_comment#10424]
+         +- BroadcastHashJoin [n_regionkey#10432L], [r_regionkey#10434L], Inner, BuildRight, false
+            :- Project [p_partkey#10409L, p_mfgr#10411, s_name#10419, s_address#10420, s_phone#10422, s_acctbal#10423, s_comment#10424, n_name#10431, n_regionkey#10432L]
+            :  +- BroadcastHashJoin [s_nationkey#10421L], [n_nationkey#10430L], Inner, BuildRight, false
+            :     :- Project [p_partkey#10409L, p_mfgr#10411, s_name#10419, s_address#10420, s_nationkey#10421L, s_phone#10422, s_acctbal#10423, s_comment#10424]
+            :     :  +- BroadcastHashJoin [ps_suppkey#10426L], [s_suppkey#10418L], Inner, BuildRight, false
+            :     :     :- Project [p_partkey#10409L, p_mfgr#10411, ps_suppkey#10426L]
+            :     :     :  +- SortMergeJoin [knownfloatingpointnormalized(normalizenanandzero(ps_supplycost#10428)), p_partkey#10409L], [knownfloatingpointnormalized(normalizenanandzero(min(ps_supplycost)#10477)), ps_partkey#10437L], Inner
+            :     :     :     :- Sort [knownfloatingpointnormalized(normalizenanandzero(ps_supplycost#10428)) ASC NULLS FIRST, p_partkey#10409L ASC NULLS FIRST], false, 0
+            :     :     :     :  +- Exchange hashpartitioning(knownfloatingpointnormalized(normalizenanandzero(ps_supplycost#10428)), p_partkey#10409L, 200), ENSURE_REQUIREMENTS, [plan_id=12096]
+            :     :     :     :     +- Project [p_partkey#10409L, p_mfgr#10411, ps_suppkey#10426L, ps_supplycost#10428]
+            :     :     :     :        +- SortMergeJoin [p_partkey#10409L], [ps_partkey#10425L], Inner
+            :     :     :     :           :- Sort [p_partkey#10409L ASC NULLS FIRST], false, 0
+            :     :     :     :           :  +- Exchange hashpartitioning(p_partkey#10409L, 200), ENSURE_REQUIREMENTS, [plan_id=12073]
+            :     :     :     :           :     +- Project [p_partkey#10409L, p_mfgr#10411]
+            :     :     :     :           :        +- Filter ((((isnotnull(p_size#10414L) AND isnotnull(p_type#10413)) AND (p_size#10414L = 50)) AND EndsWith(p_type#10413, STEEL)) AND isnotnull(p_partkey#10409L))
+            :     :     :     :           :           +- BatchScan[p_partkey#10409L, p_mfgr#10411, p_type#10413, p_size#10414L] spark_catalog.tpch_iceberg_10g.part [filters=p_size IS NOT NULL, p_type IS NOT NULL, p_size = 50, p_partkey IS NOT NULL] RuntimeFilters: []
+            :     :     :     :           +- Sort [ps_partkey#10425L ASC NULLS FIRST], false, 0
+            :     :     :     :              +- Exchange hashpartitioning(ps_partkey#10425L, 200), ENSURE_REQUIREMENTS, [plan_id=12072]
+            :     :     :     :                 +- Filter ((isnotnull(ps_partkey#10425L) AND isnotnull(ps_supplycost#10428)) AND isnotnull(ps_suppkey#10426L))
+            :     :     :     :                    +- BatchScan[ps_partkey#10425L, ps_suppkey#10426L, ps_supplycost#10428] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_partkey IS NOT NULL, ps_supplycost IS NOT NULL, ps_suppkey IS NOT NULL] RuntimeFilters: []
+            :     :     :     +- Sort [knownfloatingpointnormalized(normalizenanandzero(min(ps_supplycost)#10477)) ASC NULLS FIRST, ps_partkey#10437L ASC NULLS FIRST], false, 0
+            :     :     :        +- Exchange hashpartitioning(knownfloatingpointnormalized(normalizenanandzero(min(ps_supplycost)#10477)), ps_partkey#10437L, 200), ENSURE_REQUIREMENTS, [plan_id=12097]
+            :     :     :           +- Filter isnotnull(min(ps_supplycost)#10477)
+            :     :     :              +- HashAggregate(keys=[ps_partkey#10437L], functions=[min(ps_supplycost#10440)], output=[min(ps_supplycost)#10477, ps_partkey#10437L])
+            :     :     :                 +- Exchange hashpartitioning(ps_partkey#10437L, 200), ENSURE_REQUIREMENTS, [plan_id=12091]
+            :     :     :                    +- HashAggregate(keys=[ps_partkey#10437L], functions=[partial_min(ps_supplycost#10440)], output=[ps_partkey#10437L, min#10532])
+            :     :     :                       +- Project [ps_partkey#10437L, ps_supplycost#10440]
+            :     :     :                          +- BroadcastHashJoin [n_regionkey#10451L], [r_regionkey#10453L], Inner, BuildRight, false
+            :     :     :                             :- Project [ps_partkey#10437L, ps_supplycost#10440, n_regionkey#10451L]
+            :     :     :                             :  +- BroadcastHashJoin [s_nationkey#10445L], [n_nationkey#10449L], Inner, BuildRight, false
+            :     :     :                             :     :- Project [ps_partkey#10437L, ps_supplycost#10440, s_nationkey#10445L]
+            :     :     :                             :     :  +- BroadcastHashJoin [ps_suppkey#10438L], [s_suppkey#10442L], Inner, BuildRight, false
+            :     :     :                             :     :     :- Filter (isnotnull(ps_suppkey#10438L) AND isnotnull(ps_partkey#10437L))
+            :     :     :                             :     :     :  +- BatchScan[ps_partkey#10437L, ps_suppkey#10438L, ps_supplycost#10440] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_suppkey IS NOT NULL] RuntimeFilters: []
+            :     :     :                             :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=12078]
+            :     :     :                             :     :        +- Filter (isnotnull(s_suppkey#10442L) AND isnotnull(s_nationkey#10445L))
+            :     :     :                             :     :           +- BatchScan[s_suppkey#10442L, s_nationkey#10445L] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL, s_nationkey IS NOT NULL] RuntimeFilters: []
+            :     :     :                             :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=12082]
+            :     :     :                             :        +- Filter (isnotnull(n_nationkey#10449L) AND isnotnull(n_regionkey#10451L))
+            :     :     :                             :           +- BatchScan[n_nationkey#10449L, n_regionkey#10451L] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, n_regionkey IS NOT NULL] RuntimeFilters: []
+            :     :     :                             +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=12086]
+            :     :     :                                +- Project [r_regionkey#10453L]
+            :     :     :                                   +- Filter ((isnotnull(r_name#10454) AND (r_name#10454 = MIDDLE EAST)) AND isnotnull(r_regionkey#10453L))
+            :     :     :                                      +- BatchScan[r_regionkey#10453L, r_name#10454] spark_catalog.tpch_iceberg_10g.region [filters=r_name IS NOT NULL, r_name = 'MIDDLE EAST', r_regionkey IS NOT NULL] RuntimeFilters: []
+            :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=12103]
+            :     :        +- Filter (isnotnull(s_suppkey#10418L) AND isnotnull(s_nationkey#10421L))
+            :     :           +- BatchScan[s_suppkey#10418L, s_name#10419, s_address#10420, s_nationkey#10421L, s_phone#10422, s_acctbal#10423, s_comment#10424] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL, s_nationkey IS NOT NULL] RuntimeFilters: []
+            :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=12107]
+            :        +- Filter (isnotnull(n_nationkey#10430L) AND isnotnull(n_regionkey#10432L))
+            :           +- BatchScan[n_nationkey#10430L, n_name#10431, n_regionkey#10432L] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, n_regionkey IS NOT NULL] RuntimeFilters: []
+            +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=12111]
+               +- Project [r_regionkey#10434L]
+                  +- Filter ((isnotnull(r_name#10435) AND (r_name#10435 = MIDDLE EAST)) AND isnotnull(r_regionkey#10434L))
+                     +- BatchScan[r_regionkey#10434L, r_name#10435] spark_catalog.tpch_iceberg_10g.region [filters=r_name IS NOT NULL, r_name = 'MIDDLE EAST', r_regionkey IS NOT NULL] RuntimeFilters: []

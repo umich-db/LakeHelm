@@ -1,0 +1,41 @@
+== Parsed Logical Plan ==
+'Aggregate ['d.d_year], ['d.d_year, 'AVG('lo.lo_discount) AS avg_discount#17410]
++- 'Join Inner, ('d.d_date = 'lo.lo_orderdate)
+   :- 'SubqueryAlias d
+   :  +- 'UnresolvedRelation [date], [], false
+   +- 'SubqueryAlias lo
+      +- 'UnresolvedRelation [lineorder], [], false
+
+== Analyzed Logical Plan ==
+d_year: int, avg_discount: double
+Aggregate [d_year#17415], [d_year#17415, avg(lo_discount#17439L) AS avg_discount#17410]
++- Join Inner, (cast(d_date#17411 as int) = lo_orderdate#17433)
+   :- SubqueryAlias d
+   :  +- SubqueryAlias spark_catalog.ssb_iceberg_10g.date
+   :     +- RelationV2[d_date#17411, d_datekey#17412, d_dayofweek#17413, d_month#17414, d_year#17415, d_yearmonthnum#17416, d_yearmonth#17417, d_daynuminweek#17418, d_daynuminmonth#17419, d_daynuminyear#17420, d_monthnuminyear#17421, d_weeknuminyear#17422, d_sellingseason#17423, d_lastdayinweekfl#17424, d_lastdayinmonthfl#17425, d_holidayfl#17426, d_weekdayfl#17427] spark_catalog.ssb_iceberg_10g.date
+   +- SubqueryAlias lo
+      +- SubqueryAlias spark_catalog.ssb_iceberg_10g.lineorder
+         +- RelationV2[lo_orderkey#17428L, lo_linenumber#17429L, lo_custkey#17430, lo_partkey#17431, lo_suppkey#17432, lo_orderdate#17433, lo_orderpriotity#17434, lo_shippriotity#17435, lo_quantity#17436L, lo_extendedprice#17437L, lo_ordtotalprice#17438L, lo_discount#17439L, lo_revenue#17440L, lo_supplycost#17441L, lo_tax#17442L, lo_commitdate#17443, lo_shipmode#17444] spark_catalog.ssb_iceberg_10g.lineorder
+
+== Optimized Logical Plan ==
+Aggregate [d_year#17415], [d_year#17415, avg(lo_discount#17439L) AS avg_discount#17410]
++- Project [d_year#17415, lo_discount#17439L]
+   +- Join Inner, (cast(d_date#17411 as int) = lo_orderdate#17433)
+      :- Filter isnotnull(d_date#17411)
+      :  +- RelationV2[d_date#17411, d_year#17415] spark_catalog.ssb_iceberg_10g.date
+      +- Filter isnotnull(lo_orderdate#17433)
+         +- RelationV2[lo_orderdate#17433, lo_discount#17439L] spark_catalog.ssb_iceberg_10g.lineorder
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[d_year#17415], functions=[avg(lo_discount#17439L)], output=[d_year#17415, avg_discount#17410])
+   +- Exchange hashpartitioning(d_year#17415, 200), ENSURE_REQUIREMENTS, [plan_id=25914]
+      +- HashAggregate(keys=[d_year#17415], functions=[partial_avg(lo_discount#17439L)], output=[d_year#17415, sum#17464, count#17465L])
+         +- Project [d_year#17415, lo_discount#17439L]
+            +- BroadcastHashJoin [cast(d_date#17411 as int)], [lo_orderdate#17433], Inner, BuildLeft, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(cast(cast(input[0, string, false] as int) as bigint)),false), [plan_id=25909]
+               :  +- Filter isnotnull(d_date#17411)
+               :     +- BatchScan[d_date#17411, d_year#17415] spark_catalog.ssb_iceberg_10g.date [filters=d_date IS NOT NULL] RuntimeFilters: []
+               +- Filter isnotnull(lo_orderdate#17433)
+                  +- BatchScan[lo_orderdate#17433, lo_discount#17439L] spark_catalog.ssb_iceberg_10g.lineorder [filters=lo_orderdate IS NOT NULL] RuntimeFilters: []
+

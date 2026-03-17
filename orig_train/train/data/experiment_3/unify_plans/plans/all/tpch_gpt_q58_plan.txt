@@ -1,0 +1,41 @@
+== Optimized Logical Plan ==
+Sort [num_parts#28298L DESC NULLS LAST], true
++- Aggregate [s_name#28300], [s_name#28300, count(distinct ps_partkey#28306L) AS num_parts#28298L]
+   +- Project [s_name#28300, ps_partkey#28306L]
+      +- Join Inner, (s_nationkey#28302L = n_nationkey#28311L)
+         :- Project [s_name#28300, s_nationkey#28302L, ps_partkey#28306L]
+         :  +- Join Inner, (s_suppkey#28299L = ps_suppkey#28307L)
+         :     :- Filter (isnotnull(s_suppkey#28299L) AND isnotnull(s_nationkey#28302L))
+         :     :  +- RelationV2[s_suppkey#28299L, s_name#28300, s_nationkey#28302L] spark_catalog.tpch_iceberg_10g.supplier
+         :     +- Filter isnotnull(ps_suppkey#28307L)
+         :        +- RelationV2[ps_partkey#28306L, ps_suppkey#28307L] spark_catalog.tpch_iceberg_10g.partsupp
+         +- Project [n_nationkey#28311L]
+            +- Filter ((isnotnull(n_name#28312) AND (n_name#28312 = GERMANY)) AND isnotnull(n_nationkey#28311L))
+               +- RelationV2[n_nationkey#28311L, n_name#28312] spark_catalog.tpch_iceberg_10g.nation
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_parts#28298L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(num_parts#28298L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=34122]
+      +- HashAggregate(keys=[s_name#28300], functions=[count(distinct ps_partkey#28306L)], output=[s_name#28300, num_parts#28298L])
+         +- Exchange hashpartitioning(s_name#28300, 200), ENSURE_REQUIREMENTS, [plan_id=34119]
+            +- HashAggregate(keys=[s_name#28300], functions=[partial_count(distinct ps_partkey#28306L)], output=[s_name#28300, count#28342L])
+               +- HashAggregate(keys=[s_name#28300, ps_partkey#28306L], functions=[], output=[s_name#28300, ps_partkey#28306L])
+                  +- Exchange hashpartitioning(s_name#28300, ps_partkey#28306L, 200), ENSURE_REQUIREMENTS, [plan_id=34115]
+                     +- HashAggregate(keys=[s_name#28300, ps_partkey#28306L], functions=[], output=[s_name#28300, ps_partkey#28306L])
+                        +- Project [s_name#28300, ps_partkey#28306L]
+                           +- BroadcastHashJoin [s_nationkey#28302L], [n_nationkey#28311L], Inner, BuildRight, false
+                              :- Project [s_name#28300, s_nationkey#28302L, ps_partkey#28306L]
+                              :  +- BroadcastHashJoin [s_suppkey#28299L], [ps_suppkey#28307L], Inner, BuildLeft, false
+                              :     :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=34106]
+                              :     :  +- Filter (isnotnull(s_suppkey#28299L) AND isnotnull(s_nationkey#28302L))
+                              :     :     +- BatchScan[s_suppkey#28299L, s_name#28300, s_nationkey#28302L] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL, s_nationkey IS NOT NULL] RuntimeFilters: []
+                              :     +- Filter isnotnull(ps_suppkey#28307L)
+                              :        +- BatchScan[ps_partkey#28306L, ps_suppkey#28307L] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_suppkey IS NOT NULL] RuntimeFilters: []
+                              +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=34110]
+                                 +- Project [n_nationkey#28311L]
+                                    +- Filter ((isnotnull(n_name#28312) AND (n_name#28312 = GERMANY)) AND isnotnull(n_nationkey#28311L))
+                                       +- BatchScan[n_nationkey#28311L, n_name#28312] spark_catalog.tpch_iceberg_10g.nation [filters=n_name IS NOT NULL, n_name = 'GERMANY', n_nationkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

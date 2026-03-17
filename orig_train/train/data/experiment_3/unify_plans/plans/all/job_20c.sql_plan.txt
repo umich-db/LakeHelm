@@ -1,0 +1,194 @@
+== Parsed Logical Plan ==
+'Project ['MIN('n.name) AS cast_member#9475, 'MIN('t.title) AS complete_dynamic_hero_movie#9476]
++- 'Filter (((((('cct1.kind = cast) AND 'cct2.kind LIKE %complete%) AND isnotnull('chn.name)) AND (('chn.name LIKE %man% OR 'chn.name LIKE %Man%) AND 'k.keyword IN (superhero,marvel-comics,based-on-comic,tv-special,fight,violence,magnet,web,claw,laser))) AND (((('kt.kind = movie) AND ('t.production_year > 2000)) AND ('kt.id = 't.kind_id)) AND (('t.id = 'mk.movie_id) AND ('t.id = 'ci.movie_id)))) AND ((((('t.id = 'cc.movie_id) AND ('mk.movie_id = 'ci.movie_id)) AND ('mk.movie_id = 'cc.movie_id)) AND (('ci.movie_id = 'cc.movie_id) AND ('chn.id = 'ci.person_role_id))) AND ((('n.id = 'ci.person_id) AND ('k.id = 'mk.keyword_id)) AND (('cct1.id = 'cc.subject_id) AND ('cct2.id = 'cc.status_id)))))
+   +- 'Join Inner
+      :- 'Join Inner
+      :  :- 'Join Inner
+      :  :  :- 'Join Inner
+      :  :  :  :- 'Join Inner
+      :  :  :  :  :- 'Join Inner
+      :  :  :  :  :  :- 'Join Inner
+      :  :  :  :  :  :  :- 'Join Inner
+      :  :  :  :  :  :  :  :- 'Join Inner
+      :  :  :  :  :  :  :  :  :- 'SubqueryAlias cc
+      :  :  :  :  :  :  :  :  :  +- 'UnresolvedRelation [complete_cast], [], false
+      :  :  :  :  :  :  :  :  +- 'SubqueryAlias cct1
+      :  :  :  :  :  :  :  :     +- 'UnresolvedRelation [comp_cast_type], [], false
+      :  :  :  :  :  :  :  +- 'SubqueryAlias cct2
+      :  :  :  :  :  :  :     +- 'UnresolvedRelation [comp_cast_type], [], false
+      :  :  :  :  :  :  +- 'SubqueryAlias chn
+      :  :  :  :  :  :     +- 'UnresolvedRelation [char_name], [], false
+      :  :  :  :  :  +- 'SubqueryAlias ci
+      :  :  :  :  :     +- 'UnresolvedRelation [cast_info], [], false
+      :  :  :  :  +- 'SubqueryAlias k
+      :  :  :  :     +- 'UnresolvedRelation [keyword], [], false
+      :  :  :  +- 'SubqueryAlias kt
+      :  :  :     +- 'UnresolvedRelation [kind_type], [], false
+      :  :  +- 'SubqueryAlias mk
+      :  :     +- 'UnresolvedRelation [movie_keyword], [], false
+      :  +- 'SubqueryAlias n
+      :     +- 'UnresolvedRelation [name], [], false
+      +- 'SubqueryAlias t
+         +- 'UnresolvedRelation [title], [], false
+
+== Analyzed Logical Plan ==
+cast_member: string, complete_dynamic_hero_movie: string
+Aggregate [min(name#9508) AS cast_member#9475, min(title#9517) AS complete_dynamic_hero_movie#9476]
++- Filter ((((((kind#9482 = cast) AND kind#9484 LIKE %complete%) AND isnotnull(name#9486)) AND ((name#9486 LIKE %man% OR name#9486 LIKE %Man%) AND keyword#9500 IN (superhero,marvel-comics,based-on-comic,tv-special,fight,violence,magnet,web,claw,laser))) AND ((((kind#9503 = movie) AND (production_year#9520L > cast(2000 as bigint))) AND (id#9502L = kind_id#9519L)) AND ((id#9516L = movie_id#9505L) AND (id#9516L = movie_id#9494L)))) AND (((((id#9516L = movie_id#9478L) AND (movie_id#9505L = movie_id#9494L)) AND (movie_id#9505L = movie_id#9478L)) AND ((movie_id#9494L = movie_id#9478L) AND (id#9485L = person_role_id#9495L))) AND (((id#9507L = person_id#9493L) AND (id#9499L = keyword_id#9506L)) AND ((id#9481L = subject_id#9479L) AND (id#9483L = status_id#9480L)))))
+   +- Join Inner
+      :- Join Inner
+      :  :- Join Inner
+      :  :  :- Join Inner
+      :  :  :  :- Join Inner
+      :  :  :  :  :- Join Inner
+      :  :  :  :  :  :- Join Inner
+      :  :  :  :  :  :  :- Join Inner
+      :  :  :  :  :  :  :  :- Join Inner
+      :  :  :  :  :  :  :  :  :- SubqueryAlias cc
+      :  :  :  :  :  :  :  :  :  +- SubqueryAlias spark_catalog.job_iceberg_10g.complete_cast
+      :  :  :  :  :  :  :  :  :     +- RelationV2[id#9477L, movie_id#9478L, subject_id#9479L, status_id#9480L] spark_catalog.job_iceberg_10g.complete_cast
+      :  :  :  :  :  :  :  :  +- SubqueryAlias cct1
+      :  :  :  :  :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.comp_cast_type
+      :  :  :  :  :  :  :  :        +- RelationV2[id#9481L, kind#9482] spark_catalog.job_iceberg_10g.comp_cast_type
+      :  :  :  :  :  :  :  +- SubqueryAlias cct2
+      :  :  :  :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.comp_cast_type
+      :  :  :  :  :  :  :        +- RelationV2[id#9483L, kind#9484] spark_catalog.job_iceberg_10g.comp_cast_type
+      :  :  :  :  :  :  +- SubqueryAlias chn
+      :  :  :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.char_name
+      :  :  :  :  :  :        +- RelationV2[id#9485L, name#9486, imdb_index#9487, imdb_id#9488L, name_pcode_nf#9489, surname_pcode#9490, md5sum#9491] spark_catalog.job_iceberg_10g.char_name
+      :  :  :  :  :  +- SubqueryAlias ci
+      :  :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.cast_info
+      :  :  :  :  :        +- RelationV2[id#9492L, person_id#9493L, movie_id#9494L, person_role_id#9495L, note#9496, nr_order#9497L, role_id#9498L] spark_catalog.job_iceberg_10g.cast_info
+      :  :  :  :  +- SubqueryAlias k
+      :  :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.keyword
+      :  :  :  :        +- RelationV2[id#9499L, keyword#9500, phonetic_code#9501] spark_catalog.job_iceberg_10g.keyword
+      :  :  :  +- SubqueryAlias kt
+      :  :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.kind_type
+      :  :  :        +- RelationV2[id#9502L, kind#9503] spark_catalog.job_iceberg_10g.kind_type
+      :  :  +- SubqueryAlias mk
+      :  :     +- SubqueryAlias spark_catalog.job_iceberg_10g.movie_keyword
+      :  :        +- RelationV2[id#9504L, movie_id#9505L, keyword_id#9506L] spark_catalog.job_iceberg_10g.movie_keyword
+      :  +- SubqueryAlias n
+      :     +- SubqueryAlias spark_catalog.job_iceberg_10g.name
+      :        +- RelationV2[id#9507L, name#9508, imdb_index#9509, imdb_id#9510L, gender#9511, name_pcode_cf#9512, name_pcode_nf#9513, surname_pcode#9514, md5sum#9515] spark_catalog.job_iceberg_10g.name
+      +- SubqueryAlias t
+         +- SubqueryAlias spark_catalog.job_iceberg_10g.title
+            +- RelationV2[id#9516L, title#9517, imdb_index#9518, kind_id#9519L, production_year#9520L, imdb_id#9521L, phonetic_code#9522, episode_of_id#9523L, season_nr#9524L, episode_nr#9525L, series_years#9526, md5sum#9527] spark_catalog.job_iceberg_10g.title
+
+== Optimized Logical Plan ==
+Aggregate [min(name#9508) AS cast_member#9475, min(title#9517) AS complete_dynamic_hero_movie#9476]
++- Project [name#9508, title#9517]
+   +- Join Inner, (id#9502L = kind_id#9519L)
+      :- Project [name#9508, title#9517, kind_id#9519L]
+      :  +- Join Inner, (((id#9516L = movie_id#9505L) AND (id#9516L = movie_id#9494L)) AND (id#9516L = movie_id#9478L))
+      :     :- Project [movie_id#9478L, movie_id#9494L, movie_id#9505L, name#9508]
+      :     :  +- Join Inner, (id#9507L = person_id#9493L)
+      :     :     :- Project [movie_id#9478L, person_id#9493L, movie_id#9494L, movie_id#9505L]
+      :     :     :  +- Join Inner, (id#9499L = keyword_id#9506L)
+      :     :     :     :- Join Inner, ((movie_id#9505L = movie_id#9494L) AND (movie_id#9505L = movie_id#9478L))
+      :     :     :     :  :- Project [movie_id#9478L, person_id#9493L, movie_id#9494L]
+      :     :     :     :  :  +- Join Inner, (id#9485L = person_role_id#9495L)
+      :     :     :     :  :     :- Join Inner, (movie_id#9494L = movie_id#9478L)
+      :     :     :     :  :     :  :- Project [movie_id#9478L]
+      :     :     :     :  :     :  :  +- Join Inner, (id#9483L = status_id#9480L)
+      :     :     :     :  :     :  :     :- Project [movie_id#9478L, status_id#9480L]
+      :     :     :     :  :     :  :     :  +- Join Inner, (id#9481L = subject_id#9479L)
+      :     :     :     :  :     :  :     :     :- Filter ((isnotnull(subject_id#9479L) AND isnotnull(status_id#9480L)) AND isnotnull(movie_id#9478L))
+      :     :     :     :  :     :  :     :     :  +- RelationV2[movie_id#9478L, subject_id#9479L, status_id#9480L] spark_catalog.job_iceberg_10g.complete_cast
+      :     :     :     :  :     :  :     :     +- Project [id#9481L]
+      :     :     :     :  :     :  :     :        +- Filter ((isnotnull(kind#9482) AND (kind#9482 = cast)) AND isnotnull(id#9481L))
+      :     :     :     :  :     :  :     :           +- RelationV2[id#9481L, kind#9482] spark_catalog.job_iceberg_10g.comp_cast_type
+      :     :     :     :  :     :  :     +- Project [id#9483L]
+      :     :     :     :  :     :  :        +- Filter ((isnotnull(kind#9484) AND Contains(kind#9484, complete)) AND isnotnull(id#9483L))
+      :     :     :     :  :     :  :           +- RelationV2[id#9483L, kind#9484] spark_catalog.job_iceberg_10g.comp_cast_type
+      :     :     :     :  :     :  +- Filter ((isnotnull(movie_id#9494L) AND isnotnull(person_id#9493L)) AND isnotnull(person_role_id#9495L))
+      :     :     :     :  :     :     +- RelationV2[person_id#9493L, movie_id#9494L, person_role_id#9495L] spark_catalog.job_iceberg_10g.cast_info
+      :     :     :     :  :     +- Project [id#9485L]
+      :     :     :     :  :        +- Filter ((isnotnull(name#9486) AND (Contains(name#9486, man) OR Contains(name#9486, Man))) AND isnotnull(id#9485L))
+      :     :     :     :  :           +- RelationV2[id#9485L, name#9486] spark_catalog.job_iceberg_10g.char_name
+      :     :     :     :  +- Filter (isnotnull(movie_id#9505L) AND isnotnull(keyword_id#9506L))
+      :     :     :     :     +- RelationV2[movie_id#9505L, keyword_id#9506L] spark_catalog.job_iceberg_10g.movie_keyword
+      :     :     :     +- Project [id#9499L]
+      :     :     :        +- Filter (keyword#9500 IN (superhero,marvel-comics,based-on-comic,tv-special,fight,violence,magnet,web,claw,laser) AND isnotnull(id#9499L))
+      :     :     :           +- RelationV2[id#9499L, keyword#9500] spark_catalog.job_iceberg_10g.keyword
+      :     :     +- Filter isnotnull(id#9507L)
+      :     :        +- RelationV2[id#9507L, name#9508] spark_catalog.job_iceberg_10g.name
+      :     +- Project [id#9516L, title#9517, kind_id#9519L]
+      :        +- Filter (((isnotnull(production_year#9520L) AND (production_year#9520L > 2000)) AND isnotnull(id#9516L)) AND isnotnull(kind_id#9519L))
+      :           +- RelationV2[id#9516L, title#9517, kind_id#9519L, production_year#9520L] spark_catalog.job_iceberg_10g.title
+      +- Project [id#9502L]
+         +- Filter ((isnotnull(kind#9503) AND (kind#9503 = movie)) AND isnotnull(id#9502L))
+            +- RelationV2[id#9502L, kind#9503] spark_catalog.job_iceberg_10g.kind_type
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- SortAggregate(key=[], functions=[min(name#9508), min(title#9517)], output=[cast_member#9475, complete_dynamic_hero_movie#9476])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=14827]
+      +- SortAggregate(key=[], functions=[partial_min(name#9508), partial_min(title#9517)], output=[min#9608, min#9609])
+         +- Project [name#9508, title#9517]
+            +- BroadcastHashJoin [kind_id#9519L], [id#9502L], Inner, BuildRight, false
+               :- Project [name#9508, title#9517, kind_id#9519L]
+               :  +- SortMergeJoin [movie_id#9505L, movie_id#9494L, movie_id#9478L], [id#9516L, id#9516L, id#9516L], Inner
+               :     :- Sort [movie_id#9505L ASC NULLS FIRST, movie_id#9494L ASC NULLS FIRST, movie_id#9478L ASC NULLS FIRST], false, 0
+               :     :  +- Exchange hashpartitioning(movie_id#9505L, movie_id#9494L, movie_id#9478L, 200), ENSURE_REQUIREMENTS, [plan_id=14815]
+               :     :     +- Project [movie_id#9478L, movie_id#9494L, movie_id#9505L, name#9508]
+               :     :        +- SortMergeJoin [person_id#9493L], [id#9507L], Inner
+               :     :           :- Sort [person_id#9493L ASC NULLS FIRST], false, 0
+               :     :           :  +- Exchange hashpartitioning(person_id#9493L, 200), ENSURE_REQUIREMENTS, [plan_id=14807]
+               :     :           :     +- Project [movie_id#9478L, person_id#9493L, movie_id#9494L, movie_id#9505L]
+               :     :           :        +- BroadcastHashJoin [keyword_id#9506L], [id#9499L], Inner, BuildRight, false
+               :     :           :           :- SortMergeJoin [movie_id#9494L, movie_id#9478L], [movie_id#9505L, movie_id#9505L], Inner
+               :     :           :           :  :- Sort [movie_id#9494L ASC NULLS FIRST, movie_id#9478L ASC NULLS FIRST], false, 0
+               :     :           :           :  :  +- Exchange hashpartitioning(movie_id#9494L, movie_id#9478L, 200), ENSURE_REQUIREMENTS, [plan_id=14796]
+               :     :           :           :  :     +- Project [movie_id#9478L, person_id#9493L, movie_id#9494L]
+               :     :           :           :  :        +- SortMergeJoin [person_role_id#9495L], [id#9485L], Inner
+               :     :           :           :  :           :- Sort [person_role_id#9495L ASC NULLS FIRST], false, 0
+               :     :           :           :  :           :  +- Exchange hashpartitioning(person_role_id#9495L, 200), ENSURE_REQUIREMENTS, [plan_id=14788]
+               :     :           :           :  :           :     +- SortMergeJoin [movie_id#9478L], [movie_id#9494L], Inner
+               :     :           :           :  :           :        :- Sort [movie_id#9478L ASC NULLS FIRST], false, 0
+               :     :           :           :  :           :        :  +- Exchange hashpartitioning(movie_id#9478L, 200), ENSURE_REQUIREMENTS, [plan_id=14782]
+               :     :           :           :  :           :        :     +- Project [movie_id#9478L]
+               :     :           :           :  :           :        :        +- BroadcastHashJoin [status_id#9480L], [id#9483L], Inner, BuildRight, false
+               :     :           :           :  :           :        :           :- Project [movie_id#9478L, status_id#9480L]
+               :     :           :           :  :           :        :           :  +- BroadcastHashJoin [subject_id#9479L], [id#9481L], Inner, BuildRight, false
+               :     :           :           :  :           :        :           :     :- Filter ((isnotnull(subject_id#9479L) AND isnotnull(status_id#9480L)) AND isnotnull(movie_id#9478L))
+               :     :           :           :  :           :        :           :     :  +- BatchScan[movie_id#9478L, subject_id#9479L, status_id#9480L] spark_catalog.job_iceberg_10g.complete_cast [filters=subject_id IS NOT NULL, status_id IS NOT NULL, movie_id IS NOT NULL] RuntimeFilters: []
+               :     :           :           :  :           :        :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=14772]
+               :     :           :           :  :           :        :           :        +- Project [id#9481L]
+               :     :           :           :  :           :        :           :           +- Filter ((isnotnull(kind#9482) AND (kind#9482 = cast)) AND isnotnull(id#9481L))
+               :     :           :           :  :           :        :           :              +- BatchScan[id#9481L, kind#9482] spark_catalog.job_iceberg_10g.comp_cast_type [filters=kind IS NOT NULL, kind = 'cast', id IS NOT NULL] RuntimeFilters: []
+               :     :           :           :  :           :        :           +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=14776]
+               :     :           :           :  :           :        :              +- Project [id#9483L]
+               :     :           :           :  :           :        :                 +- Filter ((isnotnull(kind#9484) AND Contains(kind#9484, complete)) AND isnotnull(id#9483L))
+               :     :           :           :  :           :        :                    +- BatchScan[id#9483L, kind#9484] spark_catalog.job_iceberg_10g.comp_cast_type [filters=kind IS NOT NULL, id IS NOT NULL] RuntimeFilters: []
+               :     :           :           :  :           :        +- Sort [movie_id#9494L ASC NULLS FIRST], false, 0
+               :     :           :           :  :           :           +- Exchange hashpartitioning(movie_id#9494L, 200), ENSURE_REQUIREMENTS, [plan_id=14781]
+               :     :           :           :  :           :              +- Filter ((isnotnull(movie_id#9494L) AND isnotnull(person_id#9493L)) AND isnotnull(person_role_id#9495L))
+               :     :           :           :  :           :                 +- BatchScan[person_id#9493L, movie_id#9494L, person_role_id#9495L] spark_catalog.job_iceberg_10g.cast_info [filters=movie_id IS NOT NULL, person_id IS NOT NULL, person_role_id IS NOT NULL] RuntimeFilters: []
+               :     :           :           :  :           +- Sort [id#9485L ASC NULLS FIRST], false, 0
+               :     :           :           :  :              +- Exchange hashpartitioning(id#9485L, 200), ENSURE_REQUIREMENTS, [plan_id=14789]
+               :     :           :           :  :                 +- Project [id#9485L]
+               :     :           :           :  :                    +- Filter ((isnotnull(name#9486) AND (Contains(name#9486, man) OR Contains(name#9486, Man))) AND isnotnull(id#9485L))
+               :     :           :           :  :                       +- BatchScan[id#9485L, name#9486] spark_catalog.job_iceberg_10g.char_name [filters=name IS NOT NULL, id IS NOT NULL] RuntimeFilters: []
+               :     :           :           :  +- Sort [movie_id#9505L ASC NULLS FIRST, movie_id#9505L ASC NULLS FIRST], false, 0
+               :     :           :           :     +- Exchange hashpartitioning(movie_id#9505L, movie_id#9505L, 200), ENSURE_REQUIREMENTS, [plan_id=14797]
+               :     :           :           :        +- Filter (isnotnull(movie_id#9505L) AND isnotnull(keyword_id#9506L))
+               :     :           :           :           +- BatchScan[movie_id#9505L, keyword_id#9506L] spark_catalog.job_iceberg_10g.movie_keyword [filters=movie_id IS NOT NULL, keyword_id IS NOT NULL] RuntimeFilters: []
+               :     :           :           +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=14802]
+               :     :           :              +- Project [id#9499L]
+               :     :           :                 +- Filter (keyword#9500 IN (superhero,marvel-comics,based-on-comic,tv-special,fight,violence,magnet,web,claw,laser) AND isnotnull(id#9499L))
+               :     :           :                    +- BatchScan[id#9499L, keyword#9500] spark_catalog.job_iceberg_10g.keyword [filters=keyword IN ('superhero', 'marvel-comics', 'based-on-comic', 'tv-special', 'fight', 'violence', 'magnet', 'web', 'claw', 'laser'), id IS NOT NULL] RuntimeFilters: []
+               :     :           +- Sort [id#9507L ASC NULLS FIRST], false, 0
+               :     :              +- Exchange hashpartitioning(id#9507L, 200), ENSURE_REQUIREMENTS, [plan_id=14808]
+               :     :                 +- Filter isnotnull(id#9507L)
+               :     :                    +- BatchScan[id#9507L, name#9508] spark_catalog.job_iceberg_10g.name [filters=id IS NOT NULL] RuntimeFilters: []
+               :     +- Sort [id#9516L ASC NULLS FIRST, id#9516L ASC NULLS FIRST, id#9516L ASC NULLS FIRST], false, 0
+               :        +- Exchange hashpartitioning(id#9516L, id#9516L, id#9516L, 200), ENSURE_REQUIREMENTS, [plan_id=14816]
+               :           +- Project [id#9516L, title#9517, kind_id#9519L]
+               :              +- Filter (((isnotnull(production_year#9520L) AND (production_year#9520L > 2000)) AND isnotnull(id#9516L)) AND isnotnull(kind_id#9519L))
+               :                 +- BatchScan[id#9516L, title#9517, kind_id#9519L, production_year#9520L] spark_catalog.job_iceberg_10g.title [filters=production_year IS NOT NULL, production_year > 2000, id IS NOT NULL, kind_id IS NOT NULL] RuntimeFilters: []
+               +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=14822]
+                  +- Project [id#9502L]
+                     +- Filter ((isnotnull(kind#9503) AND (kind#9503 = movie)) AND isnotnull(id#9502L))
+                        +- BatchScan[id#9502L, kind#9503] spark_catalog.job_iceberg_10g.kind_type [filters=kind IS NOT NULL, kind = 'movie', id IS NOT NULL] RuntimeFilters: []
+

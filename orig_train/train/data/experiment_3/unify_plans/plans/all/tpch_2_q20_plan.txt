@@ -1,0 +1,31 @@
+=== Optimized Logical Plan ===
+Sort [s_name#123 ASC NULLS FIRST], true
++- Project [s_name#123, s_address#124]
+   +- Join Inner, (s_nationkey#125L = n_nationkey#144L)
+      :- Project [s_name#123, s_address#124, s_nationkey#125L]
+      :  +- Join LeftSemi, (s_suppkey#122L = ps_suppkey#135L)
+      :     :- Project [s_suppkey#122L, s_name#123, s_address#124, s_nationkey#125L]
+      :     :  +- Filter isnotnull(s_nationkey#125L)
+      :     :     +- Relation tpch_hudi_10g.supplier[_hoodie_commit_time#117,_hoodie_commit_seqno#118,_hoodie_record_key#119,_hoodie_partition_path#120,_hoodie_file_name#121,s_suppkey#122L,s_name#123,s_address#124,s_nationkey#125L,s_phone#126,s_acctbal#127,s_comment#128] parquet
+      :     +- Project [ps_suppkey#135L]
+      :        +- Join Inner, (((cast(ps_availqty#136L as decimal(22,1)) > (0.5 * sum(l_quantity))#286) AND (l_partkey#7L = ps_partkey#134L)) AND (l_suppkey#8L = ps_suppkey#135L))
+      :           :- Join LeftSemi, (ps_partkey#134L = p_partkey#27L)
+      :           :  :- Project [ps_partkey#134L, ps_suppkey#135L, ps_availqty#136L]
+      :           :  :  +- Filter ((isnotnull(ps_availqty#136L) AND isnotnull(ps_partkey#134L)) AND isnotnull(ps_suppkey#135L))
+      :           :  :     +- Relation tpch_hudi_10g.partsupp[_hoodie_commit_time#129,_hoodie_commit_seqno#130,_hoodie_record_key#131,_hoodie_partition_path#132,_hoodie_file_name#133,ps_partkey#134L,ps_suppkey#135L,ps_availqty#136L,ps_supplycost#137,ps_comment#138] parquet
+      :           :  +- Project [p_partkey#27L]
+      :           :     +- Filter (isnotnull(p_name#28) AND StartsWith(p_name#28, chartreuse))
+      :           :        +- Relation tpch_hudi_10g.part[_hoodie_commit_time#22,_hoodie_commit_seqno#23,_hoodie_record_key#24,_hoodie_partition_path#25,_hoodie_file_name#26,p_partkey#27L,p_name#28,p_mfgr#29,p_brand#30,p_type#31,p_size#32L,p_container#33,p_retailprice#34,p_comment#35] parquet
+      :           +- Filter isnotnull((0.5 * sum(l_quantity))#286)
+      :              +- Aggregate [l_partkey#7L, l_suppkey#8L], [CheckOverflow((0.5 * promote_precision(cast(sum(l_quantity#10L) as decimal(21,1)))), DecimalType(22,1)) AS (0.5 * sum(l_quantity))#286, l_partkey#7L, l_suppkey#8L]
+      :                 +- Join LeftSemi, (l_partkey#7L = p_partkey#27L)
+      :                    :- Project [l_partkey#7L, l_suppkey#8L, l_quantity#10L]
+      :                    :  +- Filter ((((isnotnull(l_shipdate#16) AND (cast(l_shipdate#16 as date) >= 1993-01-01)) AND (cast(l_shipdate#16 as date) < 1994-01-01)) AND isnotnull(l_partkey#7L)) AND isnotnull(l_suppkey#8L))
+      :                    :     +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+      :                    +- Project [p_partkey#27L]
+      :                       +- Filter (isnotnull(p_name#28) AND StartsWith(p_name#28, chartreuse))
+      :                          +- Relation tpch_hudi_10g.part[_hoodie_commit_time#22,_hoodie_commit_seqno#23,_hoodie_record_key#24,_hoodie_partition_path#25,_hoodie_file_name#26,p_partkey#27L,p_name#28,p_mfgr#29,p_brand#30,p_type#31,p_size#32L,p_container#33,p_retailprice#34,p_comment#35] parquet
+      +- Project [n_nationkey#144L]
+         +- Filter ((isnotnull(n_name#145) AND (n_name#145 = INDIA)) AND isnotnull(n_nationkey#144L))
+            +- Relation tpch_hudi_10g.nation[_hoodie_commit_time#139,_hoodie_commit_seqno#140,_hoodie_record_key#141,_hoodie_partition_path#142,_hoodie_file_name#143,n_nationkey#144L,n_name#145,n_regionkey#146L,n_comment#147] parquet
+=== Physical Plan ===

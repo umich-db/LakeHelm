@@ -1,0 +1,65 @@
+== Parsed Logical Plan ==
+'Project [('sum('l_extendedprice) / 7.0) AS avg_yearly#11359]
++- 'Filter ((('p_partkey = 'l_partkey) AND ('p_brand = Brand#31)) AND (('p_container = SM CASE) AND ('l_quantity < scalar-subquery#11360 [])))
+   :  +- 'Project [unresolvedalias((0.2 * 'avg('l_quantity)), None)]
+   :     +- 'Filter ('l_partkey = 'p_partkey)
+   :        +- 'UnresolvedRelation [lineitem], [], false
+   +- 'Join Inner
+      :- 'UnresolvedRelation [lineitem], [], false
+      +- 'UnresolvedRelation [part], [], false
+
+== Analyzed Logical Plan ==
+avg_yearly: double
+Aggregate [(sum(l_extendedprice#11372) / cast(7.0 as double)) AS avg_yearly#11359]
++- Filter (((p_partkey#11383L = l_partkey#11368L) AND (p_brand#11386 = Brand#31)) AND ((p_container#11389 = SM CASE) AND (cast(l_quantity#11371L as double) < scalar-subquery#11360 [p_partkey#11383L])))
+   :  +- Aggregate [(cast(0.2 as double) * avg(l_quantity#11396L)) AS (0.2 * avg(l_quantity))#11414]
+   :     +- Filter (l_partkey#11393L = outer(p_partkey#11383L))
+   :        +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+   :           +- RelationV2[l_orderkey#11392L, l_partkey#11393L, l_suppkey#11394L, l_linenumber#11395L, l_quantity#11396L, l_extendedprice#11397, l_discount#11398, l_tax#11399, l_returnflag#11400, l_linestatus#11401, l_shipdate#11402, l_commitdate#11403, l_receiptdate#11404, l_shipinstruct#11405, l_shipmode#11406, l_comment#11407] spark_catalog.tpch_iceberg_10g.lineitem
+   +- Join Inner
+      :- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+      :  +- RelationV2[l_orderkey#11367L, l_partkey#11368L, l_suppkey#11369L, l_linenumber#11370L, l_quantity#11371L, l_extendedprice#11372, l_discount#11373, l_tax#11374, l_returnflag#11375, l_linestatus#11376, l_shipdate#11377, l_commitdate#11378, l_receiptdate#11379, l_shipinstruct#11380, l_shipmode#11381, l_comment#11382] spark_catalog.tpch_iceberg_10g.lineitem
+      +- SubqueryAlias spark_catalog.tpch_iceberg_10g.part
+         +- RelationV2[p_partkey#11383L, p_name#11384, p_mfgr#11385, p_brand#11386, p_type#11387, p_size#11388L, p_container#11389, p_retailprice#11390, p_comment#11391] spark_catalog.tpch_iceberg_10g.part
+
+== Optimized Logical Plan ==
+Aggregate [(sum(l_extendedprice#11372) / 7.0) AS avg_yearly#11359]
++- Project [l_extendedprice#11372]
+   +- Join Inner, ((cast(l_quantity#11371L as double) < (0.2 * avg(l_quantity))#11414) AND (l_partkey#11393L = p_partkey#11383L))
+      :- Project [l_quantity#11371L, l_extendedprice#11372, p_partkey#11383L]
+      :  +- Join Inner, (p_partkey#11383L = l_partkey#11368L)
+      :     :- Filter (isnotnull(l_partkey#11368L) AND isnotnull(l_quantity#11371L))
+      :     :  +- RelationV2[l_partkey#11368L, l_quantity#11371L, l_extendedprice#11372] spark_catalog.tpch_iceberg_10g.lineitem
+      :     +- Project [p_partkey#11383L]
+      :        +- Filter ((((isnotnull(p_brand#11386) AND isnotnull(p_container#11389)) AND (p_brand#11386 = Brand#31)) AND (p_container#11389 = SM CASE)) AND isnotnull(p_partkey#11383L))
+      :           +- RelationV2[p_partkey#11383L, p_brand#11386, p_container#11389] spark_catalog.tpch_iceberg_10g.part
+      +- Filter isnotnull((0.2 * avg(l_quantity))#11414)
+         +- Aggregate [l_partkey#11393L], [(0.2 * avg(l_quantity#11396L)) AS (0.2 * avg(l_quantity))#11414, l_partkey#11393L]
+            +- Filter isnotnull(l_partkey#11393L)
+               +- RelationV2[l_partkey#11393L, l_quantity#11396L] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[sum(l_extendedprice#11372)], output=[avg_yearly#11359])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=13282]
+      +- HashAggregate(keys=[], functions=[partial_sum(l_extendedprice#11372)], output=[sum#11435])
+         +- Project [l_extendedprice#11372]
+            +- SortMergeJoin [p_partkey#11383L], [l_partkey#11393L], Inner, (cast(l_quantity#11371L as double) < (0.2 * avg(l_quantity))#11414)
+               :- Project [l_quantity#11371L, l_extendedprice#11372, p_partkey#11383L]
+               :  +- SortMergeJoin [l_partkey#11368L], [p_partkey#11383L], Inner
+               :     :- Sort [l_partkey#11368L ASC NULLS FIRST], false, 0
+               :     :  +- Exchange hashpartitioning(l_partkey#11368L, 200), ENSURE_REQUIREMENTS, [plan_id=13266]
+               :     :     +- Filter (isnotnull(l_partkey#11368L) AND isnotnull(l_quantity#11371L))
+               :     :        +- BatchScan[l_partkey#11368L, l_quantity#11371L, l_extendedprice#11372] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_partkey IS NOT NULL, l_quantity IS NOT NULL] RuntimeFilters: []
+               :     +- Sort [p_partkey#11383L ASC NULLS FIRST], false, 0
+               :        +- Exchange hashpartitioning(p_partkey#11383L, 200), ENSURE_REQUIREMENTS, [plan_id=13267]
+               :           +- Project [p_partkey#11383L]
+               :              +- Filter ((((isnotnull(p_brand#11386) AND isnotnull(p_container#11389)) AND (p_brand#11386 = Brand#31)) AND (p_container#11389 = SM CASE)) AND isnotnull(p_partkey#11383L))
+               :                 +- BatchScan[p_partkey#11383L, p_brand#11386, p_container#11389] spark_catalog.tpch_iceberg_10g.part [filters=p_brand IS NOT NULL, p_container IS NOT NULL, p_brand = 'Brand#31', p_container = 'SM CASE', p_partkey IS NOT NULL] RuntimeFilters: []
+               +- Sort [l_partkey#11393L ASC NULLS FIRST], false, 0
+                  +- Filter isnotnull((0.2 * avg(l_quantity))#11414)
+                     +- HashAggregate(keys=[l_partkey#11393L], functions=[avg(l_quantity#11396L)], output=[(0.2 * avg(l_quantity))#11414, l_partkey#11393L])
+                        +- Exchange hashpartitioning(l_partkey#11393L, 200), ENSURE_REQUIREMENTS, [plan_id=13272]
+                           +- HashAggregate(keys=[l_partkey#11393L], functions=[partial_avg(l_quantity#11396L)], output=[l_partkey#11393L, sum#11438, count#11439L])
+                              +- Filter isnotnull(l_partkey#11393L)
+                                 +- BatchScan[l_partkey#11393L, l_quantity#11396L] spark_catalog.tpch_iceberg_10g.lineitem [filters=] RuntimeFilters: []

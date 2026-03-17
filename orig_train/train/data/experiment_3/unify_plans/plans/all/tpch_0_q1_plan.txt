@@ -1,0 +1,7 @@
+=== Optimized Logical Plan ===
+Sort [l_returnflag#14 ASC NULLS FIRST, l_linestatus#15 ASC NULLS FIRST], true
++- Aggregate [l_returnflag#14, l_linestatus#15], [l_returnflag#14, l_linestatus#15, sum(l_quantity#10L) AS sum_qty#470L, sum(l_extendedprice#11) AS sum_base_price#471, sum((l_extendedprice#11 * (1.0 - l_discount#12))) AS sum_disc_price#472, sum(((l_extendedprice#11 * (1.0 - l_discount#12)) * (1.0 + l_tax#13))) AS sum_charge#473, avg(l_quantity#10L) AS avg_qty#474, avg(l_extendedprice#11) AS avg_price#475, avg(l_discount#12) AS avg_disc#476, count(1) AS count_order#477L]
+   +- Project [l_quantity#10L, l_extendedprice#11, l_discount#12, l_tax#13, l_returnflag#14, l_linestatus#15]
+      +- Filter (isnotnull(l_shipdate#16) AND (cast(l_shipdate#16 as date) <= 1998-08-28))
+         +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+=== Physical Plan ===

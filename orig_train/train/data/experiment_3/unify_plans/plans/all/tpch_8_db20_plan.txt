@@ -1,0 +1,125 @@
+== Parsed Logical Plan ==
+'Sort ['s_name ASC NULLS FIRST], true
++- 'Project ['s_name, 's_address]
+   +- 'Filter (('s_suppkey IN (list#4272 []) AND ('s_nationkey = 'n_nationkey)) AND ('n_name = SAUDI ARABIA))
+      :  +- 'Project ['ps_suppkey]
+      :     +- 'Filter ('ps_partkey IN (list#4270 []) AND ('ps_availqty > scalar-subquery#4271 []))
+      :        :  :- 'Project ['p_partkey]
+      :        :  :  +- 'Filter 'p_name LIKE medium%
+      :        :  :     +- 'UnresolvedRelation [part], [], false
+      :        :  +- 'Project [unresolvedalias((0.5 * 'sum('l_quantity)), None)]
+      :        :     +- 'Filter ((('l_partkey = 'ps_partkey) AND ('l_suppkey = 'ps_suppkey)) AND (('date('l_shipdate) >= 1995-01-01) AND ('date('l_shipdate) < (1995-01-01 + INTERVAL '1' YEAR))))
+      :        :        +- 'UnresolvedRelation [lineitem], [], false
+      :        +- 'UnresolvedRelation [partsupp], [], false
+      +- 'Join Inner
+         :- 'UnresolvedRelation [supplier], [], false
+         +- 'UnresolvedRelation [nation], [], false
+
+== Analyzed Logical Plan ==
+s_name: string, s_address: string
+Sort [s_name#4280 ASC NULLS FIRST], true
++- Project [s_name#4280, s_address#4281]
+   +- Filter ((s_suppkey#4279L IN (list#4272 []) AND (s_nationkey#4282L = n_nationkey#4286L)) AND (n_name#4287 = SAUDI ARABIA))
+      :  +- Project [ps_suppkey#4291L]
+      :     +- Filter (ps_partkey#4290L IN (list#4270 []) AND (cast(cast(ps_availqty#4292L as decimal(20,0)) as decimal(22,1)) > scalar-subquery#4271 [ps_partkey#4290L && ps_suppkey#4291L]))
+      :        :  :- Project [p_partkey#4295L]
+      :        :  :  +- Filter p_name#4296 LIKE medium%
+      :        :  :     +- SubqueryAlias spark_catalog.tpch_iceberg_10g.part
+      :        :  :        +- RelationV2[p_partkey#4295L, p_name#4296, p_mfgr#4297, p_brand#4298, p_type#4299, p_size#4300L, p_container#4301, p_retailprice#4302, p_comment#4303] spark_catalog.tpch_iceberg_10g.part
+      :        :  +- Aggregate [CheckOverflow((promote_precision(cast(0.5 as decimal(21,1))) * promote_precision(cast(cast(sum(l_quantity#4313L) as decimal(20,0)) as decimal(21,1)))), DecimalType(22,1)) AS (0.5 * sum(l_quantity))#4331]
+      :        :     +- Filter (((l_partkey#4310L = outer(ps_partkey#4290L)) AND (l_suppkey#4311L = outer(ps_suppkey#4291L))) AND ((cast(l_shipdate#4319 as date) >= 1995-01-01) AND (cast(l_shipdate#4319 as date) < 1995-01-01 + INTERVAL '1' YEAR)))
+      :        :        +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+      :        :           +- RelationV2[l_orderkey#4309L, l_partkey#4310L, l_suppkey#4311L, l_linenumber#4312L, l_quantity#4313L, l_extendedprice#4314, l_discount#4315, l_tax#4316, l_returnflag#4317, l_linestatus#4318, l_shipdate#4319, l_commitdate#4320, l_receiptdate#4321, l_shipinstruct#4322, l_shipmode#4323, l_comment#4324] spark_catalog.tpch_iceberg_10g.lineitem
+      :        +- SubqueryAlias spark_catalog.tpch_iceberg_10g.partsupp
+      :           +- RelationV2[ps_partkey#4290L, ps_suppkey#4291L, ps_availqty#4292L, ps_supplycost#4293, ps_comment#4294] spark_catalog.tpch_iceberg_10g.partsupp
+      +- Join Inner
+         :- SubqueryAlias spark_catalog.tpch_iceberg_10g.supplier
+         :  +- RelationV2[s_suppkey#4279L, s_name#4280, s_address#4281, s_nationkey#4282L, s_phone#4283, s_acctbal#4284, s_comment#4285] spark_catalog.tpch_iceberg_10g.supplier
+         +- SubqueryAlias spark_catalog.tpch_iceberg_10g.nation
+            +- RelationV2[n_nationkey#4286L, n_name#4287, n_regionkey#4288L, n_comment#4289] spark_catalog.tpch_iceberg_10g.nation
+
+== Optimized Logical Plan ==
+Sort [s_name#4280 ASC NULLS FIRST], true
++- Project [s_name#4280, s_address#4281]
+   +- Join Inner, (s_nationkey#4282L = n_nationkey#4286L)
+      :- Project [s_name#4280, s_address#4281, s_nationkey#4282L]
+      :  +- Join LeftSemi, (s_suppkey#4279L = ps_suppkey#4291L)
+      :     :- Filter (isnotnull(s_nationkey#4282L) AND dynamicpruning#4362 [s_nationkey#4282L])
+      :     :  :  +- Project [n_nationkey#4286L]
+      :     :  :     +- Filter ((isnotnull(n_name#4287) AND (n_name#4287 = SAUDI ARABIA)) AND isnotnull(n_nationkey#4286L))
+      :     :  :        +- RelationV2[n_nationkey#4286L, n_name#4287] spark_catalog.tpch_iceberg_10g.nation
+      :     :  +- RelationV2[s_suppkey#4279L, s_name#4280, s_address#4281, s_nationkey#4282L] spark_catalog.tpch_iceberg_10g.supplier
+      :     +- Project [ps_suppkey#4291L]
+      :        +- Join Inner, (((cast(ps_availqty#4292L as decimal(22,1)) > (0.5 * sum(l_quantity))#4331) AND (l_partkey#4310L = ps_partkey#4290L)) AND (l_suppkey#4311L = ps_suppkey#4291L))
+      :           :- Join LeftSemi, (ps_partkey#4290L = p_partkey#4295L)
+      :           :  :- Filter ((isnotnull(ps_availqty#4292L) AND isnotnull(ps_partkey#4290L)) AND isnotnull(ps_suppkey#4291L))
+      :           :  :  +- RelationV2[ps_partkey#4290L, ps_suppkey#4291L, ps_availqty#4292L] spark_catalog.tpch_iceberg_10g.partsupp
+      :           :  +- Project [p_partkey#4295L]
+      :           :     +- Filter (isnotnull(p_name#4296) AND StartsWith(p_name#4296, medium))
+      :           :        +- RelationV2[p_partkey#4295L, p_name#4296] spark_catalog.tpch_iceberg_10g.part
+      :           +- Filter isnotnull((0.5 * sum(l_quantity))#4331)
+      :              +- Aggregate [l_partkey#4310L, l_suppkey#4311L], [CheckOverflow((0.5 * promote_precision(cast(sum(l_quantity#4313L) as decimal(21,1)))), DecimalType(22,1)) AS (0.5 * sum(l_quantity))#4331, l_partkey#4310L, l_suppkey#4311L]
+      :                 +- Join LeftSemi, (l_partkey#4310L = p_partkey#4295L)
+      :                    :- Project [l_partkey#4310L, l_suppkey#4311L, l_quantity#4313L]
+      :                    :  +- Filter (((((cast(l_shipdate#4319 as date) >= 1995-01-01) AND (cast(l_shipdate#4319 as date) < 1996-01-01)) AND isnotnull(l_shipdate#4319)) AND isnotnull(l_partkey#4310L)) AND isnotnull(l_suppkey#4311L))
+      :                    :     +- RelationV2[l_partkey#4310L, l_suppkey#4311L, l_quantity#4313L, l_shipdate#4319] spark_catalog.tpch_iceberg_10g.lineitem
+      :                    +- Project [p_partkey#4295L]
+      :                       +- Filter (isnotnull(p_name#4296) AND StartsWith(p_name#4296, medium))
+      :                          +- RelationV2[p_partkey#4295L, p_name#4296] spark_catalog.tpch_iceberg_10g.part
+      +- Project [n_nationkey#4286L]
+         +- Filter ((isnotnull(n_name#4287) AND (n_name#4287 = SAUDI ARABIA)) AND isnotnull(n_nationkey#4286L))
+            +- RelationV2[n_nationkey#4286L, n_name#4287] spark_catalog.tpch_iceberg_10g.nation
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [s_name#4280 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(s_name#4280 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=4240]
+      +- Project [s_name#4280, s_address#4281]
+         +- BroadcastHashJoin [s_nationkey#4282L], [n_nationkey#4286L], Inner, BuildRight, false
+            :- Project [s_name#4280, s_address#4281, s_nationkey#4282L]
+            :  +- SortMergeJoin [s_suppkey#4279L], [ps_suppkey#4291L], LeftSemi
+            :     :- Sort [s_suppkey#4279L ASC NULLS FIRST], false, 0
+            :     :  +- Exchange hashpartitioning(s_suppkey#4279L, 200), ENSURE_REQUIREMENTS, [plan_id=4230]
+            :     :     +- Filter isnotnull(s_nationkey#4282L)
+            :     :        +- BatchScan[s_suppkey#4279L, s_name#4280, s_address#4281, s_nationkey#4282L] spark_catalog.tpch_iceberg_10g.supplier [filters=s_nationkey IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(s_nationkey#4282L IN dynamicpruning#4362)]
+            :     :              +- SubqueryAdaptiveBroadcast dynamicpruning#4362, 0, true, Project [n_nationkey#4286L], [n_nationkey#4286L]
+            :     :                 +- AdaptiveSparkPlan isFinalPlan=false
+            :     :                    +- Project [n_nationkey#4286L]
+            :     :                       +- Filter ((isnotnull(n_name#4287) AND (n_name#4287 = SAUDI ARABIA)) AND isnotnull(n_nationkey#4286L))
+            :     :                          +- BatchScan[n_nationkey#4286L, n_name#4287] spark_catalog.tpch_iceberg_10g.nation [filters=n_name IS NOT NULL, n_name = 'SAUDI ARABIA', n_nationkey IS NOT NULL] RuntimeFilters: []
+            :     +- Sort [ps_suppkey#4291L ASC NULLS FIRST], false, 0
+            :        +- Exchange hashpartitioning(ps_suppkey#4291L, 200), ENSURE_REQUIREMENTS, [plan_id=4229]
+            :           +- Project [ps_suppkey#4291L]
+            :              +- SortMergeJoin [ps_partkey#4290L, ps_suppkey#4291L], [l_partkey#4310L, l_suppkey#4311L], Inner, (cast(ps_availqty#4292L as decimal(22,1)) > (0.5 * sum(l_quantity))#4331)
+            :                 :- Sort [ps_partkey#4290L ASC NULLS FIRST, ps_suppkey#4291L ASC NULLS FIRST], false, 0
+            :                 :  +- Exchange hashpartitioning(ps_partkey#4290L, ps_suppkey#4291L, 200), ENSURE_REQUIREMENTS, [plan_id=4221]
+            :                 :     +- SortMergeJoin [ps_partkey#4290L], [p_partkey#4295L], LeftSemi
+            :                 :        :- Sort [ps_partkey#4290L ASC NULLS FIRST], false, 0
+            :                 :        :  +- Exchange hashpartitioning(ps_partkey#4290L, 200), ENSURE_REQUIREMENTS, [plan_id=4205]
+            :                 :        :     +- Filter ((isnotnull(ps_availqty#4292L) AND isnotnull(ps_partkey#4290L)) AND isnotnull(ps_suppkey#4291L))
+            :                 :        :        +- BatchScan[ps_partkey#4290L, ps_suppkey#4291L, ps_availqty#4292L] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_availqty IS NOT NULL, ps_partkey IS NOT NULL, ps_suppkey IS NOT NULL] RuntimeFilters: []
+            :                 :        +- Sort [p_partkey#4295L ASC NULLS FIRST], false, 0
+            :                 :           +- Exchange hashpartitioning(p_partkey#4295L, 200), ENSURE_REQUIREMENTS, [plan_id=4206]
+            :                 :              +- Project [p_partkey#4295L]
+            :                 :                 +- Filter (isnotnull(p_name#4296) AND StartsWith(p_name#4296, medium))
+            :                 :                    +- BatchScan[p_partkey#4295L, p_name#4296] spark_catalog.tpch_iceberg_10g.part [filters=p_name IS NOT NULL, p_name LIKE '"medium"%'] RuntimeFilters: []
+            :                 +- Sort [l_partkey#4310L ASC NULLS FIRST, l_suppkey#4311L ASC NULLS FIRST], false, 0
+            :                    +- Exchange hashpartitioning(l_partkey#4310L, l_suppkey#4311L, 200), ENSURE_REQUIREMENTS, [plan_id=4222]
+            :                       +- Filter isnotnull((0.5 * sum(l_quantity))#4331)
+            :                          +- HashAggregate(keys=[l_partkey#4310L, l_suppkey#4311L], functions=[sum(l_quantity#4313L)], output=[(0.5 * sum(l_quantity))#4331, l_partkey#4310L, l_suppkey#4311L])
+            :                             +- HashAggregate(keys=[l_partkey#4310L, l_suppkey#4311L], functions=[partial_sum(l_quantity#4313L)], output=[l_partkey#4310L, l_suppkey#4311L, sum#4364L])
+            :                                +- SortMergeJoin [l_partkey#4310L], [p_partkey#4295L], LeftSemi
+            :                                   :- Sort [l_partkey#4310L ASC NULLS FIRST], false, 0
+            :                                   :  +- Exchange hashpartitioning(l_partkey#4310L, 200), ENSURE_REQUIREMENTS, [plan_id=4211]
+            :                                   :     +- Project [l_partkey#4310L, l_suppkey#4311L, l_quantity#4313L]
+            :                                   :        +- Filter (((((cast(l_shipdate#4319 as date) >= 1995-01-01) AND (cast(l_shipdate#4319 as date) < 1996-01-01)) AND isnotnull(l_shipdate#4319)) AND isnotnull(l_partkey#4310L)) AND isnotnull(l_suppkey#4311L))
+            :                                   :           +- BatchScan[l_partkey#4310L, l_suppkey#4311L, l_quantity#4313L, l_shipdate#4319] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL] RuntimeFilters: []
+            :                                   +- Sort [p_partkey#4295L ASC NULLS FIRST], false, 0
+            :                                      +- Exchange hashpartitioning(p_partkey#4295L, 200), ENSURE_REQUIREMENTS, [plan_id=4212]
+            :                                         +- Project [p_partkey#4295L]
+            :                                            +- Filter (isnotnull(p_name#4296) AND StartsWith(p_name#4296, medium))
+            :                                               +- BatchScan[p_partkey#4295L, p_name#4296] spark_catalog.tpch_iceberg_10g.part [filters=p_name IS NOT NULL, p_name LIKE '"medium"%'] RuntimeFilters: []
+            +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=4236]
+               +- Project [n_nationkey#4286L]
+                  +- Filter ((isnotnull(n_name#4287) AND (n_name#4287 = SAUDI ARABIA)) AND isnotnull(n_nationkey#4286L))
+                     +- BatchScan[n_nationkey#4286L, n_name#4287] spark_catalog.tpch_iceberg_10g.nation [filters=n_name IS NOT NULL, n_name = 'SAUDI ARABIA', n_nationkey IS NOT NULL] RuntimeFilters: []

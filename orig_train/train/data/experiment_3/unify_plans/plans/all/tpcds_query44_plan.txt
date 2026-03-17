@@ -1,0 +1,97 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [rnk#22719 ASC NULLS FIRST], true
+      +- Project [rnk#22719, i_product_name#22794 AS best_performing#22725, i_product_name#22816 AS worst_performing#22726]
+         +- Join Inner, (i_item_sk#22795 = item_sk#22720)
+            :- Project [rnk#22719, item_sk#22720, i_product_name#22794]
+            :  +- Join Inner, (i_item_sk#22773 = item_sk#22715)
+            :     :- Project [item_sk#22715, rnk#22719, item_sk#22720]
+            :     :  +- Join Inner, (rnk#22719 = rnk#22724)
+            :     :     :- Project [item_sk#22715, rnk#22719]
+            :     :     :  +- Filter ((rnk#22719 < 11) AND isnotnull(item_sk#22715))
+            :     :     :     +- Window [rank(rank_col#22716) windowspecdefinition(rank_col#22716 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS rnk#22719], [rank_col#22716 ASC NULLS FIRST]
+            :     :     :        +- Filter (isnotnull(rank_col#22716) AND (cast(rank_col#22716 as decimal(13,7)) > CheckOverflow((0.900000 * promote_precision(scalar-subquery#22718 [])), DecimalType(13,7))))
+            :     :     :           :  +- Aggregate [ss_store_sk#22829], [cast((avg(UnscaledValue(ss_net_profit#22844)) / 100.0) as decimal(11,6)) AS rank_col#22717]
+            :     :     :           :     +- Project [ss_store_sk#22829, ss_net_profit#22844]
+            :     :     :           :        +- Filter ((isnotnull(ss_store_sk#22829) AND (ss_store_sk#22829 = 410)) AND isnull(ss_hdemo_sk#22827))
+            :     :     :           :           +- RelationV2[ss_hdemo_sk#22827, ss_store_sk#22829, ss_net_profit#22844] spark_catalog.tpcds_iceberg_10g.store_sales
+            :     :     :           +- Aggregate [ss_item_sk#22728], [ss_item_sk#22728 AS item_sk#22715, cast((avg(UnscaledValue(ss_net_profit#22748)) / 100.0) as decimal(11,6)) AS rank_col#22716]
+            :     :     :              +- Project [ss_item_sk#22728, ss_net_profit#22748]
+            :     :     :                 +- Filter (isnotnull(ss_store_sk#22733) AND (ss_store_sk#22733 = 410))
+            :     :     :                    +- RelationV2[ss_item_sk#22728, ss_store_sk#22733, ss_net_profit#22748] spark_catalog.tpcds_iceberg_10g.store_sales
+            :     :     +- Project [item_sk#22720, rnk#22724]
+            :     :        +- Filter ((rnk#22724 < 11) AND isnotnull(item_sk#22720))
+            :     :           +- Window [rank(rank_col#22721) windowspecdefinition(rank_col#22721 DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS rnk#22724], [rank_col#22721 DESC NULLS LAST]
+            :     :              +- Filter (isnotnull(rank_col#22721) AND (cast(rank_col#22721 as decimal(13,7)) > CheckOverflow((0.900000 * promote_precision(scalar-subquery#22723 [])), DecimalType(13,7))))
+            :     :                 :  +- Aggregate [ss_store_sk#22858], [cast((avg(UnscaledValue(ss_net_profit#22873)) / 100.0) as decimal(11,6)) AS rank_col#22722]
+            :     :                 :     +- Project [ss_store_sk#22858, ss_net_profit#22873]
+            :     :                 :        +- Filter ((isnotnull(ss_store_sk#22858) AND (ss_store_sk#22858 = 410)) AND isnull(ss_hdemo_sk#22856))
+            :     :                 :           +- RelationV2[ss_hdemo_sk#22856, ss_store_sk#22858, ss_net_profit#22873] spark_catalog.tpcds_iceberg_10g.store_sales
+            :     :                 +- Aggregate [ss_item_sk#22751], [ss_item_sk#22751 AS item_sk#22720, cast((avg(UnscaledValue(ss_net_profit#22771)) / 100.0) as decimal(11,6)) AS rank_col#22721]
+            :     :                    +- Project [ss_item_sk#22751, ss_net_profit#22771]
+            :     :                       +- Filter (isnotnull(ss_store_sk#22756) AND (ss_store_sk#22756 = 410))
+            :     :                          +- RelationV2[ss_item_sk#22751, ss_store_sk#22756, ss_net_profit#22771] spark_catalog.tpcds_iceberg_10g.store_sales
+            :     +- Filter isnotnull(i_item_sk#22773)
+            :        +- RelationV2[i_item_sk#22773, i_product_name#22794] spark_catalog.tpcds_iceberg_10g.item
+            +- Filter isnotnull(i_item_sk#22795)
+               +- RelationV2[i_item_sk#22795, i_product_name#22816] spark_catalog.tpcds_iceberg_10g.item
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[rnk#22719 ASC NULLS FIRST], output=[rnk#22719,best_performing#22725,worst_performing#22726])
+   +- Project [rnk#22719, i_product_name#22794 AS best_performing#22725, i_product_name#22816 AS worst_performing#22726]
+      +- BroadcastHashJoin [item_sk#22720], [i_item_sk#22795], Inner, BuildLeft, false
+         :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[1, int, true] as bigint)),false), [plan_id=17488]
+         :  +- Project [rnk#22719, item_sk#22720, i_product_name#22794]
+         :     +- BroadcastHashJoin [item_sk#22715], [i_item_sk#22773], Inner, BuildLeft, false
+         :        :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=17484]
+         :        :  +- Project [item_sk#22715, rnk#22719, item_sk#22720]
+         :        :     +- BroadcastHashJoin [rnk#22719], [rnk#22724], Inner, BuildRight, false
+         :        :        :- Project [item_sk#22715, rnk#22719]
+         :        :        :  +- Filter ((rnk#22719 < 11) AND isnotnull(item_sk#22715))
+         :        :        :     +- Window [rank(rank_col#22716) windowspecdefinition(rank_col#22716 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS rnk#22719], [rank_col#22716 ASC NULLS FIRST]
+         :        :        :        +- Sort [rank_col#22716 ASC NULLS FIRST], false, 0
+         :        :        :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=17465]
+         :        :        :              +- Filter (isnotnull(rank_col#22716) AND (cast(rank_col#22716 as decimal(13,7)) > CheckOverflow((0.900000 * promote_precision(Subquery subquery#22718, [id=#17426])), DecimalType(13,7))))
+         :        :        :                 :  +- Subquery subquery#22718, [id=#17426]
+         :        :        :                 :     +- AdaptiveSparkPlan isFinalPlan=false
+         :        :        :                 :        +- HashAggregate(keys=[ss_store_sk#22829], functions=[avg(UnscaledValue(ss_net_profit#22844))], output=[rank_col#22717])
+         :        :        :                 :           +- Exchange hashpartitioning(ss_store_sk#22829, 200), ENSURE_REQUIREMENTS, [plan_id=17424]
+         :        :        :                 :              +- HashAggregate(keys=[ss_store_sk#22829], functions=[partial_avg(UnscaledValue(ss_net_profit#22844))], output=[ss_store_sk#22829, sum#22954, count#22955L])
+         :        :        :                 :                 +- Project [ss_store_sk#22829, ss_net_profit#22844]
+         :        :        :                 :                    +- Filter ((isnotnull(ss_store_sk#22829) AND (ss_store_sk#22829 = 410)) AND isnull(ss_hdemo_sk#22827))
+         :        :        :                 :                       +- BatchScan[ss_hdemo_sk#22827, ss_store_sk#22829, ss_net_profit#22844] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_store_sk IS NOT NULL, ss_store_sk = 410, ss_hdemo_sk IS NULL] RuntimeFilters: []
+         :        :        :                 +- HashAggregate(keys=[ss_item_sk#22728], functions=[avg(UnscaledValue(ss_net_profit#22748))], output=[item_sk#22715, rank_col#22716])
+         :        :        :                    +- Exchange hashpartitioning(ss_item_sk#22728, 200), ENSURE_REQUIREMENTS, [plan_id=17461]
+         :        :        :                       +- HashAggregate(keys=[ss_item_sk#22728], functions=[partial_avg(UnscaledValue(ss_net_profit#22748))], output=[ss_item_sk#22728, sum#22948, count#22949L])
+         :        :        :                          +- Project [ss_item_sk#22728, ss_net_profit#22748]
+         :        :        :                             +- Filter (isnotnull(ss_store_sk#22733) AND (ss_store_sk#22733 = 410))
+         :        :        :                                +- BatchScan[ss_item_sk#22728, ss_store_sk#22733, ss_net_profit#22748] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_store_sk IS NOT NULL, ss_store_sk = 410] RuntimeFilters: []
+         :        :        +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[1, int, false] as bigint)),false), [plan_id=17480]
+         :        :           +- Project [item_sk#22720, rnk#22724]
+         :        :              +- Filter ((rnk#22724 < 11) AND isnotnull(item_sk#22720))
+         :        :                 +- Window [rank(rank_col#22721) windowspecdefinition(rank_col#22721 DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS rnk#22724], [rank_col#22721 DESC NULLS LAST]
+         :        :                    +- Sort [rank_col#22721 DESC NULLS LAST], false, 0
+         :        :                       +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=17474]
+         :        :                          +- Filter (isnotnull(rank_col#22721) AND (cast(rank_col#22721 as decimal(13,7)) > CheckOverflow((0.900000 * promote_precision(Subquery subquery#22723, [id=#17439])), DecimalType(13,7))))
+         :        :                             :  +- Subquery subquery#22723, [id=#17439]
+         :        :                             :     +- AdaptiveSparkPlan isFinalPlan=false
+         :        :                             :        +- HashAggregate(keys=[ss_store_sk#22858], functions=[avg(UnscaledValue(ss_net_profit#22873))], output=[rank_col#22722])
+         :        :                             :           +- Exchange hashpartitioning(ss_store_sk#22858, 200), ENSURE_REQUIREMENTS, [plan_id=17437]
+         :        :                             :              +- HashAggregate(keys=[ss_store_sk#22858], functions=[partial_avg(UnscaledValue(ss_net_profit#22873))], output=[ss_store_sk#22858, sum#22956, count#22957L])
+         :        :                             :                 +- Project [ss_store_sk#22858, ss_net_profit#22873]
+         :        :                             :                    +- Filter ((isnotnull(ss_store_sk#22858) AND (ss_store_sk#22858 = 410)) AND isnull(ss_hdemo_sk#22856))
+         :        :                             :                       +- BatchScan[ss_hdemo_sk#22856, ss_store_sk#22858, ss_net_profit#22873] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_store_sk IS NOT NULL, ss_store_sk = 410, ss_hdemo_sk IS NULL] RuntimeFilters: []
+         :        :                             +- HashAggregate(keys=[ss_item_sk#22751], functions=[avg(UnscaledValue(ss_net_profit#22771))], output=[item_sk#22720, rank_col#22721])
+         :        :                                +- Exchange hashpartitioning(ss_item_sk#22751, 200), ENSURE_REQUIREMENTS, [plan_id=17470]
+         :        :                                   +- HashAggregate(keys=[ss_item_sk#22751], functions=[partial_avg(UnscaledValue(ss_net_profit#22771))], output=[ss_item_sk#22751, sum#22952, count#22953L])
+         :        :                                      +- Project [ss_item_sk#22751, ss_net_profit#22771]
+         :        :                                         +- Filter (isnotnull(ss_store_sk#22756) AND (ss_store_sk#22756 = 410))
+         :        :                                            +- BatchScan[ss_item_sk#22751, ss_store_sk#22756, ss_net_profit#22771] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_store_sk IS NOT NULL, ss_store_sk = 410] RuntimeFilters: []
+         :        +- Filter isnotnull(i_item_sk#22773)
+         :           +- BatchScan[i_item_sk#22773, i_product_name#22794] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL] RuntimeFilters: []
+         +- Filter isnotnull(i_item_sk#22795)
+            +- BatchScan[i_item_sk#22795, i_product_name#22816] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL] RuntimeFilters: []
+

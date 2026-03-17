@@ -1,0 +1,43 @@
+== Parsed Logical Plan ==
+'Project [((100.00 * 'sum(CASE WHEN 'p_type LIKE PROMO% THEN ('l_extendedprice * (1 - 'l_discount)) ELSE 0 END)) / 'sum(('l_extendedprice * (1 - 'l_discount)))) AS promo_revenue#5711]
++- 'Filter ((('l_partkey = 'p_partkey) AND ('date('l_shipdate) >= 1993-01-01)) AND ('date('l_shipdate) < (1993-01-01 + INTERVAL '1' MONTH)))
+   +- 'Join Inner
+      :- 'UnresolvedRelation [lineitem], [], false
+      +- 'UnresolvedRelation [part], [], false
+
+== Analyzed Logical Plan ==
+promo_revenue: double
+Aggregate [((cast(100.00 as double) * sum(CASE WHEN p_type#5738 LIKE PROMO% THEN (l_extendedprice#5723 * (cast(1 as double) - l_discount#5724)) ELSE cast(0 as double) END)) / sum((l_extendedprice#5723 * (cast(1 as double) - l_discount#5724)))) AS promo_revenue#5711]
++- Filter (((l_partkey#5719L = p_partkey#5734L) AND (cast(l_shipdate#5728 as date) >= 1993-01-01)) AND (cast(l_shipdate#5728 as date) < 1993-01-01 + INTERVAL '1' MONTH))
+   +- Join Inner
+      :- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+      :  +- RelationV2[l_orderkey#5718L, l_partkey#5719L, l_suppkey#5720L, l_linenumber#5721L, l_quantity#5722L, l_extendedprice#5723, l_discount#5724, l_tax#5725, l_returnflag#5726, l_linestatus#5727, l_shipdate#5728, l_commitdate#5729, l_receiptdate#5730, l_shipinstruct#5731, l_shipmode#5732, l_comment#5733] spark_catalog.tpch_iceberg_10g.lineitem
+      +- SubqueryAlias spark_catalog.tpch_iceberg_10g.part
+         +- RelationV2[p_partkey#5734L, p_name#5735, p_mfgr#5736, p_brand#5737, p_type#5738, p_size#5739L, p_container#5740, p_retailprice#5741, p_comment#5742] spark_catalog.tpch_iceberg_10g.part
+
+== Optimized Logical Plan ==
+Aggregate [((100.0 * sum(CASE WHEN StartsWith(p_type#5738, PROMO) THEN (l_extendedprice#5723 * (1.0 - l_discount#5724)) ELSE 0.0 END)) / sum((l_extendedprice#5723 * (1.0 - l_discount#5724)))) AS promo_revenue#5711]
++- Project [l_extendedprice#5723, l_discount#5724, p_type#5738]
+   +- Join Inner, (l_partkey#5719L = p_partkey#5734L)
+      :- Project [l_partkey#5719L, l_extendedprice#5723, l_discount#5724]
+      :  +- Filter ((((cast(l_shipdate#5728 as date) >= 1993-01-01) AND (cast(l_shipdate#5728 as date) < 1993-02-01)) AND isnotnull(l_shipdate#5728)) AND isnotnull(l_partkey#5719L))
+      :     +- RelationV2[l_partkey#5719L, l_extendedprice#5723, l_discount#5724, l_shipdate#5728] spark_catalog.tpch_iceberg_10g.lineitem
+      +- Filter isnotnull(p_partkey#5734L)
+         +- RelationV2[p_partkey#5734L, p_type#5738] spark_catalog.tpch_iceberg_10g.part
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[sum(CASE WHEN StartsWith(p_type#5738, PROMO) THEN (l_extendedprice#5723 * (1.0 - l_discount#5724)) ELSE 0.0 END), sum((l_extendedprice#5723 * (1.0 - l_discount#5724)))], output=[promo_revenue#5711])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=5784]
+      +- HashAggregate(keys=[], functions=[partial_sum(CASE WHEN StartsWith(p_type#5738, PROMO) THEN (l_extendedprice#5723 * (1.0 - l_discount#5724)) ELSE 0.0 END), partial_sum((l_extendedprice#5723 * (1.0 - l_discount#5724)))], output=[sum#5763, sum#5764])
+         +- Project [l_extendedprice#5723, l_discount#5724, p_type#5738]
+            +- SortMergeJoin [l_partkey#5719L], [p_partkey#5734L], Inner
+               :- Sort [l_partkey#5719L ASC NULLS FIRST], false, 0
+               :  +- Exchange hashpartitioning(l_partkey#5719L, 200), ENSURE_REQUIREMENTS, [plan_id=5776]
+               :     +- Project [l_partkey#5719L, l_extendedprice#5723, l_discount#5724]
+               :        +- Filter ((((cast(l_shipdate#5728 as date) >= 1993-01-01) AND (cast(l_shipdate#5728 as date) < 1993-02-01)) AND isnotnull(l_shipdate#5728)) AND isnotnull(l_partkey#5719L))
+               :           +- BatchScan[l_partkey#5719L, l_extendedprice#5723, l_discount#5724, l_shipdate#5728] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_partkey IS NOT NULL] RuntimeFilters: []
+               +- Sort [p_partkey#5734L ASC NULLS FIRST], false, 0
+                  +- Exchange hashpartitioning(p_partkey#5734L, 200), ENSURE_REQUIREMENTS, [plan_id=5777]
+                     +- Filter isnotnull(p_partkey#5734L)
+                        +- BatchScan[p_partkey#5734L, p_type#5738] spark_catalog.tpch_iceberg_10g.part [filters=p_partkey IS NOT NULL] RuntimeFilters: []

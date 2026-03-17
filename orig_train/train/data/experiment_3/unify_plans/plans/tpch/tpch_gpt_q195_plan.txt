@@ -1,0 +1,40 @@
+== Optimized Logical Plan ==
+Sort [avg_acctbal#25864 DESC NULLS LAST], true
++- Aggregate [n_name#25866], [n_name#25866, avg(s_acctbal#25874) AS avg_acctbal#25864]
+   +- Project [n_name#25866, s_acctbal#25874]
+      +- Join Inner, (s_suppkey#25869L = ps_suppkey#25877L)
+         :- Project [n_name#25866, s_suppkey#25869L, s_acctbal#25874]
+         :  +- Join Inner, (n_nationkey#25865L = s_nationkey#25872L)
+         :     :- Filter isnotnull(n_nationkey#25865L)
+         :     :  +- RelationV2[n_nationkey#25865L, n_name#25866] spark_catalog.tpch_iceberg_10g.nation
+         :     +- Filter (isnotnull(s_nationkey#25872L) AND isnotnull(s_suppkey#25869L))
+         :        +- RelationV2[s_suppkey#25869L, s_nationkey#25872L, s_acctbal#25874] spark_catalog.tpch_iceberg_10g.supplier
+         +- Project [ps_suppkey#25877L]
+            +- Filter ((isnotnull(ps_availqty#25878L) AND (ps_availqty#25878L > 500)) AND isnotnull(ps_suppkey#25877L))
+               +- RelationV2[ps_suppkey#25877L, ps_availqty#25878L] spark_catalog.tpch_iceberg_10g.partsupp
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [avg_acctbal#25864 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(avg_acctbal#25864 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=30823]
+      +- HashAggregate(keys=[n_name#25866], functions=[avg(s_acctbal#25874)], output=[n_name#25866, avg_acctbal#25864])
+         +- Exchange hashpartitioning(n_name#25866, 200), ENSURE_REQUIREMENTS, [plan_id=30820]
+            +- HashAggregate(keys=[n_name#25866], functions=[partial_avg(s_acctbal#25874)], output=[n_name#25866, sum#25908, count#25909L])
+               +- Project [n_name#25866, s_acctbal#25874]
+                  +- SortMergeJoin [s_suppkey#25869L], [ps_suppkey#25877L], Inner
+                     :- Sort [s_suppkey#25869L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(s_suppkey#25869L, 200), ENSURE_REQUIREMENTS, [plan_id=30813]
+                     :     +- Project [n_name#25866, s_suppkey#25869L, s_acctbal#25874]
+                     :        +- BroadcastHashJoin [n_nationkey#25865L], [s_nationkey#25872L], Inner, BuildLeft, false
+                     :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=30807]
+                     :           :  +- Filter isnotnull(n_nationkey#25865L)
+                     :           :     +- BatchScan[n_nationkey#25865L, n_name#25866] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL] RuntimeFilters: []
+                     :           +- Filter (isnotnull(s_nationkey#25872L) AND isnotnull(s_suppkey#25869L))
+                     :              +- BatchScan[s_suppkey#25869L, s_nationkey#25872L, s_acctbal#25874] spark_catalog.tpch_iceberg_10g.supplier [filters=s_nationkey IS NOT NULL, s_suppkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [ps_suppkey#25877L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(ps_suppkey#25877L, 200), ENSURE_REQUIREMENTS, [plan_id=30812]
+                           +- Project [ps_suppkey#25877L]
+                              +- Filter ((isnotnull(ps_availqty#25878L) AND (ps_availqty#25878L > 500)) AND isnotnull(ps_suppkey#25877L))
+                                 +- BatchScan[ps_suppkey#25877L, ps_availqty#25878L] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_availqty IS NOT NULL, ps_availqty > 500, ps_suppkey IS NOT NULL] RuntimeFilters: []
+

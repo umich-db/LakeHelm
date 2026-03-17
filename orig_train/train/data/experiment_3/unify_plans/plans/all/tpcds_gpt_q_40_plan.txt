@@ -1,0 +1,23 @@
+== Optimized Logical Plan ==
+Aggregate [p_channel_dmail#8879], [p_channel_dmail#8879, count(1) AS promo_count#8870L]
++- Project [p_channel_dmail#8879]
+   +- Join Inner, (p_promo_sk#8871 = cs_promo_sk#8905)
+      :- Filter ((isnotnull(p_channel_dmail#8879) AND (p_channel_dmail#8879 = Y)) AND isnotnull(p_promo_sk#8871))
+      :  +- RelationV2[p_promo_sk#8871, p_channel_dmail#8879] spark_catalog.tpcds_iceberg_10g.promotion
+      +- Filter isnotnull(cs_promo_sk#8905)
+         +- RelationV2[cs_promo_sk#8905] spark_catalog.tpcds_iceberg_10g.catalog_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[p_channel_dmail#8879], functions=[count(1)], output=[p_channel_dmail#8879, promo_count#8870L])
+   +- Exchange hashpartitioning(p_channel_dmail#8879, 200), ENSURE_REQUIREMENTS, [plan_id=6586]
+      +- HashAggregate(keys=[p_channel_dmail#8879], functions=[partial_count(1)], output=[p_channel_dmail#8879, count#8941L])
+         +- Project [p_channel_dmail#8879]
+            +- BroadcastHashJoin [p_promo_sk#8871], [cs_promo_sk#8905], Inner, BuildLeft, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=6581]
+               :  +- Filter ((isnotnull(p_channel_dmail#8879) AND (p_channel_dmail#8879 = Y)) AND isnotnull(p_promo_sk#8871))
+               :     +- BatchScan[p_promo_sk#8871, p_channel_dmail#8879] spark_catalog.tpcds_iceberg_10g.promotion [filters=p_channel_dmail IS NOT NULL, p_channel_dmail = 'Y', p_promo_sk IS NOT NULL] RuntimeFilters: []
+               +- Filter isnotnull(cs_promo_sk#8905)
+                  +- BatchScan[cs_promo_sk#8905] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_promo_sk IS NOT NULL] RuntimeFilters: []
+

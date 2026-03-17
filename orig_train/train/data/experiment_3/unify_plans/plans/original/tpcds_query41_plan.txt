@@ -1,0 +1,37 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [i_product_name#22417 ASC NULLS FIRST], true
+      +- Aggregate [i_product_name#22417], [i_product_name#22417]
+         +- Project [i_product_name#22417]
+            +- Join Inner, (i_manufact#22432 = i_manufact#22410)
+               :- Project [i_manufact#22410, i_product_name#22417]
+               :  +- Filter (((isnotnull(i_manufact_id#22409) AND (i_manufact_id#22409 >= 742)) AND (i_manufact_id#22409 <= 782)) AND isnotnull(i_manufact#22410))
+               :     +- RelationV2[i_manufact_id#22409, i_manufact#22410, i_product_name#22417] spark_catalog.tpcds_iceberg_10g.item
+               +- Project [i_manufact#22432]
+                  +- Filter (item_cnt#22394L > 0)
+                     +- Aggregate [i_manufact#22432], [count(1) AS item_cnt#22394L, i_manufact#22432]
+                        +- Project [i_manufact#22432]
+                           +- Filter (((((i_category#22430 = Women) AND (((((i_color#22435 = orchid) OR (i_color#22435 = papaya)) AND ((i_units#22436 = Pound) OR (i_units#22436 = Lb))) AND ((i_size#22433 = petite) OR (i_size#22433 = medium))) OR ((((i_color#22435 = burlywood) OR (i_color#22435 = navy)) AND ((i_units#22436 = Bundle) OR (i_units#22436 = Each))) AND ((i_size#22433 = N/A) OR (i_size#22433 = extra large))))) OR ((i_category#22430 = Men) AND (((((i_color#22435 = bisque) OR (i_color#22435 = azure)) AND ((i_units#22436 = N/A) OR (i_units#22436 = Tsp))) AND ((i_size#22433 = small) OR (i_size#22433 = large))) OR ((((i_color#22435 = chocolate) OR (i_color#22435 = cornflower)) AND ((i_units#22436 = Bunch) OR (i_units#22436 = Gross))) AND ((i_size#22433 = petite) OR (i_size#22433 = medium)))))) OR (((i_category#22430 = Women) AND (((((i_color#22435 = salmon) OR (i_color#22435 = midnight)) AND ((i_units#22436 = Oz) OR (i_units#22436 = Box))) AND ((i_size#22433 = petite) OR (i_size#22433 = medium))) OR ((((i_color#22435 = snow) OR (i_color#22435 = steel)) AND ((i_units#22436 = Carton) OR (i_units#22436 = Tbl))) AND ((i_size#22433 = N/A) OR (i_size#22433 = extra large))))) OR ((i_category#22430 = Men) AND (((((i_color#22435 = purple) OR (i_color#22435 = gainsboro)) AND ((i_units#22436 = Dram) OR (i_units#22436 = Unknown))) AND ((i_size#22433 = small) OR (i_size#22433 = large))) OR ((((i_color#22435 = metallic) OR (i_color#22435 = forest)) AND ((i_units#22436 = Gram) OR (i_units#22436 = Ounce))) AND ((i_size#22433 = petite) OR (i_size#22433 = medium))))))) AND isnotnull(i_manufact#22432))
+                              +- RelationV2[i_category#22430, i_manufact#22432, i_size#22433, i_color#22435, i_units#22436] spark_catalog.tpcds_iceberg_10g.item
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[i_product_name#22417 ASC NULLS FIRST], output=[i_product_name#22417])
+   +- HashAggregate(keys=[i_product_name#22417], functions=[], output=[i_product_name#22417])
+      +- HashAggregate(keys=[i_product_name#22417], functions=[], output=[i_product_name#22417])
+         +- Project [i_product_name#22417]
+            +- BroadcastHashJoin [i_manufact#22410], [i_manufact#22432], Inner, BuildRight, false
+               :- Project [i_manufact#22410, i_product_name#22417]
+               :  +- Filter (((isnotnull(i_manufact_id#22409) AND (i_manufact_id#22409 >= 742)) AND (i_manufact_id#22409 <= 782)) AND isnotnull(i_manufact#22410))
+               :     +- BatchScan[i_manufact_id#22409, i_manufact#22410, i_product_name#22417] spark_catalog.tpcds_iceberg_10g.item [filters=i_manufact_id IS NOT NULL, i_manufact_id >= 742, i_manufact_id <= 782, i_manufact IS NOT NULL] RuntimeFilters: []
+               +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, true]),false), [plan_id=17134]
+                  +- Project [i_manufact#22432]
+                     +- Filter (item_cnt#22394L > 0)
+                        +- HashAggregate(keys=[i_manufact#22432], functions=[count(1)], output=[item_cnt#22394L, i_manufact#22432])
+                           +- HashAggregate(keys=[i_manufact#22432], functions=[partial_count(1)], output=[i_manufact#22432, count#22463L])
+                              +- Project [i_manufact#22432]
+                                 +- Filter (((((i_category#22430 = Women) AND (((((i_color#22435 = orchid) OR (i_color#22435 = papaya)) AND ((i_units#22436 = Pound) OR (i_units#22436 = Lb))) AND ((i_size#22433 = petite) OR (i_size#22433 = medium))) OR ((((i_color#22435 = burlywood) OR (i_color#22435 = navy)) AND ((i_units#22436 = Bundle) OR (i_units#22436 = Each))) AND ((i_size#22433 = N/A) OR (i_size#22433 = extra large))))) OR ((i_category#22430 = Men) AND (((((i_color#22435 = bisque) OR (i_color#22435 = azure)) AND ((i_units#22436 = N/A) OR (i_units#22436 = Tsp))) AND ((i_size#22433 = small) OR (i_size#22433 = large))) OR ((((i_color#22435 = chocolate) OR (i_color#22435 = cornflower)) AND ((i_units#22436 = Bunch) OR (i_units#22436 = Gross))) AND ((i_size#22433 = petite) OR (i_size#22433 = medium)))))) OR (((i_category#22430 = Women) AND (((((i_color#22435 = salmon) OR (i_color#22435 = midnight)) AND ((i_units#22436 = Oz) OR (i_units#22436 = Box))) AND ((i_size#22433 = petite) OR (i_size#22433 = medium))) OR ((((i_color#22435 = snow) OR (i_color#22435 = steel)) AND ((i_units#22436 = Carton) OR (i_units#22436 = Tbl))) AND ((i_size#22433 = N/A) OR (i_size#22433 = extra large))))) OR ((i_category#22430 = Men) AND (((((i_color#22435 = purple) OR (i_color#22435 = gainsboro)) AND ((i_units#22436 = Dram) OR (i_units#22436 = Unknown))) AND ((i_size#22433 = small) OR (i_size#22433 = large))) OR ((((i_color#22435 = metallic) OR (i_color#22435 = forest)) AND ((i_units#22436 = Gram) OR (i_units#22436 = Ounce))) AND ((i_size#22433 = petite) OR (i_size#22433 = medium))))))) AND isnotnull(i_manufact#22432))
+                                    +- BatchScan[i_category#22430, i_manufact#22432, i_size#22433, i_color#22435, i_units#22436] spark_catalog.tpcds_iceberg_10g.item [filters=(((i_category = 'Women' AND ((((i_color = 'orchid' OR i_color = 'papaya') AND (i_units = 'Pound' OR i_units = 'Lb')) AND (i_size = 'petite' OR i_size = 'medium')) OR (((i_color = 'burlywood' OR i_color = 'navy') AND (i_units = 'Bundle' OR i_units = 'Each')) AND (i_size = 'N/A' OR i_size = 'extra large')))) OR (i_category = 'Men' AND ((((i_color = 'bisque' OR i_color = 'azure') AND (i_units = 'N/A' OR i_units = 'Tsp')) AND (i_size = 'small' OR i_size = 'large')) OR (((i_color = 'chocolate' OR i_color = 'cornflower') AND (i_units = 'Bunch' OR i_units = 'Gross')) AND (i_size = 'petite' OR i_size = 'medium'))))) OR ((i_category = 'Women' AND ((((i_color = 'salmon' OR i_color = 'midnight') AND (i_units = 'Oz' OR i_units = 'Box')) AND (i_size = 'petite' OR i_size = 'medium')) OR (((i_color = 'snow' OR i_color = 'steel') AND (i_units = 'Carton' OR i_units = 'Tbl')) AND (i_size = 'N/A' OR i_size = 'extra large')))) OR (i_category = 'Men' AND ((((i_color = 'purple' OR i_color = 'gainsboro') AND (i_units = 'Dram' OR i_units = 'Unknown')) AND (i_size = 'small' OR i_size = 'large')) OR (((i_color = 'metallic' OR i_color = 'forest') AND (i_units = 'Gram' OR i_units = 'Ounce')) AND (i_size = 'petite' OR i_size = 'medium'))))))] RuntimeFilters: []
+

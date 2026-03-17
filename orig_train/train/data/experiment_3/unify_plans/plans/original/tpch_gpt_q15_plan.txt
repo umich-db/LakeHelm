@@ -1,0 +1,31 @@
+== Optimized Logical Plan ==
+Sort [total_quantity#26929L DESC NULLS LAST], true
++- Aggregate [o_orderpriority#26935], [o_orderpriority#26935, sum(l_quantity#26943L) AS total_quantity#26929L]
+   +- Project [o_orderpriority#26935, l_quantity#26943L]
+      +- Join Inner, (o_orderkey#26930L = l_orderkey#26939L)
+         :- Project [o_orderkey#26930L, o_orderpriority#26935]
+         :  +- Filter ((isnotnull(o_orderstatus#26932) AND (o_orderstatus#26932 = F)) AND isnotnull(o_orderkey#26930L))
+         :     +- RelationV2[o_orderkey#26930L, o_orderstatus#26932, o_orderpriority#26935] spark_catalog.tpch_iceberg_10g.orders
+         +- Filter isnotnull(l_orderkey#26939L)
+            +- RelationV2[l_orderkey#26939L, l_quantity#26943L] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_quantity#26929L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_quantity#26929L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=32249]
+      +- HashAggregate(keys=[o_orderpriority#26935], functions=[sum(l_quantity#26943L)], output=[o_orderpriority#26935, total_quantity#26929L])
+         +- Exchange hashpartitioning(o_orderpriority#26935, 200), ENSURE_REQUIREMENTS, [plan_id=32246]
+            +- HashAggregate(keys=[o_orderpriority#26935], functions=[partial_sum(l_quantity#26943L)], output=[o_orderpriority#26935, sum#26974L])
+               +- Project [o_orderpriority#26935, l_quantity#26943L]
+                  +- SortMergeJoin [o_orderkey#26930L], [l_orderkey#26939L], Inner
+                     :- Sort [o_orderkey#26930L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(o_orderkey#26930L, 200), ENSURE_REQUIREMENTS, [plan_id=32238]
+                     :     +- Project [o_orderkey#26930L, o_orderpriority#26935]
+                     :        +- Filter ((isnotnull(o_orderstatus#26932) AND (o_orderstatus#26932 = F)) AND isnotnull(o_orderkey#26930L))
+                     :           +- BatchScan[o_orderkey#26930L, o_orderstatus#26932, o_orderpriority#26935] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderstatus IS NOT NULL, o_orderstatus = 'F', o_orderkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [l_orderkey#26939L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(l_orderkey#26939L, 200), ENSURE_REQUIREMENTS, [plan_id=32239]
+                           +- Filter isnotnull(l_orderkey#26939L)
+                              +- BatchScan[l_orderkey#26939L, l_quantity#26943L] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_orderkey IS NOT NULL] RuntimeFilters: []
+

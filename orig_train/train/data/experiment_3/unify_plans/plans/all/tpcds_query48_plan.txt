@@ -1,0 +1,65 @@
+=== Optimized Logical Plan ===
+Aggregate [sum(ss_quantity#24007) AS sum(ss_quantity)#24126L]
++- Project [ss_quantity#24007]
+   +- Join Inner, (ss_sold_date_sk#24020 = d_date_sk#24072)
+      :- Project [ss_quantity#24007, ss_sold_date_sk#24020]
+      :  +- Join Inner, ((ss_addr_sk#24003 = ca_address_sk#24059) AND ((((ca_state#24067 IN (KY,GA,NM) AND (ss_net_profit#24019 >= 0.00)) AND (ss_net_profit#24019 <= 2000.00)) OR ((ca_state#24067 IN (MT,OR,IN) AND (ss_net_profit#24019 >= 150.00)) AND (ss_net_profit#24019 <= 3000.00))) OR ((ca_state#24067 IN (WI,MO,WV) AND (ss_net_profit#24019 >= 50.00)) AND (ss_net_profit#24019 <= 25000.00))))
+      :     :- Project [ss_addr_sk#24003, ss_quantity#24007, ss_net_profit#24019, ss_sold_date_sk#24020]
+      :     :  +- Join Inner, ((cd_demo_sk#24050 = ss_cdemo_sk#24001) AND ((((((cd_marital_status#24052 = M) AND (cd_education_status#24053 = 4 yr Degree)) AND (ss_sales_price#24010 >= 100.00)) AND (ss_sales_price#24010 <= 150.00)) OR ((((cd_marital_status#24052 = D) AND (cd_education_status#24053 = Primary)) AND (ss_sales_price#24010 >= 50.00)) AND (ss_sales_price#24010 <= 100.00))) OR ((((cd_marital_status#24052 = U) AND (cd_education_status#24053 = Advanced Degree)) AND (ss_sales_price#24010 >= 150.00)) AND (ss_sales_price#24010 <= 200.00))))
+      :     :     :- Project [ss_cdemo_sk#24001, ss_addr_sk#24003, ss_quantity#24007, ss_sales_price#24010, ss_net_profit#24019, ss_sold_date_sk#24020]
+      :     :     :  +- Join Inner, (s_store_sk#24021 = ss_store_sk#24004)
+      :     :     :     :- Filter ((((isnotnull(ss_store_sk#24004) AND isnotnull(ss_cdemo_sk#24001)) AND isnotnull(ss_addr_sk#24003)) AND isnotnull(ss_sold_date_sk#24020)) AND ((((((ss_sales_price#24010 >= 100.00) AND (ss_sales_price#24010 <= 150.00)) OR ((ss_sales_price#24010 >= 50.00) AND (ss_sales_price#24010 <= 100.00))) OR ((ss_sales_price#24010 >= 150.00) AND (ss_sales_price#24010 <= 200.00))) AND ((((ss_net_profit#24019 >= 0.00) AND (ss_net_profit#24019 <= 2000.00)) OR ((ss_net_profit#24019 >= 150.00) AND (ss_net_profit#24019 <= 3000.00))) OR ((ss_net_profit#24019 >= 50.00) AND (ss_net_profit#24019 <= 25000.00)))) AND dynamicpruning#24144 [ss_sold_date_sk#24020]))
+      :     :     :     :  :  +- Project [d_date_sk#24072]
+      :     :     :     :  :     +- Filter ((isnotnull(d_year#24078) AND (d_year#24078 = 1998)) AND isnotnull(d_date_sk#24072))
+      :     :     :     :  :        +- RelationV2[d_date_sk#24072, d_year#24078] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     :     :     :  +- RelationV2[ss_cdemo_sk#24001, ss_addr_sk#24003, ss_store_sk#24004, ss_quantity#24007, ss_sales_price#24010, ss_net_profit#24019, ss_sold_date_sk#24020] spark_catalog.tpcds_iceberg_10g.store_sales
+      :     :     :     +- Filter isnotnull(s_store_sk#24021)
+      :     :     :        +- RelationV2[s_store_sk#24021] spark_catalog.tpcds_iceberg_10g.store
+      :     :     +- Filter (isnotnull(cd_demo_sk#24050) AND ((((cd_marital_status#24052 = M) AND (cd_education_status#24053 = 4 yr Degree)) OR ((cd_marital_status#24052 = D) AND (cd_education_status#24053 = Primary))) OR ((cd_marital_status#24052 = U) AND (cd_education_status#24053 = Advanced Degree))))
+      :     :        +- RelationV2[cd_demo_sk#24050, cd_marital_status#24052, cd_education_status#24053] spark_catalog.tpcds_iceberg_10g.customer_demographics
+      :     +- Project [ca_address_sk#24059, ca_state#24067]
+      :        +- Filter (((isnotnull(ca_country#24069) AND (ca_country#24069 = United States)) AND isnotnull(ca_address_sk#24059)) AND ((ca_state#24067 IN (KY,GA,NM) OR ca_state#24067 IN (MT,OR,IN)) OR ca_state#24067 IN (WI,MO,WV)))
+      :           +- RelationV2[ca_address_sk#24059, ca_state#24067, ca_country#24069] spark_catalog.tpcds_iceberg_10g.customer_address
+      +- Project [d_date_sk#24072]
+         +- Filter ((isnotnull(d_year#24078) AND (d_year#24078 = 1998)) AND isnotnull(d_date_sk#24072))
+            +- RelationV2[d_date_sk#24072, d_year#24078] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[sum(ss_quantity#24007)], output=[sum(ss_quantity)#24126L])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=18399]
+      +- HashAggregate(keys=[], functions=[partial_sum(ss_quantity#24007)], output=[sum#24146L])
+         +- Project [ss_quantity#24007]
+            +- BroadcastHashJoin [ss_sold_date_sk#24020], [d_date_sk#24072], Inner, BuildRight, false
+               :- Project [ss_quantity#24007, ss_sold_date_sk#24020]
+               :  +- BroadcastHashJoin [ss_addr_sk#24003], [ca_address_sk#24059], Inner, BuildRight, ((((ca_state#24067 IN (KY,GA,NM) AND (ss_net_profit#24019 >= 0.00)) AND (ss_net_profit#24019 <= 2000.00)) OR ((ca_state#24067 IN (MT,OR,IN) AND (ss_net_profit#24019 >= 150.00)) AND (ss_net_profit#24019 <= 3000.00))) OR ((ca_state#24067 IN (WI,MO,WV) AND (ss_net_profit#24019 >= 50.00)) AND (ss_net_profit#24019 <= 25000.00))), false
+               :     :- Project [ss_addr_sk#24003, ss_quantity#24007, ss_net_profit#24019, ss_sold_date_sk#24020]
+               :     :  +- SortMergeJoin [ss_cdemo_sk#24001], [cd_demo_sk#24050], Inner, ((((((cd_marital_status#24052 = M) AND (cd_education_status#24053 = 4 yr Degree)) AND (ss_sales_price#24010 >= 100.00)) AND (ss_sales_price#24010 <= 150.00)) OR ((((cd_marital_status#24052 = D) AND (cd_education_status#24053 = Primary)) AND (ss_sales_price#24010 >= 50.00)) AND (ss_sales_price#24010 <= 100.00))) OR ((((cd_marital_status#24052 = U) AND (cd_education_status#24053 = Advanced Degree)) AND (ss_sales_price#24010 >= 150.00)) AND (ss_sales_price#24010 <= 200.00)))
+               :     :     :- Sort [ss_cdemo_sk#24001 ASC NULLS FIRST], false, 0
+               :     :     :  +- Exchange hashpartitioning(ss_cdemo_sk#24001, 200), ENSURE_REQUIREMENTS, [plan_id=18383]
+               :     :     :     +- Project [ss_cdemo_sk#24001, ss_addr_sk#24003, ss_quantity#24007, ss_sales_price#24010, ss_net_profit#24019, ss_sold_date_sk#24020]
+               :     :     :        +- BroadcastHashJoin [ss_store_sk#24004], [s_store_sk#24021], Inner, BuildRight, false
+               :     :     :           :- Filter (((((isnotnull(ss_store_sk#24004) AND isnotnull(ss_cdemo_sk#24001)) AND isnotnull(ss_addr_sk#24003)) AND isnotnull(ss_sold_date_sk#24020)) AND ((((ss_sales_price#24010 >= 100.00) AND (ss_sales_price#24010 <= 150.00)) OR ((ss_sales_price#24010 >= 50.00) AND (ss_sales_price#24010 <= 100.00))) OR ((ss_sales_price#24010 >= 150.00) AND (ss_sales_price#24010 <= 200.00)))) AND ((((ss_net_profit#24019 >= 0.00) AND (ss_net_profit#24019 <= 2000.00)) OR ((ss_net_profit#24019 >= 150.00) AND (ss_net_profit#24019 <= 3000.00))) OR ((ss_net_profit#24019 >= 50.00) AND (ss_net_profit#24019 <= 25000.00))))
+               :     :     :           :  +- BatchScan[ss_cdemo_sk#24001, ss_addr_sk#24003, ss_store_sk#24004, ss_quantity#24007, ss_sales_price#24010, ss_net_profit#24019, ss_sold_date_sk#24020] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_store_sk IS NOT NULL, ss_cdemo_sk IS NOT NULL, ss_addr_sk IS NOT NULL, ss_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#24020 IN dynamicpruning#24144)]
+               :     :     :           :        +- SubqueryAdaptiveBroadcast dynamicpruning#24144, 0, true, Project [d_date_sk#24072], [d_date_sk#24072]
+               :     :     :           :           +- AdaptiveSparkPlan isFinalPlan=false
+               :     :     :           :              +- Project [d_date_sk#24072]
+               :     :     :           :                 +- Filter ((isnotnull(d_year#24078) AND (d_year#24078 = 1998)) AND isnotnull(d_date_sk#24072))
+               :     :     :           :                    +- BatchScan[d_date_sk#24072, d_year#24078] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+               :     :     :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=18378]
+               :     :     :              +- Filter isnotnull(s_store_sk#24021)
+               :     :     :                 +- BatchScan[s_store_sk#24021] spark_catalog.tpcds_iceberg_10g.store [filters=s_store_sk IS NOT NULL] RuntimeFilters: []
+               :     :     +- Sort [cd_demo_sk#24050 ASC NULLS FIRST], false, 0
+               :     :        +- Exchange hashpartitioning(cd_demo_sk#24050, 200), ENSURE_REQUIREMENTS, [plan_id=18384]
+               :     :           +- Filter (isnotnull(cd_demo_sk#24050) AND ((((cd_marital_status#24052 = M) AND (cd_education_status#24053 = 4 yr Degree)) OR ((cd_marital_status#24052 = D) AND (cd_education_status#24053 = Primary))) OR ((cd_marital_status#24052 = U) AND (cd_education_status#24053 = Advanced Degree))))
+               :     :              +- BatchScan[cd_demo_sk#24050, cd_marital_status#24052, cd_education_status#24053] spark_catalog.tpcds_iceberg_10g.customer_demographics [filters=cd_demo_sk IS NOT NULL, (((cd_marital_status = 'M' AND cd_education_status = '4 yr Degree') OR (cd_marital_status = 'D' AND cd_education_status = 'Primary')) OR (cd_marital_status = 'U' AND cd_education_status = 'Advanced Degree'))] RuntimeFilters: []
+               :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=18390]
+               :        +- Project [ca_address_sk#24059, ca_state#24067]
+               :           +- Filter (((isnotnull(ca_country#24069) AND (ca_country#24069 = United States)) AND isnotnull(ca_address_sk#24059)) AND ((ca_state#24067 IN (KY,GA,NM) OR ca_state#24067 IN (MT,OR,IN)) OR ca_state#24067 IN (WI,MO,WV)))
+               :              +- BatchScan[ca_address_sk#24059, ca_state#24067, ca_country#24069] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_country IS NOT NULL, ca_country = 'United States', ca_address_sk IS NOT NULL, ((ca_state IN ('KY', 'GA', 'NM') OR ca_state IN ('MT', 'OR', 'IN')) OR ca_state IN ('WI', 'MO', 'WV'))] RuntimeFilters: []
+               +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=18394]
+                  +- Project [d_date_sk#24072]
+                     +- Filter ((isnotnull(d_year#24078) AND (d_year#24078 = 1998)) AND isnotnull(d_date_sk#24072))
+                        +- BatchScan[d_date_sk#24072, d_year#24078] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 1998, d_date_sk IS NOT NULL] RuntimeFilters: []
+

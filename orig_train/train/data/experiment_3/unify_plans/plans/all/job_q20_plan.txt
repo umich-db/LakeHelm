@@ -1,0 +1,50 @@
+== Optimized Logical Plan ==
+Sort [person_info_count#18190L DESC NULLS LAST], true
++- Aggregate [title#18192, info#18209], [title#18192, info#18209, count(id#18210L) AS person_info_count#18190L]
+   +- Project [title#18192, info#18209, id#18210L]
+      +- Join Inner, (movie_id#18204L = person_id#18211L)
+         :- Project [title#18192, movie_id#18204L, info#18209]
+         :  +- Join Inner, (info_type_id#18205L = id#18208L)
+         :     :- Project [title#18192, movie_id#18204L, info_type_id#18205L]
+         :     :  +- Join Inner, (id#18191L = movie_id#18204L)
+         :     :     :- Project [id#18191L, title#18192]
+         :     :     :  +- Filter ((isnotnull(production_year#18195L) AND (production_year#18195L < 1990)) AND isnotnull(id#18191L))
+         :     :     :     +- RelationV2[id#18191L, title#18192, production_year#18195L] spark_catalog.job_iceberg_10g.title
+         :     :     +- Filter (isnotnull(movie_id#18204L) AND isnotnull(info_type_id#18205L))
+         :     :        +- RelationV2[movie_id#18204L, info_type_id#18205L] spark_catalog.job_iceberg_10g.movie_info
+         :     +- Filter ((isnotnull(info#18209) AND (info#18209 = rating)) AND isnotnull(id#18208L))
+         :        +- RelationV2[id#18208L, info#18209] spark_catalog.job_iceberg_10g.info_type
+         +- Filter isnotnull(person_id#18211L)
+            +- RelationV2[id#18210L, person_id#18211L] spark_catalog.job_iceberg_10g.person_info
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [person_info_count#18190L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(person_info_count#18190L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=19913]
+      +- HashAggregate(keys=[title#18192, info#18209], functions=[count(id#18210L)], output=[title#18192, info#18209, person_info_count#18190L])
+         +- Exchange hashpartitioning(title#18192, info#18209, 200), ENSURE_REQUIREMENTS, [plan_id=19910]
+            +- HashAggregate(keys=[title#18192, info#18209], functions=[partial_count(id#18210L)], output=[title#18192, info#18209, count#18249L])
+               +- Project [title#18192, info#18209, id#18210L]
+                  +- SortMergeJoin [movie_id#18204L], [person_id#18211L], Inner
+                     :- Project [title#18192, movie_id#18204L, info#18209]
+                     :  +- BroadcastHashJoin [info_type_id#18205L], [id#18208L], Inner, BuildRight, false
+                     :     :- Project [title#18192, movie_id#18204L, info_type_id#18205L]
+                     :     :  +- SortMergeJoin [id#18191L], [movie_id#18204L], Inner
+                     :     :     :- Sort [id#18191L ASC NULLS FIRST], false, 0
+                     :     :     :  +- Exchange hashpartitioning(id#18191L, 200), ENSURE_REQUIREMENTS, [plan_id=19893]
+                     :     :     :     +- Project [id#18191L, title#18192]
+                     :     :     :        +- Filter ((isnotnull(production_year#18195L) AND (production_year#18195L < 1990)) AND isnotnull(id#18191L))
+                     :     :     :           +- BatchScan[id#18191L, title#18192, production_year#18195L] spark_catalog.job_iceberg_10g.title [filters=production_year IS NOT NULL, production_year < 1990, id IS NOT NULL] RuntimeFilters: []
+                     :     :     +- Sort [movie_id#18204L ASC NULLS FIRST], false, 0
+                     :     :        +- Exchange hashpartitioning(movie_id#18204L, 200), ENSURE_REQUIREMENTS, [plan_id=19892]
+                     :     :           +- Filter (isnotnull(movie_id#18204L) AND isnotnull(info_type_id#18205L))
+                     :     :              +- BatchScan[movie_id#18204L, info_type_id#18205L] spark_catalog.job_iceberg_10g.movie_info [filters=movie_id IS NOT NULL, info_type_id IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=19899]
+                     :        +- Filter ((isnotnull(info#18209) AND (info#18209 = rating)) AND isnotnull(id#18208L))
+                     :           +- BatchScan[id#18208L, info#18209] spark_catalog.job_iceberg_10g.info_type [filters=info IS NOT NULL, info = 'rating', id IS NOT NULL] RuntimeFilters: []
+                     +- Sort [person_id#18211L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(person_id#18211L, 200), ENSURE_REQUIREMENTS, [plan_id=19904]
+                           +- Filter isnotnull(person_id#18211L)
+                              +- BatchScan[id#18210L, person_id#18211L] spark_catalog.job_iceberg_10g.person_info [filters=person_id IS NOT NULL] RuntimeFilters: []
+

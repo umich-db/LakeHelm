@@ -1,0 +1,82 @@
+== Parsed Logical Plan ==
+'Sort ['s.s_suppkey ASC NULLS FIRST], true
++- 'Project ['s.s_suppkey, 's.s_name, 's.s_address, 's.s_phone, 'revenue.total_revenue]
+   +- 'Filter ('revenue.total_revenue = scalar-subquery#15957 [])
+      :  +- 'Project [unresolvedalias('MAX('total_revenue), None)]
+      :     +- 'SubqueryAlias max_revenue
+      :        +- 'Aggregate ['l_suppkey], ['SUM(('l_extendedprice * (1 - 'l_discount))) AS total_revenue#15956]
+      :           +- 'Filter (('date('l_shipdate) >= 1994-07-01) AND ('date('l_shipdate) < (1994-07-01 + INTERVAL '3' MONTH)))
+      :              +- 'UnresolvedRelation [lineitem], [], false
+      +- 'Join Inner, ('s.s_suppkey = 'revenue.supplier_no)
+         :- 'SubqueryAlias s
+         :  +- 'UnresolvedRelation [supplier], [], false
+         +- 'SubqueryAlias revenue
+            +- 'Aggregate ['l_suppkey], ['l_suppkey AS supplier_no#15954, 'SUM(('l_extendedprice * (1 - 'l_discount))) AS total_revenue#15955]
+               +- 'Filter (('date('l_shipdate) >= 1994-07-01) AND ('date('l_shipdate) < (1994-07-01 + INTERVAL '3' MONTH)))
+                  +- 'UnresolvedRelation [lineitem], [], false
+
+== Analyzed Logical Plan ==
+s_suppkey: bigint, s_name: string, s_address: string, s_phone: string, total_revenue: double
+Sort [s_suppkey#15964L ASC NULLS FIRST], true
++- Project [s_suppkey#15964L, s_name#15965, s_address#15966, s_phone#15968, total_revenue#15955]
+   +- Filter (total_revenue#15955 = scalar-subquery#15957 [])
+      :  +- Aggregate [max(total_revenue#15956) AS max(total_revenue)#16016]
+      :     +- SubqueryAlias max_revenue
+      :        +- Aggregate [l_suppkey#15995L], [sum((l_extendedprice#15998 * (cast(1 as double) - l_discount#15999))) AS total_revenue#15956]
+      :           +- Filter ((cast(l_shipdate#16003 as date) >= 1994-07-01) AND (cast(l_shipdate#16003 as date) < 1994-07-01 + INTERVAL '3' MONTH))
+      :              +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+      :                 +- RelationV2[l_orderkey#15993L, l_partkey#15994L, l_suppkey#15995L, l_linenumber#15996L, l_quantity#15997L, l_extendedprice#15998, l_discount#15999, l_tax#16000, l_returnflag#16001, l_linestatus#16002, l_shipdate#16003, l_commitdate#16004, l_receiptdate#16005, l_shipinstruct#16006, l_shipmode#16007, l_comment#16008] spark_catalog.tpch_iceberg_10g.lineitem
+      +- Join Inner, (s_suppkey#15964L = supplier_no#15954L)
+         :- SubqueryAlias s
+         :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.supplier
+         :     +- RelationV2[s_suppkey#15964L, s_name#15965, s_address#15966, s_nationkey#15967L, s_phone#15968, s_acctbal#15969, s_comment#15970] spark_catalog.tpch_iceberg_10g.supplier
+         +- SubqueryAlias revenue
+            +- Aggregate [l_suppkey#15973L], [l_suppkey#15973L AS supplier_no#15954L, sum((l_extendedprice#15976 * (cast(1 as double) - l_discount#15977))) AS total_revenue#15955]
+               +- Filter ((cast(l_shipdate#15981 as date) >= 1994-07-01) AND (cast(l_shipdate#15981 as date) < 1994-07-01 + INTERVAL '3' MONTH))
+                  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+                     +- RelationV2[l_orderkey#15971L, l_partkey#15972L, l_suppkey#15973L, l_linenumber#15974L, l_quantity#15975L, l_extendedprice#15976, l_discount#15977, l_tax#15978, l_returnflag#15979, l_linestatus#15980, l_shipdate#15981, l_commitdate#15982, l_receiptdate#15983, l_shipinstruct#15984, l_shipmode#15985, l_comment#15986] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Optimized Logical Plan ==
+Sort [s_suppkey#15964L ASC NULLS FIRST], true
++- Project [s_suppkey#15964L, s_name#15965, s_address#15966, s_phone#15968, total_revenue#15955]
+   +- Join Inner, (s_suppkey#15964L = supplier_no#15954L)
+      :- Filter isnotnull(s_suppkey#15964L)
+      :  +- RelationV2[s_suppkey#15964L, s_name#15965, s_address#15966, s_phone#15968] spark_catalog.tpch_iceberg_10g.supplier
+      +- Filter (isnotnull(total_revenue#15955) AND (total_revenue#15955 = scalar-subquery#15957 []))
+         :  +- Aggregate [max(total_revenue#15956) AS max(total_revenue)#16016]
+         :     +- Aggregate [l_suppkey#15995L], [sum((l_extendedprice#15998 * (1.0 - l_discount#15999))) AS total_revenue#15956]
+         :        +- Project [l_suppkey#15995L, l_extendedprice#15998, l_discount#15999]
+         :           +- Filter (((cast(l_shipdate#16003 as date) >= 1994-07-01) AND (cast(l_shipdate#16003 as date) < 1994-10-01)) AND isnotnull(l_shipdate#16003))
+         :              +- RelationV2[l_suppkey#15995L, l_extendedprice#15998, l_discount#15999, l_shipdate#16003] spark_catalog.tpch_iceberg_10g.lineitem
+         +- Aggregate [l_suppkey#15973L], [l_suppkey#15973L AS supplier_no#15954L, sum((l_extendedprice#15976 * (1.0 - l_discount#15977))) AS total_revenue#15955]
+            +- Project [l_suppkey#15973L, l_extendedprice#15976, l_discount#15977]
+               +- Filter ((((cast(l_shipdate#15981 as date) >= 1994-07-01) AND (cast(l_shipdate#15981 as date) < 1994-10-01)) AND isnotnull(l_shipdate#15981)) AND isnotnull(l_suppkey#15973L))
+                  +- RelationV2[l_suppkey#15973L, l_extendedprice#15976, l_discount#15977, l_shipdate#15981] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [s_suppkey#15964L ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(s_suppkey#15964L ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=19074]
+      +- Project [s_suppkey#15964L, s_name#15965, s_address#15966, s_phone#15968, total_revenue#15955]
+         +- BroadcastHashJoin [s_suppkey#15964L], [supplier_no#15954L], Inner, BuildLeft, false
+            :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=19070]
+            :  +- Filter isnotnull(s_suppkey#15964L)
+            :     +- BatchScan[s_suppkey#15964L, s_name#15965, s_address#15966, s_phone#15968] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL] RuntimeFilters: []
+            +- Filter (isnotnull(total_revenue#15955) AND (total_revenue#15955 = Subquery subquery#15957, [id=#19057]))
+               :  +- Subquery subquery#15957, [id=#19057]
+               :     +- AdaptiveSparkPlan isFinalPlan=false
+               :        +- HashAggregate(keys=[], functions=[max(total_revenue#15956)], output=[max(total_revenue)#16016])
+               :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=19055]
+               :              +- HashAggregate(keys=[], functions=[partial_max(total_revenue#15956)], output=[max#16037])
+               :                 +- HashAggregate(keys=[l_suppkey#15995L], functions=[sum((l_extendedprice#15998 * (1.0 - l_discount#15999)))], output=[total_revenue#15956])
+               :                    +- Exchange hashpartitioning(l_suppkey#15995L, 200), ENSURE_REQUIREMENTS, [plan_id=19051]
+               :                       +- HashAggregate(keys=[l_suppkey#15995L], functions=[partial_sum((l_extendedprice#15998 * (1.0 - l_discount#15999)))], output=[l_suppkey#15995L, sum#16039])
+               :                          +- Project [l_suppkey#15995L, l_extendedprice#15998, l_discount#15999]
+               :                             +- Filter (((cast(l_shipdate#16003 as date) >= 1994-07-01) AND (cast(l_shipdate#16003 as date) < 1994-10-01)) AND isnotnull(l_shipdate#16003))
+               :                                +- BatchScan[l_suppkey#15995L, l_extendedprice#15998, l_discount#15999, l_shipdate#16003] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL] RuntimeFilters: []
+               +- HashAggregate(keys=[l_suppkey#15973L], functions=[sum((l_extendedprice#15976 * (1.0 - l_discount#15977)))], output=[supplier_no#15954L, total_revenue#15955])
+                  +- Exchange hashpartitioning(l_suppkey#15973L, 200), ENSURE_REQUIREMENTS, [plan_id=19066]
+                     +- HashAggregate(keys=[l_suppkey#15973L], functions=[partial_sum((l_extendedprice#15976 * (1.0 - l_discount#15977)))], output=[l_suppkey#15973L, sum#16035])
+                        +- Project [l_suppkey#15973L, l_extendedprice#15976, l_discount#15977]
+                           +- Filter ((((cast(l_shipdate#15981 as date) >= 1994-07-01) AND (cast(l_shipdate#15981 as date) < 1994-10-01)) AND isnotnull(l_shipdate#15981)) AND isnotnull(l_suppkey#15973L))
+                              +- BatchScan[l_suppkey#15973L, l_extendedprice#15976, l_discount#15977, l_shipdate#15981] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_suppkey IS NOT NULL] RuntimeFilters: []

@@ -1,0 +1,32 @@
+== Optimized Logical Plan ==
+Sort [num_orders#22307L DESC NULLS LAST], true
++- Aggregate [o_orderdate#22312], [o_orderdate#22312, count(1) AS num_orders#22307L]
+   +- Project [o_orderdate#22312]
+      +- Join Inner, (o_orderkey#22308L = l_orderkey#22317L)
+         :- Filter isnotnull(o_orderkey#22308L)
+         :  +- RelationV2[o_orderkey#22308L, o_orderdate#22312] spark_catalog.tpch_iceberg_10g.orders
+         +- Project [l_orderkey#22317L]
+            +- Filter ((((isnotnull(l_shipdate#22327) AND l_shipmode#22331 IN (AIR,SHIP)) AND (l_shipdate#22327 >= 1997-01-01)) AND (l_shipdate#22327 <= 1997-12-31)) AND isnotnull(l_orderkey#22317L))
+               +- RelationV2[l_orderkey#22317L, l_shipdate#22327, l_shipmode#22331] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_orders#22307L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(num_orders#22307L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=25812]
+      +- HashAggregate(keys=[o_orderdate#22312], functions=[count(1)], output=[o_orderdate#22312, num_orders#22307L])
+         +- Exchange hashpartitioning(o_orderdate#22312, 200), ENSURE_REQUIREMENTS, [plan_id=25809]
+            +- HashAggregate(keys=[o_orderdate#22312], functions=[partial_count(1)], output=[o_orderdate#22312, count#22352L])
+               +- Project [o_orderdate#22312]
+                  +- SortMergeJoin [o_orderkey#22308L], [l_orderkey#22317L], Inner
+                     :- Sort [o_orderkey#22308L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(o_orderkey#22308L, 200), ENSURE_REQUIREMENTS, [plan_id=25801]
+                     :     +- Filter isnotnull(o_orderkey#22308L)
+                     :        +- BatchScan[o_orderkey#22308L, o_orderdate#22312] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [l_orderkey#22317L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(l_orderkey#22317L, 200), ENSURE_REQUIREMENTS, [plan_id=25802]
+                           +- Project [l_orderkey#22317L]
+                              +- Filter ((((isnotnull(l_shipdate#22327) AND l_shipmode#22331 IN (AIR,SHIP)) AND (l_shipdate#22327 >= 1997-01-01)) AND (l_shipdate#22327 <= 1997-12-31)) AND isnotnull(l_orderkey#22317L))
+                                 +- BatchScan[l_orderkey#22317L, l_shipdate#22327, l_shipmode#22331] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_shipmode IN ('AIR', 'SHIP'), l_shipdate >= '1997-01-01', l_shipdate <= '1997-12-31', l_orderkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

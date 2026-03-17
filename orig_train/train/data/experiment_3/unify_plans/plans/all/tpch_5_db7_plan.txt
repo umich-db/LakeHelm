@@ -1,0 +1,125 @@
+== Parsed Logical Plan ==
+'Sort ['supp_nation ASC NULLS FIRST, 'cust_nation ASC NULLS FIRST, 'l_year ASC NULLS FIRST], true
++- 'Aggregate ['supp_nation, 'cust_nation, 'l_year], ['supp_nation, 'cust_nation, 'l_year, 'sum('volume) AS revenue#20241]
+   +- 'SubqueryAlias shipping
+      +- 'Project ['n1.n_name AS supp_nation#20237, 'n2.n_name AS cust_nation#20238, 'extract(year, 'date('l_shipdate)) AS l_year#20239, ('l_extendedprice * (1 - 'l_discount)) AS volume#20240]
+         +- 'Filter (((('s_suppkey = 'l_suppkey) AND ('o_orderkey = 'l_orderkey)) AND (('c_custkey = 'o_custkey) AND ('s_nationkey = 'n1.n_nationkey))) AND ((('c_nationkey = 'n2.n_nationkey) AND ((('n1.n_name = INDONESIA) AND ('n2.n_name = IRAQ)) OR (('n1.n_name = IRAQ) AND ('n2.n_name = INDONESIA)))) AND (('date('l_shipdate) >= 1995-01-01) AND ('date('l_shipdate) <= 1996-12-31))))
+            +- 'Join Inner
+               :- 'Join Inner
+               :  :- 'Join Inner
+               :  :  :- 'Join Inner
+               :  :  :  :- 'Join Inner
+               :  :  :  :  :- 'UnresolvedRelation [supplier], [], false
+               :  :  :  :  +- 'UnresolvedRelation [lineitem], [], false
+               :  :  :  +- 'UnresolvedRelation [orders], [], false
+               :  :  +- 'UnresolvedRelation [customer], [], false
+               :  +- 'SubqueryAlias n1
+               :     +- 'UnresolvedRelation [nation], [], false
+               +- 'SubqueryAlias n2
+                  +- 'UnresolvedRelation [nation], [], false
+
+== Analyzed Logical Plan ==
+supp_nation: string, cust_nation: string, l_year: int, revenue: double
+Sort [supp_nation#20237 ASC NULLS FIRST, cust_nation#20238 ASC NULLS FIRST, l_year#20239 ASC NULLS FIRST], true
++- Aggregate [supp_nation#20237, cust_nation#20238, l_year#20239], [supp_nation#20237, cust_nation#20238, l_year#20239, sum(volume#20240) AS revenue#20241]
+   +- SubqueryAlias shipping
+      +- Project [n_name#20289 AS supp_nation#20237, n_name#20293 AS cust_nation#20238, extract(year, cast(l_shipdate#20265 as date)) AS l_year#20239, (l_extendedprice#20260 * (cast(1 as double) - l_discount#20261)) AS volume#20240]
+         +- Filter ((((s_suppkey#20248L = l_suppkey#20257L) AND (o_orderkey#20271L = l_orderkey#20255L)) AND ((c_custkey#20280L = o_custkey#20272L) AND (s_nationkey#20251L = n_nationkey#20288L))) AND (((c_nationkey#20283L = n_nationkey#20292L) AND (((n_name#20289 = INDONESIA) AND (n_name#20293 = IRAQ)) OR ((n_name#20289 = IRAQ) AND (n_name#20293 = INDONESIA)))) AND ((cast(l_shipdate#20265 as date) >= 1995-01-01) AND (cast(l_shipdate#20265 as date) <= 1996-12-31))))
+            +- Join Inner
+               :- Join Inner
+               :  :- Join Inner
+               :  :  :- Join Inner
+               :  :  :  :- Join Inner
+               :  :  :  :  :- SubqueryAlias spark_catalog.tpch_iceberg_10g.supplier
+               :  :  :  :  :  +- RelationV2[s_suppkey#20248L, s_name#20249, s_address#20250, s_nationkey#20251L, s_phone#20252, s_acctbal#20253, s_comment#20254] spark_catalog.tpch_iceberg_10g.supplier
+               :  :  :  :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+               :  :  :  :     +- RelationV2[l_orderkey#20255L, l_partkey#20256L, l_suppkey#20257L, l_linenumber#20258L, l_quantity#20259L, l_extendedprice#20260, l_discount#20261, l_tax#20262, l_returnflag#20263, l_linestatus#20264, l_shipdate#20265, l_commitdate#20266, l_receiptdate#20267, l_shipinstruct#20268, l_shipmode#20269, l_comment#20270] spark_catalog.tpch_iceberg_10g.lineitem
+               :  :  :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.orders
+               :  :  :     +- RelationV2[o_orderkey#20271L, o_custkey#20272L, o_orderstatus#20273, o_totalprice#20274, o_orderdate#20275, o_orderpriority#20276, o_clerk#20277, o_shippriority#20278L, o_comment#20279] spark_catalog.tpch_iceberg_10g.orders
+               :  :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.customer
+               :  :     +- RelationV2[c_custkey#20280L, c_name#20281, c_address#20282, c_nationkey#20283L, c_phone#20284, c_acctbal#20285, c_mktsegment#20286, c_comment#20287] spark_catalog.tpch_iceberg_10g.customer
+               :  +- SubqueryAlias n1
+               :     +- SubqueryAlias spark_catalog.tpch_iceberg_10g.nation
+               :        +- RelationV2[n_nationkey#20288L, n_name#20289, n_regionkey#20290L, n_comment#20291] spark_catalog.tpch_iceberg_10g.nation
+               +- SubqueryAlias n2
+                  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.nation
+                     +- RelationV2[n_nationkey#20292L, n_name#20293, n_regionkey#20294L, n_comment#20295] spark_catalog.tpch_iceberg_10g.nation
+
+== Optimized Logical Plan ==
+Sort [supp_nation#20237 ASC NULLS FIRST, cust_nation#20238 ASC NULLS FIRST, l_year#20239 ASC NULLS FIRST], true
++- Aggregate [supp_nation#20237, cust_nation#20238, l_year#20239], [supp_nation#20237, cust_nation#20238, l_year#20239, sum(volume#20240) AS revenue#20241]
+   +- Project [n_name#20289 AS supp_nation#20237, n_name#20293 AS cust_nation#20238, year(cast(l_shipdate#20265 as date)) AS l_year#20239, (l_extendedprice#20260 * (1.0 - l_discount#20261)) AS volume#20240]
+      +- Join Inner, ((c_nationkey#20283L = n_nationkey#20292L) AND (((n_name#20289 = INDONESIA) AND (n_name#20293 = IRAQ)) OR ((n_name#20289 = IRAQ) AND (n_name#20293 = INDONESIA))))
+         :- Project [l_extendedprice#20260, l_discount#20261, l_shipdate#20265, c_nationkey#20283L, n_name#20289]
+         :  +- Join Inner, (s_nationkey#20251L = n_nationkey#20288L)
+         :     :- Project [s_nationkey#20251L, l_extendedprice#20260, l_discount#20261, l_shipdate#20265, c_nationkey#20283L]
+         :     :  +- Join Inner, (c_custkey#20280L = o_custkey#20272L)
+         :     :     :- Project [s_nationkey#20251L, l_extendedprice#20260, l_discount#20261, l_shipdate#20265, o_custkey#20272L]
+         :     :     :  +- Join Inner, (o_orderkey#20271L = l_orderkey#20255L)
+         :     :     :     :- Project [s_nationkey#20251L, l_orderkey#20255L, l_extendedprice#20260, l_discount#20261, l_shipdate#20265]
+         :     :     :     :  +- Join Inner, (s_suppkey#20248L = l_suppkey#20257L)
+         :     :     :     :     :- Filter ((isnotnull(s_suppkey#20248L) AND isnotnull(s_nationkey#20251L)) AND dynamicpruning#20342 [s_nationkey#20251L])
+         :     :     :     :     :  :  +- Filter (isnotnull(n_nationkey#20288L) AND ((n_name#20289 = INDONESIA) OR (n_name#20289 = IRAQ)))
+         :     :     :     :     :  :     +- RelationV2[n_nationkey#20288L, n_name#20289] spark_catalog.tpch_iceberg_10g.nation
+         :     :     :     :     :  +- RelationV2[s_suppkey#20248L, s_nationkey#20251L] spark_catalog.tpch_iceberg_10g.supplier
+         :     :     :     :     +- Filter (((((cast(l_shipdate#20265 as date) >= 1995-01-01) AND (cast(l_shipdate#20265 as date) <= 1996-12-31)) AND isnotnull(l_shipdate#20265)) AND isnotnull(l_suppkey#20257L)) AND isnotnull(l_orderkey#20255L))
+         :     :     :     :        +- RelationV2[l_orderkey#20255L, l_suppkey#20257L, l_extendedprice#20260, l_discount#20261, l_shipdate#20265] spark_catalog.tpch_iceberg_10g.lineitem
+         :     :     :     +- Filter (isnotnull(o_orderkey#20271L) AND isnotnull(o_custkey#20272L))
+         :     :     :        +- RelationV2[o_orderkey#20271L, o_custkey#20272L] spark_catalog.tpch_iceberg_10g.orders
+         :     :     +- Filter ((isnotnull(c_custkey#20280L) AND isnotnull(c_nationkey#20283L)) AND dynamicpruning#20343 [c_nationkey#20283L])
+         :     :        :  +- Filter (isnotnull(n_nationkey#20292L) AND ((n_name#20293 = IRAQ) OR (n_name#20293 = INDONESIA)))
+         :     :        :     +- RelationV2[n_nationkey#20292L, n_name#20293] spark_catalog.tpch_iceberg_10g.nation
+         :     :        +- RelationV2[c_custkey#20280L, c_nationkey#20283L] spark_catalog.tpch_iceberg_10g.customer
+         :     +- Filter (isnotnull(n_nationkey#20288L) AND ((n_name#20289 = INDONESIA) OR (n_name#20289 = IRAQ)))
+         :        +- RelationV2[n_nationkey#20288L, n_name#20289] spark_catalog.tpch_iceberg_10g.nation
+         +- Filter (isnotnull(n_nationkey#20292L) AND ((n_name#20293 = IRAQ) OR (n_name#20293 = INDONESIA)))
+            +- RelationV2[n_nationkey#20292L, n_name#20293] spark_catalog.tpch_iceberg_10g.nation
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [supp_nation#20237 ASC NULLS FIRST, cust_nation#20238 ASC NULLS FIRST, l_year#20239 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(supp_nation#20237 ASC NULLS FIRST, cust_nation#20238 ASC NULLS FIRST, l_year#20239 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=24465]
+      +- HashAggregate(keys=[supp_nation#20237, cust_nation#20238, l_year#20239], functions=[sum(volume#20240)], output=[supp_nation#20237, cust_nation#20238, l_year#20239, revenue#20241])
+         +- Exchange hashpartitioning(supp_nation#20237, cust_nation#20238, l_year#20239, 200), ENSURE_REQUIREMENTS, [plan_id=24462]
+            +- HashAggregate(keys=[supp_nation#20237, cust_nation#20238, l_year#20239], functions=[partial_sum(volume#20240)], output=[supp_nation#20237, cust_nation#20238, l_year#20239, sum#20345])
+               +- Project [n_name#20289 AS supp_nation#20237, n_name#20293 AS cust_nation#20238, year(cast(l_shipdate#20265 as date)) AS l_year#20239, (l_extendedprice#20260 * (1.0 - l_discount#20261)) AS volume#20240]
+                  +- BroadcastHashJoin [c_nationkey#20283L], [n_nationkey#20292L], Inner, BuildRight, (((n_name#20289 = INDONESIA) AND (n_name#20293 = IRAQ)) OR ((n_name#20289 = IRAQ) AND (n_name#20293 = INDONESIA))), false
+                     :- Project [l_extendedprice#20260, l_discount#20261, l_shipdate#20265, c_nationkey#20283L, n_name#20289]
+                     :  +- BroadcastHashJoin [s_nationkey#20251L], [n_nationkey#20288L], Inner, BuildRight, false
+                     :     :- Project [s_nationkey#20251L, l_extendedprice#20260, l_discount#20261, l_shipdate#20265, c_nationkey#20283L]
+                     :     :  +- SortMergeJoin [o_custkey#20272L], [c_custkey#20280L], Inner
+                     :     :     :- Sort [o_custkey#20272L ASC NULLS FIRST], false, 0
+                     :     :     :  +- Exchange hashpartitioning(o_custkey#20272L, 200), ENSURE_REQUIREMENTS, [plan_id=24446]
+                     :     :     :     +- Project [s_nationkey#20251L, l_extendedprice#20260, l_discount#20261, l_shipdate#20265, o_custkey#20272L]
+                     :     :     :        +- SortMergeJoin [l_orderkey#20255L], [o_orderkey#20271L], Inner
+                     :     :     :           :- Sort [l_orderkey#20255L ASC NULLS FIRST], false, 0
+                     :     :     :           :  +- Exchange hashpartitioning(l_orderkey#20255L, 200), ENSURE_REQUIREMENTS, [plan_id=24438]
+                     :     :     :           :     +- Project [s_nationkey#20251L, l_orderkey#20255L, l_extendedprice#20260, l_discount#20261, l_shipdate#20265]
+                     :     :     :           :        +- BroadcastHashJoin [s_suppkey#20248L], [l_suppkey#20257L], Inner, BuildLeft, false
+                     :     :     :           :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=24433]
+                     :     :     :           :           :  +- Filter (isnotnull(s_suppkey#20248L) AND isnotnull(s_nationkey#20251L))
+                     :     :     :           :           :     +- BatchScan[s_suppkey#20248L, s_nationkey#20251L] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL, s_nationkey IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(s_nationkey#20251L IN dynamicpruning#20342)]
+                     :     :     :           :           :           +- SubqueryAdaptiveBroadcast dynamicpruning#20342, 0, true, Filter (isnotnull(n_nationkey#20288L) AND ((n_name#20289 = INDONESIA) OR (n_name#20289 = IRAQ))), [n_nationkey#20288L]
+                     :     :     :           :           :              +- AdaptiveSparkPlan isFinalPlan=false
+                     :     :     :           :           :                 +- Filter (isnotnull(n_nationkey#20288L) AND ((n_name#20289 = INDONESIA) OR (n_name#20289 = IRAQ)))
+                     :     :     :           :           :                    +- BatchScan[n_nationkey#20288L, n_name#20289] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, (n_name = 'INDONESIA' OR n_name = 'IRAQ')] RuntimeFilters: []
+                     :     :     :           :           +- Filter (((((cast(l_shipdate#20265 as date) >= 1995-01-01) AND (cast(l_shipdate#20265 as date) <= 1996-12-31)) AND isnotnull(l_shipdate#20265)) AND isnotnull(l_suppkey#20257L)) AND isnotnull(l_orderkey#20255L))
+                     :     :     :           :              +- BatchScan[l_orderkey#20255L, l_suppkey#20257L, l_extendedprice#20260, l_discount#20261, l_shipdate#20265] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_suppkey IS NOT NULL, l_orderkey IS NOT NULL] RuntimeFilters: []
+                     :     :     :           +- Sort [o_orderkey#20271L ASC NULLS FIRST], false, 0
+                     :     :     :              +- Exchange hashpartitioning(o_orderkey#20271L, 200), ENSURE_REQUIREMENTS, [plan_id=24439]
+                     :     :     :                 +- Filter (isnotnull(o_orderkey#20271L) AND isnotnull(o_custkey#20272L))
+                     :     :     :                    +- BatchScan[o_orderkey#20271L, o_custkey#20272L] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderkey IS NOT NULL, o_custkey IS NOT NULL] RuntimeFilters: []
+                     :     :     +- Sort [c_custkey#20280L ASC NULLS FIRST], false, 0
+                     :     :        +- Exchange hashpartitioning(c_custkey#20280L, 200), ENSURE_REQUIREMENTS, [plan_id=24447]
+                     :     :           +- Filter (isnotnull(c_custkey#20280L) AND isnotnull(c_nationkey#20283L))
+                     :     :              +- BatchScan[c_custkey#20280L, c_nationkey#20283L] spark_catalog.tpch_iceberg_10g.customer [filters=c_custkey IS NOT NULL, c_nationkey IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(c_nationkey#20283L IN dynamicpruning#20343)]
+                     :     :                    +- SubqueryAdaptiveBroadcast dynamicpruning#20343, 0, true, Filter (isnotnull(n_nationkey#20292L) AND ((n_name#20293 = IRAQ) OR (n_name#20293 = INDONESIA))), [n_nationkey#20292L]
+                     :     :                       +- AdaptiveSparkPlan isFinalPlan=false
+                     :     :                          +- Filter (isnotnull(n_nationkey#20292L) AND ((n_name#20293 = IRAQ) OR (n_name#20293 = INDONESIA)))
+                     :     :                             +- BatchScan[n_nationkey#20292L, n_name#20293] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, (n_name = 'IRAQ' OR n_name = 'INDONESIA')] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=24453]
+                     :        +- Filter (isnotnull(n_nationkey#20288L) AND ((n_name#20289 = INDONESIA) OR (n_name#20289 = IRAQ)))
+                     :           +- BatchScan[n_nationkey#20288L, n_name#20289] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, (n_name = 'INDONESIA' OR n_name = 'IRAQ')] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=24457]
+                        +- Filter (isnotnull(n_nationkey#20292L) AND ((n_name#20293 = IRAQ) OR (n_name#20293 = INDONESIA)))
+                           +- BatchScan[n_nationkey#20292L, n_name#20293] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL, (n_name = 'IRAQ' OR n_name = 'INDONESIA')] RuntimeFilters: []

@@ -1,0 +1,19 @@
+== Optimized Logical Plan ==
+Sort [order_count#27300L DESC NULLS LAST], true
++- Aggregate [o_orderpriority#27306], [o_orderpriority#27306, count(1) AS order_count#27300L]
+   +- Project [o_orderpriority#27306]
+      +- Filter ((isnotnull(o_orderdate#27305) AND (o_orderdate#27305 >= 1995-01-01)) AND (o_orderdate#27305 < 1996-01-01))
+         +- RelationV2[o_orderdate#27305, o_orderpriority#27306] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [order_count#27300L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(order_count#27300L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=32692]
+      +- HashAggregate(keys=[o_orderpriority#27306], functions=[count(1)], output=[o_orderpriority#27306, order_count#27300L])
+         +- Exchange hashpartitioning(o_orderpriority#27306, 200), ENSURE_REQUIREMENTS, [plan_id=32689]
+            +- HashAggregate(keys=[o_orderpriority#27306], functions=[partial_count(1)], output=[o_orderpriority#27306, count#27321L])
+               +- Project [o_orderpriority#27306]
+                  +- Filter ((isnotnull(o_orderdate#27305) AND (o_orderdate#27305 >= 1995-01-01)) AND (o_orderdate#27305 < 1996-01-01))
+                     +- BatchScan[o_orderdate#27305, o_orderpriority#27306] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderdate IS NOT NULL, o_orderdate >= '1995-01-01', o_orderdate < '1996-01-01'] RuntimeFilters: []
+

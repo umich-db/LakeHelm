@@ -1,0 +1,29 @@
+== Optimized Logical Plan ==
+Sort [avg_supply_cost#19088 DESC NULLS LAST], true
++- Aggregate [s_name#19090], [s_name#19090, avg(ps_supplycost#19099) AS avg_supply_cost#19088]
+   +- Project [s_name#19090, ps_supplycost#19099]
+      +- Join Inner, (s_suppkey#19089L = ps_suppkey#19097L)
+         :- Project [s_suppkey#19089L, s_name#19090]
+         :  +- Filter ((isnotnull(s_acctbal#19094) AND (s_acctbal#19094 > 500.0)) AND isnotnull(s_suppkey#19089L))
+         :     +- RelationV2[s_suppkey#19089L, s_name#19090, s_acctbal#19094] spark_catalog.tpch_iceberg_10g.supplier
+         +- Filter isnotnull(ps_suppkey#19097L)
+            +- RelationV2[ps_suppkey#19097L, ps_supplycost#19099] spark_catalog.tpch_iceberg_10g.partsupp
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [avg_supply_cost#19088 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(avg_supply_cost#19088 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=21205]
+      +- HashAggregate(keys=[s_name#19090], functions=[avg(ps_supplycost#19099)], output=[s_name#19090, avg_supply_cost#19088])
+         +- Exchange hashpartitioning(s_name#19090, 200), ENSURE_REQUIREMENTS, [plan_id=21202]
+            +- HashAggregate(keys=[s_name#19090], functions=[partial_avg(ps_supplycost#19099)], output=[s_name#19090, sum#19121, count#19122L])
+               +- Project [s_name#19090, ps_supplycost#19099]
+                  +- BroadcastHashJoin [s_suppkey#19089L], [ps_suppkey#19097L], Inner, BuildLeft, false
+                     :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=21197]
+                     :  +- Project [s_suppkey#19089L, s_name#19090]
+                     :     +- Filter ((isnotnull(s_acctbal#19094) AND (s_acctbal#19094 > 500.0)) AND isnotnull(s_suppkey#19089L))
+                     :        +- BatchScan[s_suppkey#19089L, s_name#19090, s_acctbal#19094] spark_catalog.tpch_iceberg_10g.supplier [filters=s_acctbal IS NOT NULL, s_acctbal > 500.0, s_suppkey IS NOT NULL] RuntimeFilters: []
+                     +- Filter isnotnull(ps_suppkey#19097L)
+                        +- BatchScan[ps_suppkey#19097L, ps_supplycost#19099] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_suppkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

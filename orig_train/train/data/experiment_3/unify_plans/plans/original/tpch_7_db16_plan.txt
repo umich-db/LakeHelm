@@ -1,0 +1,65 @@
+== Parsed Logical Plan ==
+'Sort ['supplier_cnt DESC NULLS LAST, 'p_brand ASC NULLS FIRST, 'p_type ASC NULLS FIRST, 'p_size ASC NULLS FIRST], true
++- 'Aggregate ['p_brand, 'p_type, 'p_size], ['p_brand, 'p_type, 'p_size, 'count(distinct 'ps_suppkey) AS supplier_cnt#11442]
+   +- 'Filter (((('p_partkey = 'ps_partkey) AND NOT ('p_brand = Brand#24)) AND NOT 'p_type LIKE MEDIUM PLATED%) AND ('p_size IN (33,48,30,34,38,15,9,13) AND NOT 'ps_suppkey IN (list#11443 [])))
+      :  +- 'Project ['s_suppkey]
+      :     +- 'Filter 's_comment LIKE %Customer%Complaints%
+      :        +- 'UnresolvedRelation [supplier], [], false
+      +- 'Join Inner
+         :- 'UnresolvedRelation [partsupp], [], false
+         +- 'UnresolvedRelation [part], [], false
+
+== Analyzed Logical Plan ==
+p_brand: string, p_type: string, p_size: bigint, supplier_cnt: bigint
+Sort [supplier_cnt#11442L DESC NULLS LAST, p_brand#11458 ASC NULLS FIRST, p_type#11459 ASC NULLS FIRST, p_size#11460L ASC NULLS FIRST], true
++- Aggregate [p_brand#11458, p_type#11459, p_size#11460L], [p_brand#11458, p_type#11459, p_size#11460L, count(distinct ps_suppkey#11451L) AS supplier_cnt#11442L]
+   +- Filter ((((p_partkey#11455L = ps_partkey#11450L) AND NOT (p_brand#11458 = Brand#24)) AND NOT p_type#11459 LIKE MEDIUM PLATED%) AND (cast(p_size#11460L as bigint) IN (cast(33 as bigint),cast(48 as bigint),cast(30 as bigint),cast(34 as bigint),cast(38 as bigint),cast(15 as bigint),cast(9 as bigint),cast(13 as bigint)) AND NOT ps_suppkey#11451L IN (list#11443 [])))
+      :  +- Project [s_suppkey#11464L]
+      :     +- Filter s_comment#11470 LIKE %Customer%Complaints%
+      :        +- SubqueryAlias spark_catalog.tpch_iceberg_10g.supplier
+      :           +- RelationV2[s_suppkey#11464L, s_name#11465, s_address#11466, s_nationkey#11467L, s_phone#11468, s_acctbal#11469, s_comment#11470] spark_catalog.tpch_iceberg_10g.supplier
+      +- Join Inner
+         :- SubqueryAlias spark_catalog.tpch_iceberg_10g.partsupp
+         :  +- RelationV2[ps_partkey#11450L, ps_suppkey#11451L, ps_availqty#11452L, ps_supplycost#11453, ps_comment#11454] spark_catalog.tpch_iceberg_10g.partsupp
+         +- SubqueryAlias spark_catalog.tpch_iceberg_10g.part
+            +- RelationV2[p_partkey#11455L, p_name#11456, p_mfgr#11457, p_brand#11458, p_type#11459, p_size#11460L, p_container#11461, p_retailprice#11462, p_comment#11463] spark_catalog.tpch_iceberg_10g.part
+
+== Optimized Logical Plan ==
+Sort [supplier_cnt#11442L DESC NULLS LAST, p_brand#11458 ASC NULLS FIRST, p_type#11459 ASC NULLS FIRST, p_size#11460L ASC NULLS FIRST], true
++- Aggregate [p_brand#11458, p_type#11459, p_size#11460L], [p_brand#11458, p_type#11459, p_size#11460L, count(distinct ps_suppkey#11451L) AS supplier_cnt#11442L]
+   +- Project [ps_suppkey#11451L, p_brand#11458, p_type#11459, p_size#11460L]
+      +- Join Inner, (p_partkey#11455L = ps_partkey#11450L)
+         :- Join LeftAnti, ((ps_suppkey#11451L = s_suppkey#11464L) OR isnull((ps_suppkey#11451L = s_suppkey#11464L)))
+         :  :- Filter isnotnull(ps_partkey#11450L)
+         :  :  +- RelationV2[ps_partkey#11450L, ps_suppkey#11451L] spark_catalog.tpch_iceberg_10g.partsupp
+         :  +- Project [s_suppkey#11464L]
+         :     +- Filter (s_comment#11470 LIKE %Customer%Complaints% AND isnotnull(s_comment#11470))
+         :        +- RelationV2[s_suppkey#11464L, s_comment#11470] spark_catalog.tpch_iceberg_10g.supplier
+         +- Filter (((((isnotnull(p_brand#11458) AND isnotnull(p_type#11459)) AND NOT (p_brand#11458 = Brand#24)) AND NOT StartsWith(p_type#11459, MEDIUM PLATED)) AND p_size#11460L IN (33,48,30,34,38,15,9,13)) AND isnotnull(p_partkey#11455L))
+            +- RelationV2[p_partkey#11455L, p_brand#11458, p_type#11459, p_size#11460L] spark_catalog.tpch_iceberg_10g.part
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [supplier_cnt#11442L DESC NULLS LAST, p_brand#11458 ASC NULLS FIRST, p_type#11459 ASC NULLS FIRST, p_size#11460L ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(supplier_cnt#11442L DESC NULLS LAST, p_brand#11458 ASC NULLS FIRST, p_type#11459 ASC NULLS FIRST, p_size#11460L ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=13370]
+      +- HashAggregate(keys=[p_brand#11458, p_type#11459, p_size#11460L], functions=[count(distinct ps_suppkey#11451L)], output=[p_brand#11458, p_type#11459, p_size#11460L, supplier_cnt#11442L])
+         +- Exchange hashpartitioning(p_brand#11458, p_type#11459, p_size#11460L, 200), ENSURE_REQUIREMENTS, [plan_id=13367]
+            +- HashAggregate(keys=[p_brand#11458, p_type#11459, p_size#11460L], functions=[partial_count(distinct ps_suppkey#11451L)], output=[p_brand#11458, p_type#11459, p_size#11460L, count#11497L])
+               +- HashAggregate(keys=[p_brand#11458, p_type#11459, p_size#11460L, ps_suppkey#11451L], functions=[], output=[p_brand#11458, p_type#11459, p_size#11460L, ps_suppkey#11451L])
+                  +- Exchange hashpartitioning(p_brand#11458, p_type#11459, p_size#11460L, ps_suppkey#11451L, 200), ENSURE_REQUIREMENTS, [plan_id=13363]
+                     +- HashAggregate(keys=[p_brand#11458, p_type#11459, p_size#11460L, ps_suppkey#11451L], functions=[], output=[p_brand#11458, p_type#11459, p_size#11460L, ps_suppkey#11451L])
+                        +- Project [ps_suppkey#11451L, p_brand#11458, p_type#11459, p_size#11460L]
+                           +- SortMergeJoin [ps_partkey#11450L], [p_partkey#11455L], Inner
+                              :- Sort [ps_partkey#11450L ASC NULLS FIRST], false, 0
+                              :  +- Exchange hashpartitioning(ps_partkey#11450L, 200), ENSURE_REQUIREMENTS, [plan_id=13355]
+                              :     +- BroadcastHashJoin [ps_suppkey#11451L], [s_suppkey#11464L], LeftAnti, BuildRight, true
+                              :        :- Filter isnotnull(ps_partkey#11450L)
+                              :        :  +- BatchScan[ps_partkey#11450L, ps_suppkey#11451L] spark_catalog.tpch_iceberg_10g.partsupp [filters=ps_partkey IS NOT NULL] RuntimeFilters: []
+                              :        +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),true), [plan_id=13351]
+                              :           +- Project [s_suppkey#11464L]
+                              :              +- Filter (s_comment#11470 LIKE %Customer%Complaints% AND isnotnull(s_comment#11470))
+                              :                 +- BatchScan[s_suppkey#11464L, s_comment#11470] spark_catalog.tpch_iceberg_10g.supplier [filters=s_comment IS NOT NULL] RuntimeFilters: []
+                              +- Sort [p_partkey#11455L ASC NULLS FIRST], false, 0
+                                 +- Exchange hashpartitioning(p_partkey#11455L, 200), ENSURE_REQUIREMENTS, [plan_id=13356]
+                                    +- Filter (((((isnotnull(p_brand#11458) AND isnotnull(p_type#11459)) AND NOT (p_brand#11458 = Brand#24)) AND NOT StartsWith(p_type#11459, MEDIUM PLATED)) AND p_size#11460L IN (33,48,30,34,38,15,9,13)) AND isnotnull(p_partkey#11455L))
+                                       +- BatchScan[p_partkey#11455L, p_brand#11458, p_type#11459, p_size#11460L] spark_catalog.tpch_iceberg_10g.part [filters=p_brand IS NOT NULL, p_type IS NOT NULL, NOT (p_brand = 'Brand#24'), NOT (p_type LIKE '"MEDIUM PLATED"%'), p_size IN (33, 48, 30, 34, 38, 15, 9, 13), p_partkey IS NOT NULL] RuntimeFilters: []

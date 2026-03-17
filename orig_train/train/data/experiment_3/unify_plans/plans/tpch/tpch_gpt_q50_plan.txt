@@ -1,0 +1,44 @@
+== Optimized Logical Plan ==
+Sort [total_sales#26870 DESC NULLS LAST], true
++- Aggregate [r_name#26872], [r_name#26872, sum(o_totalprice#26889) AS total_sales#26870]
+   +- Project [r_name#26872, o_totalprice#26889]
+      +- Join Inner, (c_custkey#26878L = o_custkey#26887L)
+         :- Project [r_name#26872, c_custkey#26878L]
+         :  +- Join Inner, (n_nationkey#26874L = c_nationkey#26881L)
+         :     :- Project [r_name#26872, n_nationkey#26874L]
+         :     :  +- Join Inner, (r_regionkey#26871L = n_regionkey#26876L)
+         :     :     :- Filter isnotnull(r_regionkey#26871L)
+         :     :     :  +- RelationV2[r_regionkey#26871L, r_name#26872] spark_catalog.tpch_iceberg_10g.region
+         :     :     +- Filter (isnotnull(n_regionkey#26876L) AND isnotnull(n_nationkey#26874L))
+         :     :        +- RelationV2[n_nationkey#26874L, n_regionkey#26876L] spark_catalog.tpch_iceberg_10g.nation
+         :     +- Filter (isnotnull(c_nationkey#26881L) AND isnotnull(c_custkey#26878L))
+         :        +- RelationV2[c_custkey#26878L, c_nationkey#26881L] spark_catalog.tpch_iceberg_10g.customer
+         +- Project [o_custkey#26887L, o_totalprice#26889]
+            +- Filter (((isnotnull(o_orderdate#26890) AND (o_orderdate#26890 >= 2023-01-01)) AND (o_orderdate#26890 <= 2023-12-31)) AND isnotnull(o_custkey#26887L))
+               +- RelationV2[o_custkey#26887L, o_totalprice#26889, o_orderdate#26890] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_sales#26870 DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[r_name#26872], functions=[sum(o_totalprice#26889)], output=[r_name#26872, total_sales#26870])
+      +- HashAggregate(keys=[r_name#26872], functions=[partial_sum(o_totalprice#26889)], output=[r_name#26872, sum#26928])
+         +- Project [r_name#26872, o_totalprice#26889]
+            +- BroadcastHashJoin [c_custkey#26878L], [o_custkey#26887L], Inner, BuildRight, false
+               :- Project [r_name#26872, c_custkey#26878L]
+               :  +- BroadcastHashJoin [n_nationkey#26874L], [c_nationkey#26881L], Inner, BuildLeft, false
+               :     :- BroadcastExchange HashedRelationBroadcastMode(List(input[1, bigint, true]),false), [plan_id=32187]
+               :     :  +- Project [r_name#26872, n_nationkey#26874L]
+               :     :     +- BroadcastHashJoin [r_regionkey#26871L], [n_regionkey#26876L], Inner, BuildLeft, false
+               :     :        :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=32183]
+               :     :        :  +- Filter isnotnull(r_regionkey#26871L)
+               :     :        :     +- BatchScan[r_regionkey#26871L, r_name#26872] spark_catalog.tpch_iceberg_10g.region [filters=r_regionkey IS NOT NULL] RuntimeFilters: []
+               :     :        +- Filter (isnotnull(n_regionkey#26876L) AND isnotnull(n_nationkey#26874L))
+               :     :           +- BatchScan[n_nationkey#26874L, n_regionkey#26876L] spark_catalog.tpch_iceberg_10g.nation [filters=n_regionkey IS NOT NULL, n_nationkey IS NOT NULL] RuntimeFilters: []
+               :     +- Filter (isnotnull(c_nationkey#26881L) AND isnotnull(c_custkey#26878L))
+               :        +- BatchScan[c_custkey#26878L, c_nationkey#26881L] spark_catalog.tpch_iceberg_10g.customer [filters=c_nationkey IS NOT NULL, c_custkey IS NOT NULL] RuntimeFilters: []
+               +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=32191]
+                  +- Project [o_custkey#26887L, o_totalprice#26889]
+                     +- Filter (((isnotnull(o_orderdate#26890) AND (o_orderdate#26890 >= 2023-01-01)) AND (o_orderdate#26890 <= 2023-12-31)) AND isnotnull(o_custkey#26887L))
+                        +- BatchScan[o_custkey#26887L, o_totalprice#26889, o_orderdate#26890] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderdate IS NOT NULL, o_orderdate >= '2023-01-01', o_orderdate <= '2023-12-31', o_custkey IS NOT NULL] RuntimeFilters: []
+

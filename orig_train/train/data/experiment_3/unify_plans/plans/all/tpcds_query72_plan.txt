@@ -1,0 +1,131 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [total_cnt#33860L DESC NULLS LAST, i_item_desc#33917 ASC NULLS FIRST, w_warehouse_name#33901 ASC NULLS FIRST, d_week_seq#33953 ASC NULLS FIRST], true
+      +- Aggregate [i_item_desc#33917, w_warehouse_name#33901, d_week_seq#33953], [i_item_desc#33917, w_warehouse_name#33901, d_week_seq#33953, sum(CASE WHEN isnull(p_promo_sk#34033) THEN 1 ELSE 0 END) AS no_promo#33858L, sum(CASE WHEN isnotnull(p_promo_sk#34033) THEN 1 ELSE 0 END) AS promo#33859L, count(1) AS total_cnt#33860L]
+         +- Project [w_warehouse_name#33901, i_item_desc#33917, d_week_seq#33953, p_promo_sk#34033]
+            +- Join LeftOuter, ((cr_item_sk#34053 = cs_item_sk#33875) AND (cr_order_number#34067L = cs_order_number#33877L))
+               :- Project [cs_item_sk#33875, cs_order_number#33877L, w_warehouse_name#33901, i_item_desc#33917, d_week_seq#33953, p_promo_sk#34033]
+               :  +- Join LeftOuter, (cs_promo_sk#33876 = p_promo_sk#34033)
+               :     :- Project [cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, w_warehouse_name#33901, i_item_desc#33917, d_week_seq#33953]
+               :     :  +- Join Inner, ((d_date#34007 > date_add(d_date#33951, 5)) AND (cs_ship_date_sk#33862 = d_date_sk#34005))
+               :     :     :- Project [cs_ship_date_sk#33862, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, w_warehouse_name#33901, i_item_desc#33917, d_date#33951, d_week_seq#33953]
+               :     :     :  +- Join Inner, ((d_week_seq#33953 = d_week_seq#33981) AND (inv_date_sk#33898 = d_date_sk#33977))
+               :     :     :     :- Project [cs_ship_date_sk#33862, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, inv_date_sk#33898, w_warehouse_name#33901, i_item_desc#33917, d_date#33951, d_week_seq#33953]
+               :     :     :     :  +- Join Inner, (cs_sold_date_sk#33894 = d_date_sk#33949)
+               :     :     :     :     :- Project [cs_ship_date_sk#33862, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_date_sk#33898, w_warehouse_name#33901, i_item_desc#33917]
+               :     :     :     :     :  +- Join Inner, (cs_bill_hdemo_sk#33865 = hd_demo_sk#33944)
+               :     :     :     :     :     :- Project [cs_ship_date_sk#33862, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_date_sk#33898, w_warehouse_name#33901, i_item_desc#33917]
+               :     :     :     :     :     :  +- Join Inner, (cs_bill_cdemo_sk#33864 = cd_demo_sk#33935)
+               :     :     :     :     :     :     :- Project [cs_ship_date_sk#33862, cs_bill_cdemo_sk#33864, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_date_sk#33898, w_warehouse_name#33901, i_item_desc#33917]
+               :     :     :     :     :     :     :  +- Join Inner, (i_item_sk#33913 = cs_item_sk#33875)
+               :     :     :     :     :     :     :     :- Project [cs_ship_date_sk#33862, cs_bill_cdemo_sk#33864, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_date_sk#33898, w_warehouse_name#33901]
+               :     :     :     :     :     :     :     :  +- Join Inner, (w_warehouse_sk#33899 = inv_warehouse_sk#33896)
+               :     :     :     :     :     :     :     :     :- Project [cs_ship_date_sk#33862, cs_bill_cdemo_sk#33864, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_warehouse_sk#33896, inv_date_sk#33898]
+               :     :     :     :     :     :     :     :     :  +- Join Inner, ((inv_quantity_on_hand#33897 < cs_quantity#33878) AND (cs_item_sk#33875 = inv_item_sk#33895))
+               :     :     :     :     :     :     :     :     :     :- Filter ((((((isnotnull(cs_quantity#33878) AND isnotnull(cs_item_sk#33875)) AND isnotnull(cs_bill_cdemo_sk#33864)) AND isnotnull(cs_bill_hdemo_sk#33865)) AND isnotnull(cs_sold_date_sk#33894)) AND isnotnull(cs_ship_date_sk#33862)) AND dynamicpruning#34174 [cs_sold_date_sk#33894])
+               :     :     :     :     :     :     :     :     :     :  :  +- Project [d_date_sk#33949, d_date#33951, d_week_seq#33953]
+               :     :     :     :     :     :     :     :     :     :  :     +- Filter ((((isnotnull(d_year#33955) AND (d_year#33955 = 2001)) AND isnotnull(d_date_sk#33949)) AND isnotnull(d_week_seq#33953)) AND isnotnull(d_date#33951))
+               :     :     :     :     :     :     :     :     :     :  :        +- RelationV2[d_date_sk#33949, d_date#33951, d_week_seq#33953, d_year#33955] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     :     :     :     :     :     :     :     :  +- RelationV2[cs_ship_date_sk#33862, cs_bill_cdemo_sk#33864, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_quantity#33878, cs_sold_date_sk#33894] spark_catalog.tpcds_iceberg_10g.catalog_sales
+               :     :     :     :     :     :     :     :     :     +- Filter (((isnotnull(inv_quantity_on_hand#33897) AND isnotnull(inv_item_sk#33895)) AND isnotnull(inv_warehouse_sk#33896)) AND isnotnull(inv_date_sk#33898))
+               :     :     :     :     :     :     :     :     :        +- RelationV2[inv_item_sk#33895, inv_warehouse_sk#33896, inv_quantity_on_hand#33897, inv_date_sk#33898] spark_catalog.tpcds_iceberg_10g.inventory
+               :     :     :     :     :     :     :     :     +- Filter isnotnull(w_warehouse_sk#33899)
+               :     :     :     :     :     :     :     :        +- RelationV2[w_warehouse_sk#33899, w_warehouse_name#33901] spark_catalog.tpcds_iceberg_10g.warehouse
+               :     :     :     :     :     :     :     +- Filter isnotnull(i_item_sk#33913)
+               :     :     :     :     :     :     :        +- RelationV2[i_item_sk#33913, i_item_desc#33917] spark_catalog.tpcds_iceberg_10g.item
+               :     :     :     :     :     :     +- Project [cd_demo_sk#33935]
+               :     :     :     :     :     :        +- Filter ((isnotnull(cd_marital_status#33937) AND (cd_marital_status#33937 = M)) AND isnotnull(cd_demo_sk#33935))
+               :     :     :     :     :     :           +- RelationV2[cd_demo_sk#33935, cd_marital_status#33937] spark_catalog.tpcds_iceberg_10g.customer_demographics
+               :     :     :     :     :     +- Project [hd_demo_sk#33944]
+               :     :     :     :     :        +- Filter ((isnotnull(hd_buy_potential#33946) AND (hd_buy_potential#33946 = 1001-5000)) AND isnotnull(hd_demo_sk#33944))
+               :     :     :     :     :           +- RelationV2[hd_demo_sk#33944, hd_buy_potential#33946] spark_catalog.tpcds_iceberg_10g.household_demographics
+               :     :     :     :     +- Project [d_date_sk#33949, d_date#33951, d_week_seq#33953]
+               :     :     :     :        +- Filter ((((isnotnull(d_year#33955) AND (d_year#33955 = 2001)) AND isnotnull(d_date_sk#33949)) AND isnotnull(d_week_seq#33953)) AND isnotnull(d_date#33951))
+               :     :     :     :           +- RelationV2[d_date_sk#33949, d_date#33951, d_week_seq#33953, d_year#33955] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     :     +- Filter (isnotnull(d_week_seq#33981) AND isnotnull(d_date_sk#33977))
+               :     :     :        +- RelationV2[d_date_sk#33977, d_week_seq#33981] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     +- Filter (isnotnull(d_date#34007) AND isnotnull(d_date_sk#34005))
+               :     :        +- RelationV2[d_date_sk#34005, d_date#34007] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     +- Filter isnotnull(p_promo_sk#34033)
+               :        +- RelationV2[p_promo_sk#34033] spark_catalog.tpcds_iceberg_10g.promotion
+               +- Filter (isnotnull(cr_item_sk#34053) AND isnotnull(cr_order_number#34067L))
+                  +- RelationV2[cr_item_sk#34053, cr_order_number#34067L] spark_catalog.tpcds_iceberg_10g.catalog_returns
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[total_cnt#33860L DESC NULLS LAST,i_item_desc#33917 ASC NULLS FIRST,w_warehouse_name#33901 ASC NULLS FIRST,d_week_seq#33953 ASC NULLS FIRST], output=[i_item_desc#33917,w_warehouse_name#33901,d_week_seq#33953,no_promo#33858L,promo#33859L,total_cnt#33860L])
+   +- HashAggregate(keys=[i_item_desc#33917, w_warehouse_name#33901, d_week_seq#33953], functions=[sum(CASE WHEN isnull(p_promo_sk#34033) THEN 1 ELSE 0 END), sum(CASE WHEN isnotnull(p_promo_sk#34033) THEN 1 ELSE 0 END), count(1)], output=[i_item_desc#33917, w_warehouse_name#33901, d_week_seq#33953, no_promo#33858L, promo#33859L, total_cnt#33860L])
+      +- Exchange hashpartitioning(i_item_desc#33917, w_warehouse_name#33901, d_week_seq#33953, 200), ENSURE_REQUIREMENTS, [plan_id=25659]
+         +- HashAggregate(keys=[i_item_desc#33917, w_warehouse_name#33901, d_week_seq#33953], functions=[partial_sum(CASE WHEN isnull(p_promo_sk#34033) THEN 1 ELSE 0 END), partial_sum(CASE WHEN isnotnull(p_promo_sk#34033) THEN 1 ELSE 0 END), partial_count(1)], output=[i_item_desc#33917, w_warehouse_name#33901, d_week_seq#33953, sum#34178L, sum#34179L, count#34180L])
+            +- Project [w_warehouse_name#33901, i_item_desc#33917, d_week_seq#33953, p_promo_sk#34033]
+               +- SortMergeJoin [cs_item_sk#33875, cs_order_number#33877L], [cr_item_sk#34053, cr_order_number#34067L], LeftOuter
+                  :- Sort [cs_item_sk#33875 ASC NULLS FIRST, cs_order_number#33877L ASC NULLS FIRST], false, 0
+                  :  +- Exchange hashpartitioning(cs_item_sk#33875, cs_order_number#33877L, 200), ENSURE_REQUIREMENTS, [plan_id=25651]
+                  :     +- Project [cs_item_sk#33875, cs_order_number#33877L, w_warehouse_name#33901, i_item_desc#33917, d_week_seq#33953, p_promo_sk#34033]
+                  :        +- BroadcastHashJoin [cs_promo_sk#33876], [p_promo_sk#34033], LeftOuter, BuildRight, false
+                  :           :- Project [cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, w_warehouse_name#33901, i_item_desc#33917, d_week_seq#33953]
+                  :           :  +- BroadcastHashJoin [cs_ship_date_sk#33862], [d_date_sk#34005], Inner, BuildRight, (d_date#34007 > date_add(d_date#33951, 5)), false
+                  :           :     :- Project [cs_ship_date_sk#33862, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, w_warehouse_name#33901, i_item_desc#33917, d_date#33951, d_week_seq#33953]
+                  :           :     :  +- BroadcastHashJoin [d_week_seq#33953, inv_date_sk#33898], [d_week_seq#33981, d_date_sk#33977], Inner, BuildRight, false
+                  :           :     :     :- Project [cs_ship_date_sk#33862, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, inv_date_sk#33898, w_warehouse_name#33901, i_item_desc#33917, d_date#33951, d_week_seq#33953]
+                  :           :     :     :  +- BroadcastHashJoin [cs_sold_date_sk#33894], [d_date_sk#33949], Inner, BuildRight, false
+                  :           :     :     :     :- Project [cs_ship_date_sk#33862, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_date_sk#33898, w_warehouse_name#33901, i_item_desc#33917]
+                  :           :     :     :     :  +- BroadcastHashJoin [cs_bill_hdemo_sk#33865], [hd_demo_sk#33944], Inner, BuildRight, false
+                  :           :     :     :     :     :- Project [cs_ship_date_sk#33862, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_date_sk#33898, w_warehouse_name#33901, i_item_desc#33917]
+                  :           :     :     :     :     :  +- SortMergeJoin [cs_bill_cdemo_sk#33864], [cd_demo_sk#33935], Inner
+                  :           :     :     :     :     :     :- Sort [cs_bill_cdemo_sk#33864 ASC NULLS FIRST], false, 0
+                  :           :     :     :     :     :     :  +- Exchange hashpartitioning(cs_bill_cdemo_sk#33864, 200), ENSURE_REQUIREMENTS, [plan_id=25623]
+                  :           :     :     :     :     :     :     +- Project [cs_ship_date_sk#33862, cs_bill_cdemo_sk#33864, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_date_sk#33898, w_warehouse_name#33901, i_item_desc#33917]
+                  :           :     :     :     :     :     :        +- BroadcastHashJoin [cs_item_sk#33875], [i_item_sk#33913], Inner, BuildRight, false
+                  :           :     :     :     :     :     :           :- Project [cs_ship_date_sk#33862, cs_bill_cdemo_sk#33864, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_date_sk#33898, w_warehouse_name#33901]
+                  :           :     :     :     :     :     :           :  +- BroadcastHashJoin [inv_warehouse_sk#33896], [w_warehouse_sk#33899], Inner, BuildRight, false
+                  :           :     :     :     :     :     :           :     :- Project [cs_ship_date_sk#33862, cs_bill_cdemo_sk#33864, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_sold_date_sk#33894, inv_warehouse_sk#33896, inv_date_sk#33898]
+                  :           :     :     :     :     :     :           :     :  +- SortMergeJoin [cs_item_sk#33875], [inv_item_sk#33895], Inner, (inv_quantity_on_hand#33897 < cs_quantity#33878)
+                  :           :     :     :     :     :     :           :     :     :- Sort [cs_item_sk#33875 ASC NULLS FIRST], false, 0
+                  :           :     :     :     :     :     :           :     :     :  +- Exchange hashpartitioning(cs_item_sk#33875, 200), ENSURE_REQUIREMENTS, [plan_id=25607]
+                  :           :     :     :     :     :     :           :     :     :     +- Filter (((((isnotnull(cs_quantity#33878) AND isnotnull(cs_item_sk#33875)) AND isnotnull(cs_bill_cdemo_sk#33864)) AND isnotnull(cs_bill_hdemo_sk#33865)) AND isnotnull(cs_sold_date_sk#33894)) AND isnotnull(cs_ship_date_sk#33862))
+                  :           :     :     :     :     :     :           :     :     :        +- BatchScan[cs_ship_date_sk#33862, cs_bill_cdemo_sk#33864, cs_bill_hdemo_sk#33865, cs_item_sk#33875, cs_promo_sk#33876, cs_order_number#33877L, cs_quantity#33878, cs_sold_date_sk#33894] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_quantity IS NOT NULL, cs_item_sk IS NOT NULL, cs_bill_cdemo_sk IS NOT NULL, cs_bill_hdemo_sk IS NOT NULL, cs_sold_date_sk IS NOT NULL, cs_ship_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cs_sold_date_sk#33894 IN dynamicpruning#34174)]
+                  :           :     :     :     :     :     :           :     :     :              +- SubqueryAdaptiveBroadcast dynamicpruning#34174, 0, true, Project [d_date_sk#33949, d_date#33951, d_week_seq#33953], [d_date_sk#33949]
+                  :           :     :     :     :     :     :           :     :     :                 +- AdaptiveSparkPlan isFinalPlan=false
+                  :           :     :     :     :     :     :           :     :     :                    +- Project [d_date_sk#33949, d_date#33951, d_week_seq#33953]
+                  :           :     :     :     :     :     :           :     :     :                       +- Filter ((((isnotnull(d_year#33955) AND (d_year#33955 = 2001)) AND isnotnull(d_date_sk#33949)) AND isnotnull(d_week_seq#33953)) AND isnotnull(d_date#33951))
+                  :           :     :     :     :     :     :           :     :     :                          +- BatchScan[d_date_sk#33949, d_date#33951, d_week_seq#33953, d_year#33955] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL, d_week_seq IS NOT NULL, d_date IS NOT NULL] RuntimeFilters: []
+                  :           :     :     :     :     :     :           :     :     +- Sort [inv_item_sk#33895 ASC NULLS FIRST], false, 0
+                  :           :     :     :     :     :     :           :     :        +- Exchange hashpartitioning(inv_item_sk#33895, 200), ENSURE_REQUIREMENTS, [plan_id=25608]
+                  :           :     :     :     :     :     :           :     :           +- Filter (((isnotnull(inv_quantity_on_hand#33897) AND isnotnull(inv_item_sk#33895)) AND isnotnull(inv_warehouse_sk#33896)) AND isnotnull(inv_date_sk#33898))
+                  :           :     :     :     :     :     :           :     :              +- BatchScan[inv_item_sk#33895, inv_warehouse_sk#33896, inv_quantity_on_hand#33897, inv_date_sk#33898] spark_catalog.tpcds_iceberg_10g.inventory [filters=inv_quantity_on_hand IS NOT NULL, inv_item_sk IS NOT NULL, inv_warehouse_sk IS NOT NULL, inv_date_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     :     :     :     :     :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=25614]
+                  :           :     :     :     :     :     :           :        +- Filter isnotnull(w_warehouse_sk#33899)
+                  :           :     :     :     :     :     :           :           +- BatchScan[w_warehouse_sk#33899, w_warehouse_name#33901] spark_catalog.tpcds_iceberg_10g.warehouse [filters=w_warehouse_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     :     :     :     :     :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=25618]
+                  :           :     :     :     :     :     :              +- Filter isnotnull(i_item_sk#33913)
+                  :           :     :     :     :     :     :                 +- BatchScan[i_item_sk#33913, i_item_desc#33917] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     :     :     :     :     +- Sort [cd_demo_sk#33935 ASC NULLS FIRST], false, 0
+                  :           :     :     :     :     :        +- Exchange hashpartitioning(cd_demo_sk#33935, 200), ENSURE_REQUIREMENTS, [plan_id=25624]
+                  :           :     :     :     :     :           +- Project [cd_demo_sk#33935]
+                  :           :     :     :     :     :              +- Filter ((isnotnull(cd_marital_status#33937) AND (cd_marital_status#33937 = M)) AND isnotnull(cd_demo_sk#33935))
+                  :           :     :     :     :     :                 +- BatchScan[cd_demo_sk#33935, cd_marital_status#33937] spark_catalog.tpcds_iceberg_10g.customer_demographics [filters=cd_marital_status IS NOT NULL, cd_marital_status = 'M', cd_demo_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     :     :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=25630]
+                  :           :     :     :     :        +- Project [hd_demo_sk#33944]
+                  :           :     :     :     :           +- Filter ((isnotnull(hd_buy_potential#33946) AND (hd_buy_potential#33946 = 1001-5000)) AND isnotnull(hd_demo_sk#33944))
+                  :           :     :     :     :              +- BatchScan[hd_demo_sk#33944, hd_buy_potential#33946] spark_catalog.tpcds_iceberg_10g.household_demographics [filters=hd_buy_potential IS NOT NULL, hd_buy_potential = '1001-5000', hd_demo_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=25634]
+                  :           :     :     :        +- Project [d_date_sk#33949, d_date#33951, d_week_seq#33953]
+                  :           :     :     :           +- Filter ((((isnotnull(d_year#33955) AND (d_year#33955 = 2001)) AND isnotnull(d_date_sk#33949)) AND isnotnull(d_week_seq#33953)) AND isnotnull(d_date#33951))
+                  :           :     :     :              +- BatchScan[d_date_sk#33949, d_date#33951, d_week_seq#33953, d_year#33955] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL, d_week_seq IS NOT NULL, d_date IS NOT NULL] RuntimeFilters: []
+                  :           :     :     +- BroadcastExchange HashedRelationBroadcastMode(List((shiftleft(cast(input[1, int, false] as bigint), 32) | (cast(input[0, int, false] as bigint) & 4294967295))),false), [plan_id=25638]
+                  :           :     :        +- Filter (isnotnull(d_week_seq#33981) AND isnotnull(d_date_sk#33977))
+                  :           :     :           +- BatchScan[d_date_sk#33977, d_week_seq#33981] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_week_seq IS NOT NULL, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=25642]
+                  :           :        +- Filter (isnotnull(d_date#34007) AND isnotnull(d_date_sk#34005))
+                  :           :           +- BatchScan[d_date_sk#34005, d_date#34007] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=25646]
+                  :              +- Filter isnotnull(p_promo_sk#34033)
+                  :                 +- BatchScan[p_promo_sk#34033] spark_catalog.tpcds_iceberg_10g.promotion [filters=p_promo_sk IS NOT NULL] RuntimeFilters: []
+                  +- Sort [cr_item_sk#34053 ASC NULLS FIRST, cr_order_number#34067L ASC NULLS FIRST], false, 0
+                     +- Exchange hashpartitioning(cr_item_sk#34053, cr_order_number#34067L, 200), ENSURE_REQUIREMENTS, [plan_id=25652]
+                        +- Filter (isnotnull(cr_item_sk#34053) AND isnotnull(cr_order_number#34067L))
+                           +- BatchScan[cr_item_sk#34053, cr_order_number#34067L] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=cr_item_sk IS NOT NULL, cr_order_number IS NOT NULL] RuntimeFilters: []
+

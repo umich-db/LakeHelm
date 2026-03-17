@@ -1,0 +1,29 @@
+=== Optimized Logical Plan ===
+Sort [numwait#578L DESC NULLS LAST, s_name#123 ASC NULLS FIRST], true
++- Aggregate [s_name#123], [s_name#123, count(1) AS numwait#578L]
+   +- Project [s_name#123]
+      +- Join Inner, (s_nationkey#125L = n_nationkey#144L)
+         :- Project [s_name#123, s_nationkey#125L]
+         :  +- Join Inner, (o_orderkey#75L = l_orderkey#6L)
+         :     :- Project [s_name#123, s_nationkey#125L, l_orderkey#6L]
+         :     :  +- Join Inner, (s_suppkey#122L = l_suppkey#8L)
+         :     :     :- Project [s_suppkey#122L, s_name#123, s_nationkey#125L]
+         :     :     :  +- Filter (isnotnull(s_suppkey#122L) AND isnotnull(s_nationkey#125L))
+         :     :     :     +- Relation tpch_hudi_10g.supplier[_hoodie_commit_time#117,_hoodie_commit_seqno#118,_hoodie_record_key#119,_hoodie_partition_path#120,_hoodie_file_name#121,s_suppkey#122L,s_name#123,s_address#124,s_nationkey#125L,s_phone#126,s_acctbal#127,s_comment#128] parquet
+         :     :     +- Join LeftAnti, ((l_orderkey#608L = l_orderkey#6L) AND NOT (l_suppkey#610L = l_suppkey#8L))
+         :     :        :- Join LeftSemi, ((l_orderkey#587L = l_orderkey#6L) AND NOT (l_suppkey#589L = l_suppkey#8L))
+         :     :        :  :- Project [l_orderkey#6L, l_suppkey#8L]
+         :     :        :  :  +- Filter ((((isnotnull(l_receiptdate#18) AND isnotnull(l_commitdate#17)) AND (l_receiptdate#18 > l_commitdate#17)) AND isnotnull(l_suppkey#8L)) AND isnotnull(l_orderkey#6L))
+         :     :        :  :     +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+         :     :        :  +- Project [l_orderkey#587L, l_suppkey#589L]
+         :     :        :     +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#582,_hoodie_commit_seqno#583,_hoodie_record_key#584,_hoodie_partition_path#585,_hoodie_file_name#586,l_orderkey#587L,l_partkey#588L,l_suppkey#589L,l_linenumber#590L,l_quantity#591L,l_extendedprice#592,l_discount#593,l_tax#594,l_returnflag#595,l_linestatus#596,l_shipdate#597,l_commitdate#598,l_receiptdate#599,l_shipinstruct#600,l_shipmode#601,l_comment#602] parquet
+         :     :        +- Project [l_orderkey#608L, l_suppkey#610L]
+         :     :           +- Filter ((isnotnull(l_receiptdate#620) AND isnotnull(l_commitdate#619)) AND (l_receiptdate#620 > l_commitdate#619))
+         :     :              +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#603,_hoodie_commit_seqno#604,_hoodie_record_key#605,_hoodie_partition_path#606,_hoodie_file_name#607,l_orderkey#608L,l_partkey#609L,l_suppkey#610L,l_linenumber#611L,l_quantity#612L,l_extendedprice#613,l_discount#614,l_tax#615,l_returnflag#616,l_linestatus#617,l_shipdate#618,l_commitdate#619,l_receiptdate#620,l_shipinstruct#621,l_shipmode#622,l_comment#623] parquet
+         :     +- Project [o_orderkey#75L]
+         :        +- Filter ((isnotnull(o_orderstatus#77) AND (o_orderstatus#77 = F)) AND isnotnull(o_orderkey#75L))
+         :           +- Relation tpch_hudi_10g.orders[_hoodie_commit_time#70,_hoodie_commit_seqno#71,_hoodie_record_key#72,_hoodie_partition_path#73,_hoodie_file_name#74,o_orderkey#75L,o_custkey#76L,o_orderstatus#77,o_totalprice#78,o_orderdate#79,o_orderpriority#80,o_clerk#81,o_shippriority#82L,o_comment#83] parquet
+         +- Project [n_nationkey#144L]
+            +- Filter ((isnotnull(n_name#145) AND (n_name#145 = CHINA)) AND isnotnull(n_nationkey#144L))
+               +- Relation tpch_hudi_10g.nation[_hoodie_commit_time#139,_hoodie_commit_seqno#140,_hoodie_record_key#141,_hoodie_partition_path#142,_hoodie_file_name#143,n_nationkey#144L,n_name#145,n_regionkey#146L,n_comment#147] parquet
+=== Physical Plan ===

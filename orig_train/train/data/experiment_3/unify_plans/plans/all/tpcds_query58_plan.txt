@@ -1,0 +1,237 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [item_id#27552 ASC NULLS FIRST, ss_item_rev#27553 ASC NULLS FIRST], true
+      +- Project [item_id#27552, ss_item_rev#27553, CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(23,6))) / promote_precision(CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(18,2))) + promote_precision(cast(cs_item_rev#27557 as decimal(18,2)))), DecimalType(18,2)) as decimal(19,2))) + promote_precision(cast(ws_item_rev#27561 as decimal(19,2)))), DecimalType(19,2))) / 3.00), DecimalType(23,6)))), DecimalType(38,17))) * 100.00000000000000000), DecimalType(38,13)) AS ss_dev#27548, cs_item_rev#27557, CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(cs_item_rev#27557 as decimal(23,6))) / promote_precision(CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(18,2))) + promote_precision(cast(cs_item_rev#27557 as decimal(18,2)))), DecimalType(18,2)) as decimal(19,2))) + promote_precision(cast(ws_item_rev#27561 as decimal(19,2)))), DecimalType(19,2))) / 3.00), DecimalType(23,6)))), DecimalType(38,17))) * 100.00000000000000000), DecimalType(38,13)) AS cs_dev#27549, ws_item_rev#27561, CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(ws_item_rev#27561 as decimal(23,6))) / promote_precision(CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(18,2))) + promote_precision(cast(cs_item_rev#27557 as decimal(18,2)))), DecimalType(18,2)) as decimal(19,2))) + promote_precision(cast(ws_item_rev#27561 as decimal(19,2)))), DecimalType(19,2))) / 3.00), DecimalType(23,6)))), DecimalType(38,17))) * 100.00000000000000000), DecimalType(38,13)) AS ws_dev#27550, CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(18,2))) + promote_precision(cast(cs_item_rev#27557 as decimal(18,2)))), DecimalType(18,2)) as decimal(19,2))) + promote_precision(cast(ws_item_rev#27561 as decimal(19,2)))), DecimalType(19,2))) / 3.00), DecimalType(23,6)) AS average#27551]
+         +- Join Inner, (((((((((item_id#27552 = item_id#27560) AND (cast(ss_item_rev#27553 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(ws_item_rev#27561)), DecimalType(19,3)))) AND (cast(ss_item_rev#27553 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(ws_item_rev#27561)), DecimalType(20,3)))) AND (cast(cs_item_rev#27557 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(ws_item_rev#27561)), DecimalType(19,3)))) AND (cast(cs_item_rev#27557 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(ws_item_rev#27561)), DecimalType(20,3)))) AND (cast(ws_item_rev#27561 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(ss_item_rev#27553)), DecimalType(19,3)))) AND (cast(ws_item_rev#27561 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(ss_item_rev#27553)), DecimalType(20,3)))) AND (cast(ws_item_rev#27561 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(cs_item_rev#27557)), DecimalType(19,3)))) AND (cast(ws_item_rev#27561 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(cs_item_rev#27557)), DecimalType(20,3))))
+            :- Project [item_id#27552, ss_item_rev#27553, cs_item_rev#27557]
+            :  +- Join Inner, (((((item_id#27552 = item_id#27556) AND (cast(ss_item_rev#27553 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(cs_item_rev#27557)), DecimalType(19,3)))) AND (cast(ss_item_rev#27553 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(cs_item_rev#27557)), DecimalType(20,3)))) AND (cast(cs_item_rev#27557 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(ss_item_rev#27553)), DecimalType(19,3)))) AND (cast(cs_item_rev#27557 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(ss_item_rev#27553)), DecimalType(20,3))))
+            :     :- Filter isnotnull(ss_item_rev#27553)
+            :     :  +- Aggregate [i_item_id#27588], [i_item_id#27588 AS item_id#27552, MakeDecimal(sum(UnscaledValue(ss_ext_sales_price#27578)),17,2) AS ss_item_rev#27553]
+            :     :     +- Project [ss_ext_sales_price#27578, i_item_id#27588]
+            :     :        +- Join Inner, (ss_sold_date_sk#27586 = d_date_sk#27609)
+            :     :           :- Project [ss_ext_sales_price#27578, ss_sold_date_sk#27586, i_item_id#27588]
+            :     :           :  +- Join Inner, (ss_item_sk#27565 = i_item_sk#27587)
+            :     :           :     :- Filter ((isnotnull(ss_item_sk#27565) AND isnotnull(ss_sold_date_sk#27586)) AND dynamicpruning#28092 [ss_sold_date_sk#27586])
+            :     :           :     :  :  +- Project [d_date_sk#27609]
+            :     :           :     :  :     +- Join LeftSemi, (d_date#27611 = d_date#27807)
+            :     :           :     :  :        :- Filter isnotnull(d_date_sk#27609)
+            :     :           :     :  :        :  +- RelationV2[d_date_sk#27609, d_date#27611] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :           :     :  :        +- Project [d_date#27807]
+            :     :           :     :  :           +- Filter (isnotnull(d_week_seq#27809) AND (d_week_seq#27809 = scalar-subquery#27554 []))
+            :     :           :     :  :              :  +- Project [d_week_seq#27837]
+            :     :           :     :  :              :     +- Filter (isnotnull(d_date#27835) AND (d_date#27835 = 1998-02-19))
+            :     :           :     :  :              :        +- RelationV2[d_date#27835, d_week_seq#27837] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :           :     :  :              +- RelationV2[d_date#27807, d_week_seq#27809] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :           :     :  +- RelationV2[ss_item_sk#27565, ss_ext_sales_price#27578, ss_sold_date_sk#27586] spark_catalog.tpcds_iceberg_10g.store_sales
+            :     :           :     +- Filter (isnotnull(i_item_sk#27587) AND isnotnull(i_item_id#27588))
+            :     :           :        +- RelationV2[i_item_sk#27587, i_item_id#27588] spark_catalog.tpcds_iceberg_10g.item
+            :     :           +- Project [d_date_sk#27609]
+            :     :              +- Join LeftSemi, (d_date#27611 = d_date#27807)
+            :     :                 :- Filter isnotnull(d_date_sk#27609)
+            :     :                 :  +- RelationV2[d_date_sk#27609, d_date#27611] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :                 +- Project [d_date#27807]
+            :     :                    +- Filter (isnotnull(d_week_seq#27809) AND (d_week_seq#27809 = scalar-subquery#27554 []))
+            :     :                       :  +- Project [d_week_seq#27837]
+            :     :                       :     +- Filter (isnotnull(d_date#27835) AND (d_date#27835 = 1998-02-19))
+            :     :                       :        +- RelationV2[d_date#27835, d_week_seq#27837] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     :                       +- RelationV2[d_date#27807, d_week_seq#27809] spark_catalog.tpcds_iceberg_10g.date_dim
+            :     +- Filter isnotnull(cs_item_rev#27557)
+            :        +- Aggregate [i_item_id#27672], [i_item_id#27672 AS item_id#27556, MakeDecimal(sum(UnscaledValue(cs_ext_sales_price#27659)),17,2) AS cs_item_rev#27557]
+            :           +- Project [cs_ext_sales_price#27659, i_item_id#27672]
+            :              +- Join Inner, (cs_sold_date_sk#27670 = d_date_sk#27693)
+            :                 :- Project [cs_ext_sales_price#27659, cs_sold_date_sk#27670, i_item_id#27672]
+            :                 :  +- Join Inner, (cs_item_sk#27651 = i_item_sk#27671)
+            :                 :     :- Filter ((isnotnull(cs_item_sk#27651) AND isnotnull(cs_sold_date_sk#27670)) AND dynamicpruning#28093 [cs_sold_date_sk#27670])
+            :                 :     :  :  +- Project [d_date_sk#27693]
+            :                 :     :  :     +- Join LeftSemi, (d_date#27695 = d_date#27873)
+            :                 :     :  :        :- Filter isnotnull(d_date_sk#27693)
+            :                 :     :  :        :  +- RelationV2[d_date_sk#27693, d_date#27695] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                 :     :  :        +- Project [d_date#27873]
+            :                 :     :  :           +- Filter (isnotnull(d_week_seq#27875) AND (d_week_seq#27875 = scalar-subquery#27558 []))
+            :                 :     :  :              :  +- Project [d_week_seq#27903]
+            :                 :     :  :              :     +- Filter (isnotnull(d_date#27901) AND (d_date#27901 = 1998-02-19))
+            :                 :     :  :              :        +- RelationV2[d_date#27901, d_week_seq#27903] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                 :     :  :              +- RelationV2[d_date#27873, d_week_seq#27875] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                 :     :  +- RelationV2[cs_item_sk#27651, cs_ext_sales_price#27659, cs_sold_date_sk#27670] spark_catalog.tpcds_iceberg_10g.catalog_sales
+            :                 :     +- Filter (isnotnull(i_item_sk#27671) AND isnotnull(i_item_id#27672))
+            :                 :        +- RelationV2[i_item_sk#27671, i_item_id#27672] spark_catalog.tpcds_iceberg_10g.item
+            :                 +- Project [d_date_sk#27693]
+            :                    +- Join LeftSemi, (d_date#27695 = d_date#27873)
+            :                       :- Filter isnotnull(d_date_sk#27693)
+            :                       :  +- RelationV2[d_date_sk#27693, d_date#27695] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                       +- Project [d_date#27873]
+            :                          +- Filter (isnotnull(d_week_seq#27875) AND (d_week_seq#27875 = scalar-subquery#27558 []))
+            :                             :  +- Project [d_week_seq#27903]
+            :                             :     +- Filter (isnotnull(d_date#27901) AND (d_date#27901 = 1998-02-19))
+            :                             :        +- RelationV2[d_date#27901, d_week_seq#27903] spark_catalog.tpcds_iceberg_10g.date_dim
+            :                             +- RelationV2[d_date#27873, d_week_seq#27875] spark_catalog.tpcds_iceberg_10g.date_dim
+            +- Filter isnotnull(ws_item_rev#27561)
+               +- Aggregate [i_item_id#27756], [i_item_id#27756 AS item_id#27560, MakeDecimal(sum(UnscaledValue(ws_ext_sales_price#27743)),17,2) AS ws_item_rev#27561]
+                  +- Project [ws_ext_sales_price#27743, i_item_id#27756]
+                     +- Join Inner, (ws_sold_date_sk#27754 = d_date_sk#27777)
+                        :- Project [ws_ext_sales_price#27743, ws_sold_date_sk#27754, i_item_id#27756]
+                        :  +- Join Inner, (ws_item_sk#27723 = i_item_sk#27755)
+                        :     :- Filter ((isnotnull(ws_item_sk#27723) AND isnotnull(ws_sold_date_sk#27754)) AND dynamicpruning#28094 [ws_sold_date_sk#27754])
+                        :     :  :  +- Project [d_date_sk#27777]
+                        :     :  :     +- Join LeftSemi, (d_date#27779 = d_date#27939)
+                        :     :  :        :- Filter isnotnull(d_date_sk#27777)
+                        :     :  :        :  +- RelationV2[d_date_sk#27777, d_date#27779] spark_catalog.tpcds_iceberg_10g.date_dim
+                        :     :  :        +- Project [d_date#27939]
+                        :     :  :           +- Filter (isnotnull(d_week_seq#27941) AND (d_week_seq#27941 = scalar-subquery#27562 []))
+                        :     :  :              :  +- Project [d_week_seq#27969]
+                        :     :  :              :     +- Filter (isnotnull(d_date#27967) AND (d_date#27967 = 1998-02-19))
+                        :     :  :              :        +- RelationV2[d_date#27967, d_week_seq#27969] spark_catalog.tpcds_iceberg_10g.date_dim
+                        :     :  :              +- RelationV2[d_date#27939, d_week_seq#27941] spark_catalog.tpcds_iceberg_10g.date_dim
+                        :     :  +- RelationV2[ws_item_sk#27723, ws_ext_sales_price#27743, ws_sold_date_sk#27754] spark_catalog.tpcds_iceberg_10g.web_sales
+                        :     +- Filter (isnotnull(i_item_sk#27755) AND isnotnull(i_item_id#27756))
+                        :        +- RelationV2[i_item_sk#27755, i_item_id#27756] spark_catalog.tpcds_iceberg_10g.item
+                        +- Project [d_date_sk#27777]
+                           +- Join LeftSemi, (d_date#27779 = d_date#27939)
+                              :- Filter isnotnull(d_date_sk#27777)
+                              :  +- RelationV2[d_date_sk#27777, d_date#27779] spark_catalog.tpcds_iceberg_10g.date_dim
+                              +- Project [d_date#27939]
+                                 +- Filter (isnotnull(d_week_seq#27941) AND (d_week_seq#27941 = scalar-subquery#27562 []))
+                                    :  +- Project [d_week_seq#27969]
+                                    :     +- Filter (isnotnull(d_date#27967) AND (d_date#27967 = 1998-02-19))
+                                    :        +- RelationV2[d_date#27967, d_week_seq#27969] spark_catalog.tpcds_iceberg_10g.date_dim
+                                    +- RelationV2[d_date#27939, d_week_seq#27941] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[item_id#27552 ASC NULLS FIRST,ss_item_rev#27553 ASC NULLS FIRST], output=[item_id#27552,ss_item_rev#27553,ss_dev#27548,cs_item_rev#27557,cs_dev#27549,ws_item_rev#27561,ws_dev#27550,average#27551])
+   +- Project [item_id#27552, ss_item_rev#27553, CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(23,6))) / promote_precision(CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(18,2))) + promote_precision(cast(cs_item_rev#27557 as decimal(18,2)))), DecimalType(18,2)) as decimal(19,2))) + promote_precision(cast(ws_item_rev#27561 as decimal(19,2)))), DecimalType(19,2))) / 3.00), DecimalType(23,6)))), DecimalType(38,17))) * 100.00000000000000000), DecimalType(38,13)) AS ss_dev#27548, cs_item_rev#27557, CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(cs_item_rev#27557 as decimal(23,6))) / promote_precision(CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(18,2))) + promote_precision(cast(cs_item_rev#27557 as decimal(18,2)))), DecimalType(18,2)) as decimal(19,2))) + promote_precision(cast(ws_item_rev#27561 as decimal(19,2)))), DecimalType(19,2))) / 3.00), DecimalType(23,6)))), DecimalType(38,17))) * 100.00000000000000000), DecimalType(38,13)) AS cs_dev#27549, ws_item_rev#27561, CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(ws_item_rev#27561 as decimal(23,6))) / promote_precision(CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(18,2))) + promote_precision(cast(cs_item_rev#27557 as decimal(18,2)))), DecimalType(18,2)) as decimal(19,2))) + promote_precision(cast(ws_item_rev#27561 as decimal(19,2)))), DecimalType(19,2))) / 3.00), DecimalType(23,6)))), DecimalType(38,17))) * 100.00000000000000000), DecimalType(38,13)) AS ws_dev#27550, CheckOverflow((promote_precision(CheckOverflow((promote_precision(cast(CheckOverflow((promote_precision(cast(ss_item_rev#27553 as decimal(18,2))) + promote_precision(cast(cs_item_rev#27557 as decimal(18,2)))), DecimalType(18,2)) as decimal(19,2))) + promote_precision(cast(ws_item_rev#27561 as decimal(19,2)))), DecimalType(19,2))) / 3.00), DecimalType(23,6)) AS average#27551]
+      +- SortMergeJoin [item_id#27552], [item_id#27560], Inner, ((((((((cast(ss_item_rev#27553 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(ws_item_rev#27561)), DecimalType(19,3))) AND (cast(ss_item_rev#27553 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(ws_item_rev#27561)), DecimalType(20,3)))) AND (cast(cs_item_rev#27557 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(ws_item_rev#27561)), DecimalType(19,3)))) AND (cast(cs_item_rev#27557 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(ws_item_rev#27561)), DecimalType(20,3)))) AND (cast(ws_item_rev#27561 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(ss_item_rev#27553)), DecimalType(19,3)))) AND (cast(ws_item_rev#27561 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(ss_item_rev#27553)), DecimalType(20,3)))) AND (cast(ws_item_rev#27561 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(cs_item_rev#27557)), DecimalType(19,3)))) AND (cast(ws_item_rev#27561 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(cs_item_rev#27557)), DecimalType(20,3))))
+         :- Project [item_id#27552, ss_item_rev#27553, cs_item_rev#27557]
+         :  +- SortMergeJoin [item_id#27552], [item_id#27556], Inner, ((((cast(ss_item_rev#27553 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(cs_item_rev#27557)), DecimalType(19,3))) AND (cast(ss_item_rev#27553 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(cs_item_rev#27557)), DecimalType(20,3)))) AND (cast(cs_item_rev#27557 as decimal(19,3)) >= CheckOverflow((0.90 * promote_precision(ss_item_rev#27553)), DecimalType(19,3)))) AND (cast(cs_item_rev#27557 as decimal(20,3)) <= CheckOverflow((1.10 * promote_precision(ss_item_rev#27553)), DecimalType(20,3))))
+         :     :- Sort [item_id#27552 ASC NULLS FIRST], false, 0
+         :     :  +- Filter isnotnull(ss_item_rev#27553)
+         :     :     +- HashAggregate(keys=[i_item_id#27588], functions=[sum(UnscaledValue(ss_ext_sales_price#27578))], output=[item_id#27552, ss_item_rev#27553])
+         :     :        +- Exchange hashpartitioning(i_item_id#27588, 200), ENSURE_REQUIREMENTS, [plan_id=21294]
+         :     :           +- HashAggregate(keys=[i_item_id#27588], functions=[partial_sum(UnscaledValue(ss_ext_sales_price#27578))], output=[i_item_id#27588, sum#28096L])
+         :     :              +- Project [ss_ext_sales_price#27578, i_item_id#27588]
+         :     :                 +- BroadcastHashJoin [ss_sold_date_sk#27586], [d_date_sk#27609], Inner, BuildRight, false
+         :     :                    :- Project [ss_ext_sales_price#27578, ss_sold_date_sk#27586, i_item_id#27588]
+         :     :                    :  +- BroadcastHashJoin [ss_item_sk#27565], [i_item_sk#27587], Inner, BuildRight, false
+         :     :                    :     :- Filter (isnotnull(ss_item_sk#27565) AND isnotnull(ss_sold_date_sk#27586))
+         :     :                    :     :  +- BatchScan[ss_item_sk#27565, ss_ext_sales_price#27578, ss_sold_date_sk#27586] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_item_sk IS NOT NULL, ss_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#27586 IN dynamicpruning#28092)]
+         :     :                    :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#28092, 0, true, Project [d_date_sk#27609], [d_date_sk#27609]
+         :     :                    :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :     :                    :     :              +- Project [d_date_sk#27609]
+         :     :                    :     :                 +- BroadcastHashJoin [d_date#27611], [d_date#27807], LeftSemi, BuildRight, false
+         :     :                    :     :                    :- Filter isnotnull(d_date_sk#27609)
+         :     :                    :     :                    :  +- BatchScan[d_date_sk#27609, d_date#27611] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     :                    :     :                    +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=21116]
+         :     :                    :     :                       +- Project [d_date#27807]
+         :     :                    :     :                          +- Filter (isnotnull(d_week_seq#27809) AND (d_week_seq#27809 = Subquery subquery#27554, [id=#21108]))
+         :     :                    :     :                             :  +- Subquery subquery#27554, [id=#21108]
+         :     :                    :     :                             :     +- AdaptiveSparkPlan isFinalPlan=false
+         :     :                    :     :                             :        +- Project [d_week_seq#27837]
+         :     :                    :     :                             :           +- Filter (isnotnull(d_date#27835) AND (d_date#27835 = 1998-02-19))
+         :     :                    :     :                             :              +- BatchScan[d_date#27835, d_week_seq#27837] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date = 10276] RuntimeFilters: []
+         :     :                    :     :                             +- BatchScan[d_date#27807, d_week_seq#27809] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_week_seq IS NOT NULL] RuntimeFilters: []
+         :     :                    :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=21282]
+         :     :                    :        +- Filter (isnotnull(i_item_sk#27587) AND isnotnull(i_item_id#27588))
+         :     :                    :           +- BatchScan[i_item_sk#27587, i_item_id#27588] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL, i_item_id IS NOT NULL] RuntimeFilters: []
+         :     :                    +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=21289]
+         :     :                       +- Project [d_date_sk#27609]
+         :     :                          +- BroadcastHashJoin [d_date#27611], [d_date#27807], LeftSemi, BuildRight, false
+         :     :                             :- Filter isnotnull(d_date_sk#27609)
+         :     :                             :  +- BatchScan[d_date_sk#27609, d_date#27611] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+         :     :                             +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=21285]
+         :     :                                +- Project [d_date#27807]
+         :     :                                   +- Filter (isnotnull(d_week_seq#27809) AND (d_week_seq#27809 = Subquery subquery#27554, [id=#21125]))
+         :     :                                      :  +- Subquery subquery#27554, [id=#21125]
+         :     :                                      :     +- AdaptiveSparkPlan isFinalPlan=false
+         :     :                                      :        +- Project [d_week_seq#27837]
+         :     :                                      :           +- Filter (isnotnull(d_date#27835) AND (d_date#27835 = 1998-02-19))
+         :     :                                      :              +- BatchScan[d_date#27835, d_week_seq#27837] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date = 10276] RuntimeFilters: []
+         :     :                                      +- BatchScan[d_date#27807, d_week_seq#27809] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_week_seq IS NOT NULL] RuntimeFilters: []
+         :     +- Sort [item_id#27556 ASC NULLS FIRST], false, 0
+         :        +- Filter isnotnull(cs_item_rev#27557)
+         :           +- HashAggregate(keys=[i_item_id#27672], functions=[sum(UnscaledValue(cs_ext_sales_price#27659))], output=[item_id#27556, cs_item_rev#27557])
+         :              +- Exchange hashpartitioning(i_item_id#27672, 200), ENSURE_REQUIREMENTS, [plan_id=21309]
+         :                 +- HashAggregate(keys=[i_item_id#27672], functions=[partial_sum(UnscaledValue(cs_ext_sales_price#27659))], output=[i_item_id#27672, sum#28098L])
+         :                    +- Project [cs_ext_sales_price#27659, i_item_id#27672]
+         :                       +- BroadcastHashJoin [cs_sold_date_sk#27670], [d_date_sk#27693], Inner, BuildRight, false
+         :                          :- Project [cs_ext_sales_price#27659, cs_sold_date_sk#27670, i_item_id#27672]
+         :                          :  +- BroadcastHashJoin [cs_item_sk#27651], [i_item_sk#27671], Inner, BuildRight, false
+         :                          :     :- Filter (isnotnull(cs_item_sk#27651) AND isnotnull(cs_sold_date_sk#27670))
+         :                          :     :  +- BatchScan[cs_item_sk#27651, cs_ext_sales_price#27659, cs_sold_date_sk#27670] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_item_sk IS NOT NULL, cs_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cs_sold_date_sk#27670 IN dynamicpruning#28093)]
+         :                          :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#28093, 0, true, Project [d_date_sk#27693], [d_date_sk#27693]
+         :                          :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :                          :     :              +- Project [d_date_sk#27693]
+         :                          :     :                 +- BroadcastHashJoin [d_date#27695], [d_date#27873], LeftSemi, BuildRight, false
+         :                          :     :                    :- Filter isnotnull(d_date_sk#27693)
+         :                          :     :                    :  +- BatchScan[d_date_sk#27693, d_date#27695] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                          :     :                    +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=21154]
+         :                          :     :                       +- Project [d_date#27873]
+         :                          :     :                          +- Filter (isnotnull(d_week_seq#27875) AND (d_week_seq#27875 = Subquery subquery#27558, [id=#21146]))
+         :                          :     :                             :  +- Subquery subquery#27558, [id=#21146]
+         :                          :     :                             :     +- AdaptiveSparkPlan isFinalPlan=false
+         :                          :     :                             :        +- Project [d_week_seq#27903]
+         :                          :     :                             :           +- Filter (isnotnull(d_date#27901) AND (d_date#27901 = 1998-02-19))
+         :                          :     :                             :              +- BatchScan[d_date#27901, d_week_seq#27903] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date = 10276] RuntimeFilters: []
+         :                          :     :                             +- BatchScan[d_date#27873, d_week_seq#27875] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_week_seq IS NOT NULL] RuntimeFilters: []
+         :                          :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=21297]
+         :                          :        +- Filter (isnotnull(i_item_sk#27671) AND isnotnull(i_item_id#27672))
+         :                          :           +- BatchScan[i_item_sk#27671, i_item_id#27672] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL, i_item_id IS NOT NULL] RuntimeFilters: []
+         :                          +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=21304]
+         :                             +- Project [d_date_sk#27693]
+         :                                +- BroadcastHashJoin [d_date#27695], [d_date#27873], LeftSemi, BuildRight, false
+         :                                   :- Filter isnotnull(d_date_sk#27693)
+         :                                   :  +- BatchScan[d_date_sk#27693, d_date#27695] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                                   +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=21300]
+         :                                      +- Project [d_date#27873]
+         :                                         +- Filter (isnotnull(d_week_seq#27875) AND (d_week_seq#27875 = Subquery subquery#27558, [id=#21163]))
+         :                                            :  +- Subquery subquery#27558, [id=#21163]
+         :                                            :     +- AdaptiveSparkPlan isFinalPlan=false
+         :                                            :        +- Project [d_week_seq#27903]
+         :                                            :           +- Filter (isnotnull(d_date#27901) AND (d_date#27901 = 1998-02-19))
+         :                                            :              +- BatchScan[d_date#27901, d_week_seq#27903] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date = 10276] RuntimeFilters: []
+         :                                            +- BatchScan[d_date#27873, d_week_seq#27875] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_week_seq IS NOT NULL] RuntimeFilters: []
+         +- Sort [item_id#27560 ASC NULLS FIRST], false, 0
+            +- Filter isnotnull(ws_item_rev#27561)
+               +- HashAggregate(keys=[i_item_id#27756], functions=[sum(UnscaledValue(ws_ext_sales_price#27743))], output=[item_id#27560, ws_item_rev#27561])
+                  +- Exchange hashpartitioning(i_item_id#27756, 200), ENSURE_REQUIREMENTS, [plan_id=21330]
+                     +- HashAggregate(keys=[i_item_id#27756], functions=[partial_sum(UnscaledValue(ws_ext_sales_price#27743))], output=[i_item_id#27756, sum#28100L])
+                        +- Project [ws_ext_sales_price#27743, i_item_id#27756]
+                           +- BroadcastHashJoin [ws_sold_date_sk#27754], [d_date_sk#27777], Inner, BuildRight, false
+                              :- Project [ws_ext_sales_price#27743, ws_sold_date_sk#27754, i_item_id#27756]
+                              :  +- BroadcastHashJoin [ws_item_sk#27723], [i_item_sk#27755], Inner, BuildRight, false
+                              :     :- Filter (isnotnull(ws_item_sk#27723) AND isnotnull(ws_sold_date_sk#27754))
+                              :     :  +- BatchScan[ws_item_sk#27723, ws_ext_sales_price#27743, ws_sold_date_sk#27754] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_item_sk IS NOT NULL, ws_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#27754 IN dynamicpruning#28094)]
+                              :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#28094, 0, true, Project [d_date_sk#27777], [d_date_sk#27777]
+                              :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                              :     :              +- Project [d_date_sk#27777]
+                              :     :                 +- BroadcastHashJoin [d_date#27779], [d_date#27939], LeftSemi, BuildRight, false
+                              :     :                    :- Filter isnotnull(d_date_sk#27777)
+                              :     :                    :  +- BatchScan[d_date_sk#27777, d_date#27779] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+                              :     :                    +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=21192]
+                              :     :                       +- Project [d_date#27939]
+                              :     :                          +- Filter (isnotnull(d_week_seq#27941) AND (d_week_seq#27941 = Subquery subquery#27562, [id=#21184]))
+                              :     :                             :  +- Subquery subquery#27562, [id=#21184]
+                              :     :                             :     +- AdaptiveSparkPlan isFinalPlan=false
+                              :     :                             :        +- Project [d_week_seq#27969]
+                              :     :                             :           +- Filter (isnotnull(d_date#27967) AND (d_date#27967 = 1998-02-19))
+                              :     :                             :              +- BatchScan[d_date#27967, d_week_seq#27969] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date = 10276] RuntimeFilters: []
+                              :     :                             +- BatchScan[d_date#27939, d_week_seq#27941] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_week_seq IS NOT NULL] RuntimeFilters: []
+                              :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=21318]
+                              :        +- Filter (isnotnull(i_item_sk#27755) AND isnotnull(i_item_id#27756))
+                              :           +- BatchScan[i_item_sk#27755, i_item_id#27756] spark_catalog.tpcds_iceberg_10g.item [filters=i_item_sk IS NOT NULL, i_item_id IS NOT NULL] RuntimeFilters: []
+                              +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=21325]
+                                 +- Project [d_date_sk#27777]
+                                    +- BroadcastHashJoin [d_date#27779], [d_date#27939], LeftSemi, BuildRight, false
+                                       :- Filter isnotnull(d_date_sk#27777)
+                                       :  +- BatchScan[d_date_sk#27777, d_date#27779] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date_sk IS NOT NULL] RuntimeFilters: []
+                                       +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, date, true]),false), [plan_id=21321]
+                                          +- Project [d_date#27939]
+                                             +- Filter (isnotnull(d_week_seq#27941) AND (d_week_seq#27941 = Subquery subquery#27562, [id=#21201]))
+                                                :  +- Subquery subquery#27562, [id=#21201]
+                                                :     +- AdaptiveSparkPlan isFinalPlan=false
+                                                :        +- Project [d_week_seq#27969]
+                                                :           +- Filter (isnotnull(d_date#27967) AND (d_date#27967 = 1998-02-19))
+                                                :              +- BatchScan[d_date#27967, d_week_seq#27969] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date = 10276] RuntimeFilters: []
+                                                +- BatchScan[d_date#27939, d_week_seq#27941] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_week_seq IS NOT NULL] RuntimeFilters: []
+

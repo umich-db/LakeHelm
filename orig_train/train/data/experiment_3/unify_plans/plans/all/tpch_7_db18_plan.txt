@@ -1,0 +1,98 @@
+== Parsed Logical Plan ==
+'Sort ['o_totalprice DESC NULLS LAST, 'o_orderdate ASC NULLS FIRST], true
++- 'Aggregate ['c_name, 'c_custkey, 'o_orderkey, 'o_orderdate, 'o_totalprice], ['c_name, 'c_custkey, 'o_orderkey, 'o_orderdate, 'o_totalprice, unresolvedalias('sum('l_quantity), None)]
+   +- 'Filter (('o_orderkey IN (list#18374 []) AND ('c_custkey = 'o_custkey)) AND ('o_orderkey = 'l_orderkey))
+      :  +- 'UnresolvedHaving ('sum('l_quantity) > 313)
+      :     +- 'Aggregate ['l_orderkey], ['l_orderkey]
+      :        +- 'UnresolvedRelation [lineitem], [], false
+      +- 'Join Inner
+         :- 'Join Inner
+         :  :- 'UnresolvedRelation [customer], [], false
+         :  +- 'UnresolvedRelation [orders], [], false
+         +- 'UnresolvedRelation [lineitem], [], false
+
+== Analyzed Logical Plan ==
+c_name: string, c_custkey: bigint, o_orderkey: bigint, o_orderdate: string, o_totalprice: double, sum(l_quantity): bigint
+Sort [o_totalprice#18392 DESC NULLS LAST, o_orderdate#18393 ASC NULLS FIRST], true
++- Aggregate [c_name#18382, c_custkey#18381L, o_orderkey#18389L, o_orderdate#18393, o_totalprice#18392], [c_name#18382, c_custkey#18381L, o_orderkey#18389L, o_orderdate#18393, o_totalprice#18392, sum(l_quantity#18402L) AS sum(l_quantity)#18453L]
+   +- Filter ((o_orderkey#18389L IN (list#18374 []) AND (c_custkey#18381L = o_custkey#18390L)) AND (o_orderkey#18389L = l_orderkey#18398L))
+      :  +- Project [l_orderkey#18414L]
+      :     +- Filter (sum(l_quantity#18418L)#18436L > cast(313 as bigint))
+      :        +- Aggregate [l_orderkey#18414L], [l_orderkey#18414L, sum(l_quantity#18418L) AS sum(l_quantity#18418L)#18436L]
+      :           +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+      :              +- RelationV2[l_orderkey#18414L, l_partkey#18415L, l_suppkey#18416L, l_linenumber#18417L, l_quantity#18418L, l_extendedprice#18419, l_discount#18420, l_tax#18421, l_returnflag#18422, l_linestatus#18423, l_shipdate#18424, l_commitdate#18425, l_receiptdate#18426, l_shipinstruct#18427, l_shipmode#18428, l_comment#18429] spark_catalog.tpch_iceberg_10g.lineitem
+      +- Join Inner
+         :- Join Inner
+         :  :- SubqueryAlias spark_catalog.tpch_iceberg_10g.customer
+         :  :  +- RelationV2[c_custkey#18381L, c_name#18382, c_address#18383, c_nationkey#18384L, c_phone#18385, c_acctbal#18386, c_mktsegment#18387, c_comment#18388] spark_catalog.tpch_iceberg_10g.customer
+         :  +- SubqueryAlias spark_catalog.tpch_iceberg_10g.orders
+         :     +- RelationV2[o_orderkey#18389L, o_custkey#18390L, o_orderstatus#18391, o_totalprice#18392, o_orderdate#18393, o_orderpriority#18394, o_clerk#18395, o_shippriority#18396L, o_comment#18397] spark_catalog.tpch_iceberg_10g.orders
+         +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+            +- RelationV2[l_orderkey#18398L, l_partkey#18399L, l_suppkey#18400L, l_linenumber#18401L, l_quantity#18402L, l_extendedprice#18403, l_discount#18404, l_tax#18405, l_returnflag#18406, l_linestatus#18407, l_shipdate#18408, l_commitdate#18409, l_receiptdate#18410, l_shipinstruct#18411, l_shipmode#18412, l_comment#18413] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Optimized Logical Plan ==
+Sort [o_totalprice#18392 DESC NULLS LAST, o_orderdate#18393 ASC NULLS FIRST], true
++- Aggregate [c_name#18382, c_custkey#18381L, o_orderkey#18389L, o_orderdate#18393, o_totalprice#18392], [c_name#18382, c_custkey#18381L, o_orderkey#18389L, o_orderdate#18393, o_totalprice#18392, sum(l_quantity#18402L) AS sum(l_quantity)#18453L]
+   +- Project [c_custkey#18381L, c_name#18382, o_orderkey#18389L, o_totalprice#18392, o_orderdate#18393, l_quantity#18402L]
+      +- Join Inner, (o_orderkey#18389L = l_orderkey#18398L)
+         :- Project [c_custkey#18381L, c_name#18382, o_orderkey#18389L, o_totalprice#18392, o_orderdate#18393]
+         :  +- Join Inner, (c_custkey#18381L = o_custkey#18390L)
+         :     :- Filter isnotnull(c_custkey#18381L)
+         :     :  +- RelationV2[c_custkey#18381L, c_name#18382] spark_catalog.tpch_iceberg_10g.customer
+         :     +- Join LeftSemi, (o_orderkey#18389L = l_orderkey#18414L)
+         :        :- Filter (isnotnull(o_custkey#18390L) AND isnotnull(o_orderkey#18389L))
+         :        :  +- RelationV2[o_orderkey#18389L, o_custkey#18390L, o_totalprice#18392, o_orderdate#18393] spark_catalog.tpch_iceberg_10g.orders
+         :        +- Project [l_orderkey#18414L]
+         :           +- Filter (isnotnull(sum(l_quantity#18418L)#18436L) AND (sum(l_quantity#18418L)#18436L > 313))
+         :              +- Aggregate [l_orderkey#18414L], [l_orderkey#18414L, sum(l_quantity#18418L) AS sum(l_quantity#18418L)#18436L]
+         :                 +- RelationV2[l_orderkey#18414L, l_quantity#18418L] spark_catalog.tpch_iceberg_10g.lineitem
+         +- Join LeftSemi, (l_orderkey#18398L = l_orderkey#18414L)
+            :- Filter isnotnull(l_orderkey#18398L)
+            :  +- RelationV2[l_orderkey#18398L, l_quantity#18402L] spark_catalog.tpch_iceberg_10g.lineitem
+            +- Project [l_orderkey#18414L]
+               +- Filter (isnotnull(sum(l_quantity#18418L)#18436L) AND (sum(l_quantity#18418L)#18436L > 313))
+                  +- Aggregate [l_orderkey#18414L], [l_orderkey#18414L, sum(l_quantity#18418L) AS sum(l_quantity#18418L)#18436L]
+                     +- RelationV2[l_orderkey#18414L, l_quantity#18418L] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [o_totalprice#18392 DESC NULLS LAST, o_orderdate#18393 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(o_totalprice#18392 DESC NULLS LAST, o_orderdate#18393 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=22027]
+      +- HashAggregate(keys=[c_name#18382, c_custkey#18381L, o_orderkey#18389L, o_orderdate#18393, o_totalprice#18392], functions=[sum(l_quantity#18402L)], output=[c_name#18382, c_custkey#18381L, o_orderkey#18389L, o_orderdate#18393, o_totalprice#18392, sum(l_quantity)#18453L])
+         +- HashAggregate(keys=[c_name#18382, c_custkey#18381L, o_orderkey#18389L, o_orderdate#18393, knownfloatingpointnormalized(normalizenanandzero(o_totalprice#18392)) AS o_totalprice#18392], functions=[partial_sum(l_quantity#18402L)], output=[c_name#18382, c_custkey#18381L, o_orderkey#18389L, o_orderdate#18393, o_totalprice#18392, sum#18465L])
+            +- Project [c_custkey#18381L, c_name#18382, o_orderkey#18389L, o_totalprice#18392, o_orderdate#18393, l_quantity#18402L]
+               +- SortMergeJoin [o_orderkey#18389L], [l_orderkey#18398L], Inner
+                  :- Sort [o_orderkey#18389L ASC NULLS FIRST], false, 0
+                  :  +- Exchange hashpartitioning(o_orderkey#18389L, 200), ENSURE_REQUIREMENTS, [plan_id=22020]
+                  :     +- Project [c_custkey#18381L, c_name#18382, o_orderkey#18389L, o_totalprice#18392, o_orderdate#18393]
+                  :        +- SortMergeJoin [c_custkey#18381L], [o_custkey#18390L], Inner
+                  :           :- Sort [c_custkey#18381L ASC NULLS FIRST], false, 0
+                  :           :  +- Exchange hashpartitioning(c_custkey#18381L, 200), ENSURE_REQUIREMENTS, [plan_id=22003]
+                  :           :     +- Filter isnotnull(c_custkey#18381L)
+                  :           :        +- BatchScan[c_custkey#18381L, c_name#18382] spark_catalog.tpch_iceberg_10g.customer [filters=c_custkey IS NOT NULL] RuntimeFilters: []
+                  :           +- Sort [o_custkey#18390L ASC NULLS FIRST], false, 0
+                  :              +- Exchange hashpartitioning(o_custkey#18390L, 200), ENSURE_REQUIREMENTS, [plan_id=22002]
+                  :                 +- SortMergeJoin [o_orderkey#18389L], [l_orderkey#18414L], LeftSemi
+                  :                    :- Sort [o_orderkey#18389L ASC NULLS FIRST], false, 0
+                  :                    :  +- Exchange hashpartitioning(o_orderkey#18389L, 200), ENSURE_REQUIREMENTS, [plan_id=21996]
+                  :                    :     +- Filter (isnotnull(o_custkey#18390L) AND isnotnull(o_orderkey#18389L))
+                  :                    :        +- BatchScan[o_orderkey#18389L, o_custkey#18390L, o_totalprice#18392, o_orderdate#18393] spark_catalog.tpch_iceberg_10g.orders [filters=o_custkey IS NOT NULL, o_orderkey IS NOT NULL] RuntimeFilters: []
+                  :                    +- Sort [l_orderkey#18414L ASC NULLS FIRST], false, 0
+                  :                       +- Project [l_orderkey#18414L]
+                  :                          +- Filter (isnotnull(sum(l_quantity#18418L)#18436L) AND (sum(l_quantity#18418L)#18436L > 313))
+                  :                             +- HashAggregate(keys=[l_orderkey#18414L], functions=[sum(l_quantity#18418L)], output=[l_orderkey#18414L, sum(l_quantity#18418L)#18436L])
+                  :                                +- Exchange hashpartitioning(l_orderkey#18414L, 200), ENSURE_REQUIREMENTS, [plan_id=21990]
+                  :                                   +- HashAggregate(keys=[l_orderkey#18414L], functions=[partial_sum(l_quantity#18418L)], output=[l_orderkey#18414L, sum#18467L])
+                  :                                      +- BatchScan[l_orderkey#18414L, l_quantity#18418L] spark_catalog.tpch_iceberg_10g.lineitem [filters=] RuntimeFilters: []
+                  +- SortMergeJoin [l_orderkey#18398L], [l_orderkey#18414L], LeftSemi
+                     :- Sort [l_orderkey#18398L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(l_orderkey#18398L, 200), ENSURE_REQUIREMENTS, [plan_id=22014]
+                     :     +- Filter isnotnull(l_orderkey#18398L)
+                     :        +- BatchScan[l_orderkey#18398L, l_quantity#18402L] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_orderkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [l_orderkey#18414L ASC NULLS FIRST], false, 0
+                        +- Project [l_orderkey#18414L]
+                           +- Filter (isnotnull(sum(l_quantity#18418L)#18436L) AND (sum(l_quantity#18418L)#18436L > 313))
+                              +- HashAggregate(keys=[l_orderkey#18414L], functions=[sum(l_quantity#18418L)], output=[l_orderkey#18414L, sum(l_quantity#18418L)#18436L])
+                                 +- Exchange hashpartitioning(l_orderkey#18414L, 200), ENSURE_REQUIREMENTS, [plan_id=22008]
+                                    +- HashAggregate(keys=[l_orderkey#18414L], functions=[partial_sum(l_quantity#18418L)], output=[l_orderkey#18414L, sum#18467L])
+                                       +- BatchScan[l_orderkey#18414L, l_quantity#18418L] spark_catalog.tpch_iceberg_10g.lineitem [filters=] RuntimeFilters: []

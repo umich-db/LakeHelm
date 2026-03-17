@@ -1,0 +1,86 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [s_store_name#38294 ASC NULLS FIRST], true
+      +- Aggregate [s_store_name#38294], [s_store_name#38294, MakeDecimal(sum(UnscaledValue(ss_net_profit#38259)),17,2) AS sum(ss_net_profit)#38395]
+         +- Project [ss_net_profit#38259, s_store_name#38294]
+            +- Join Inner, (substr(s_zip#38314, 1, 2) = substr(ca_zip#38235, 1, 2))
+               :- Project [ss_net_profit#38259, s_store_name#38294, s_zip#38314]
+               :  +- Join Inner, (ss_store_sk#38244 = s_store_sk#38289)
+               :     :- Project [ss_store_sk#38244, ss_net_profit#38259]
+               :     :  +- Join Inner, (ss_sold_date_sk#38260 = d_date_sk#38261)
+               :     :     :- Filter ((isnotnull(ss_sold_date_sk#38260) AND isnotnull(ss_store_sk#38244)) AND dynamicpruning#38412 [ss_sold_date_sk#38260])
+               :     :     :  :  +- Project [d_date_sk#38261]
+               :     :     :  :     +- Filter ((((isnotnull(d_qoy#38271) AND isnotnull(d_year#38267)) AND (d_qoy#38271 = 1)) AND (d_year#38267 = 2002)) AND isnotnull(d_date_sk#38261))
+               :     :     :  :        +- RelationV2[d_date_sk#38261, d_year#38267, d_qoy#38271] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     :     :  +- RelationV2[ss_store_sk#38244, ss_net_profit#38259, ss_sold_date_sk#38260] spark_catalog.tpcds_iceberg_10g.store_sales
+               :     :     +- Project [d_date_sk#38261]
+               :     :        +- Filter ((((isnotnull(d_qoy#38271) AND isnotnull(d_year#38267)) AND (d_qoy#38271 = 1)) AND (d_year#38267 = 2002)) AND isnotnull(d_date_sk#38261))
+               :     :           +- RelationV2[d_date_sk#38261, d_year#38267, d_qoy#38271] spark_catalog.tpcds_iceberg_10g.date_dim
+               :     +- Filter (isnotnull(s_store_sk#38289) AND isnotnull(s_zip#38314))
+               :        +- RelationV2[s_store_sk#38289, s_store_name#38294, s_zip#38314] spark_catalog.tpcds_iceberg_10g.store
+               +- Aggregate [ca_zip#38235], [ca_zip#38235]
+                  +- Project [substr(ca_zip#38327, 1, 5) AS ca_zip#38235]
+                     +- Join LeftSemi, (substr(ca_zip#38327, 1, 5) <=> ca_zip#38236)
+                        :- Filter (substr(ca_zip#38327, 1, 5) INSET 10094, 10391, 10502, 10688, 10827, 10866, 11110, 11201, 11357, 11376, 11395, 11433, 11622, 11635, 11929, 13036, 13261, 13355, 13376, 13395, 13414, 13842, 14090, 14172, 14276, 14329, 14354, 14410, 14664, 14868, 14933, 14946, 15009, 15482, 15492, 15526, 15560, 15799, 15884, 16022, 16072, 16165, 16515, 16737, 16808, 17184, 17819, 17921, 17959, 18377, 18384, 18427, 18586, 18717, 18767, 18799, 18840, 18842, 18846, 19053, 19124, 19303, 19454, 19506, 19736, 19770, 19850, 20005, 20132, 20223, 20261, 20961, 21068, 21077, 21156, 21203, 21204, 21218, 21286, 21309, 21360, 21505, 21744, 21757, 21801, 22246, 22745, 22926, 22928, 22977, 23054, 23427, 23969, 24611, 24677, 25002, 25004, 25251, 25612, 25632, 25683, 25734, 25797, 25990, 26066, 26234, 26696, 26705, 26935, 27385, 27413, 27670, 28055, 28286, 28806, 28810, 28944, 29467, 29742, 29785, 29898, 30045, 30123, 30202, 30214, 30379, 30432, 30868, 30884, 31897, 32200, 32322, 32779, 32895, 32936, 32961, 33032, 33113, 33283, 33562, 33790, 34175, 34425, 35375, 35851, 35901, 35943, 36447, 36496, 36503, 36580, 36610, 36635, 36871, 37119, 37562, 37931, 38123, 38177, 38360, 38936, 39050, 39734, 39736, 39936, 40697, 40758, 40811, 40921, 40936, 41100, 41249, 41368, 41369, 41793, 41967, 42393, 42548, 42961, 43276, 43286, 43905, 43933, 44166, 44439, 45013, 45486, 45539, 45550, 45645, 45907, 46047, 46081, 46346, 47208, 47306, 47484, 47513, 47546, 48043, 48121, 48375, 48584, 48649, 48819, 49124, 49157, 49231, 49247, 49521, 49613, 49661, 49858, 50497, 50530, 50723, 50906, 51061, 51744, 51799, 52226, 52232, 52406, 52868, 52940, 53121, 53535, 53582, 54010, 54191, 54561, 54853, 55307, 55349, 55607, 55854, 56372, 56447, 56458, 56648, 56692, 56979, 57042, 57350, 57648, 57666, 57835, 57856, 58049, 58149, 58200, 58429, 58471, 58581, 59004, 59080, 59362, 59403, 59785, 60069, 60915, 61024, 61068, 61125, 61163, 61265, 61451, 61869, 62378, 62878, 63197, 63294, 63512, 63792, 63982, 64008, 65085, 65690, 66446, 66979, 67031, 67298, 67393, 67468, 67898, 68310, 68908, 69036, 69297, 69399, 69998, 70067, 70070, 70373, 70467, 70470, 70873, 71286, 71381, 71850, 71853, 72008, 72550, 72666, 73146, 73520, 73957, 74535, 74621, 74703, 75692, 76232, 76615, 76619, 77209, 77471, 77557, 78298, 78890, 79144, 79188, 79307, 80015, 80072, 80218, 80332, 80614, 80619, 80752, 81020, 81087, 81410, 81427, 81450, 81625, 81980, 82276, 82564, 82626, 82637, 83103, 83326, 83550, 83583, 83658, 83712, 83927, 84093, 84861, 84936, 85778, 86057, 86199, 86709, 87291, 88191, 88376, 88425, 88500, 88601, 89091, 89338, 89436, 89531, 89951, 89977, 90226, 90733, 90885, 91068, 91137, 91830, 91911, 91946, 92309, 92397, 92454, 92713, 93578, 93815, 94167, 94203, 94627, 94808, 95042, 95447, 95464, 95806, 96577, 96976, 97790, 98294, 98360, 99149, 99194, 99223, 99447, 99555, 99823, 99900 AND isnotnull(substr(ca_zip#38327, 1, 5)))
+                        :  +- RelationV2[ca_zip#38327] spark_catalog.tpcds_iceberg_10g.customer_address
+                        +- Project [ca_zip#38236]
+                           +- Filter (cnt#38237L > 10)
+                              +- Aggregate [ca_zip#38340], [substr(ca_zip#38340, 1, 5) AS ca_zip#38236, count(1) AS cnt#38237L]
+                                 +- Project [ca_zip#38340]
+                                    +- Join Inner, (ca_address_sk#38331 = c_current_addr_sk#38348)
+                                       :- Filter isnotnull(ca_address_sk#38331)
+                                       :  +- RelationV2[ca_address_sk#38331, ca_zip#38340] spark_catalog.tpcds_iceberg_10g.customer_address
+                                       +- Project [c_current_addr_sk#38348]
+                                          +- Filter ((isnotnull(c_preferred_cust_flag#38354) AND (c_preferred_cust_flag#38354 = Y)) AND isnotnull(c_current_addr_sk#38348))
+                                             +- RelationV2[c_current_addr_sk#38348, c_preferred_cust_flag#38354] spark_catalog.tpcds_iceberg_10g.customer
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[s_store_name#38294 ASC NULLS FIRST], output=[s_store_name#38294,sum(ss_net_profit)#38395])
+   +- HashAggregate(keys=[s_store_name#38294], functions=[sum(UnscaledValue(ss_net_profit#38259))], output=[s_store_name#38294, sum(ss_net_profit)#38395])
+      +- Exchange hashpartitioning(s_store_name#38294, 200), ENSURE_REQUIREMENTS, [plan_id=28184]
+         +- HashAggregate(keys=[s_store_name#38294], functions=[partial_sum(UnscaledValue(ss_net_profit#38259))], output=[s_store_name#38294, sum#38414L])
+            +- Project [ss_net_profit#38259, s_store_name#38294]
+               +- BroadcastHashJoin [substr(s_zip#38314, 1, 2)], [substr(ca_zip#38235, 1, 2)], Inner, BuildRight, false
+                  :- Project [ss_net_profit#38259, s_store_name#38294, s_zip#38314]
+                  :  +- BroadcastHashJoin [ss_store_sk#38244], [s_store_sk#38289], Inner, BuildRight, false
+                  :     :- Project [ss_store_sk#38244, ss_net_profit#38259]
+                  :     :  +- BroadcastHashJoin [ss_sold_date_sk#38260], [d_date_sk#38261], Inner, BuildRight, false
+                  :     :     :- Filter (isnotnull(ss_sold_date_sk#38260) AND isnotnull(ss_store_sk#38244))
+                  :     :     :  +- BatchScan[ss_store_sk#38244, ss_net_profit#38259, ss_sold_date_sk#38260] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sold_date_sk IS NOT NULL, ss_store_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#38260 IN dynamicpruning#38412)]
+                  :     :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#38412, 0, true, Project [d_date_sk#38261], [d_date_sk#38261]
+                  :     :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                  :     :     :              +- Project [d_date_sk#38261]
+                  :     :     :                 +- Filter ((((isnotnull(d_qoy#38271) AND isnotnull(d_year#38267)) AND (d_qoy#38271 = 1)) AND (d_year#38267 = 2002)) AND isnotnull(d_date_sk#38261))
+                  :     :     :                    +- BatchScan[d_date_sk#38261, d_year#38267, d_qoy#38271] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 1, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=28156]
+                  :     :        +- Project [d_date_sk#38261]
+                  :     :           +- Filter ((((isnotnull(d_qoy#38271) AND isnotnull(d_year#38267)) AND (d_qoy#38271 = 1)) AND (d_year#38267 = 2002)) AND isnotnull(d_date_sk#38261))
+                  :     :              +- BatchScan[d_date_sk#38261, d_year#38267, d_qoy#38271] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_qoy IS NOT NULL, d_year IS NOT NULL, d_qoy = 1, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+                  :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=28160]
+                  :        +- Filter (isnotnull(s_store_sk#38289) AND isnotnull(s_zip#38314))
+                  :           +- BatchScan[s_store_sk#38289, s_store_name#38294, s_zip#38314] spark_catalog.tpcds_iceberg_10g.store [filters=s_store_sk IS NOT NULL, s_zip IS NOT NULL] RuntimeFilters: []
+                  +- BroadcastExchange HashedRelationBroadcastMode(List(substr(input[0, string, true], 1, 2)),false), [plan_id=28179]
+                     +- HashAggregate(keys=[ca_zip#38235], functions=[], output=[ca_zip#38235])
+                        +- HashAggregate(keys=[ca_zip#38235], functions=[], output=[ca_zip#38235])
+                           +- Project [substr(ca_zip#38327, 1, 5) AS ca_zip#38235]
+                              +- SortMergeJoin [coalesce(substr(ca_zip#38327, 1, 5), ), isnull(substr(ca_zip#38327, 1, 5))], [coalesce(ca_zip#38236, ), isnull(ca_zip#38236)], LeftSemi
+                                 :- Sort [coalesce(substr(ca_zip#38327, 1, 5), ) ASC NULLS FIRST, isnull(substr(ca_zip#38327, 1, 5)) ASC NULLS FIRST], false, 0
+                                 :  +- Filter (substr(ca_zip#38327, 1, 5) INSET 10094, 10391, 10502, 10688, 10827, 10866, 11110, 11201, 11357, 11376, 11395, 11433, 11622, 11635, 11929, 13036, 13261, 13355, 13376, 13395, 13414, 13842, 14090, 14172, 14276, 14329, 14354, 14410, 14664, 14868, 14933, 14946, 15009, 15482, 15492, 15526, 15560, 15799, 15884, 16022, 16072, 16165, 16515, 16737, 16808, 17184, 17819, 17921, 17959, 18377, 18384, 18427, 18586, 18717, 18767, 18799, 18840, 18842, 18846, 19053, 19124, 19303, 19454, 19506, 19736, 19770, 19850, 20005, 20132, 20223, 20261, 20961, 21068, 21077, 21156, 21203, 21204, 21218, 21286, 21309, 21360, 21505, 21744, 21757, 21801, 22246, 22745, 22926, 22928, 22977, 23054, 23427, 23969, 24611, 24677, 25002, 25004, 25251, 25612, 25632, 25683, 25734, 25797, 25990, 26066, 26234, 26696, 26705, 26935, 27385, 27413, 27670, 28055, 28286, 28806, 28810, 28944, 29467, 29742, 29785, 29898, 30045, 30123, 30202, 30214, 30379, 30432, 30868, 30884, 31897, 32200, 32322, 32779, 32895, 32936, 32961, 33032, 33113, 33283, 33562, 33790, 34175, 34425, 35375, 35851, 35901, 35943, 36447, 36496, 36503, 36580, 36610, 36635, 36871, 37119, 37562, 37931, 38123, 38177, 38360, 38936, 39050, 39734, 39736, 39936, 40697, 40758, 40811, 40921, 40936, 41100, 41249, 41368, 41369, 41793, 41967, 42393, 42548, 42961, 43276, 43286, 43905, 43933, 44166, 44439, 45013, 45486, 45539, 45550, 45645, 45907, 46047, 46081, 46346, 47208, 47306, 47484, 47513, 47546, 48043, 48121, 48375, 48584, 48649, 48819, 49124, 49157, 49231, 49247, 49521, 49613, 49661, 49858, 50497, 50530, 50723, 50906, 51061, 51744, 51799, 52226, 52232, 52406, 52868, 52940, 53121, 53535, 53582, 54010, 54191, 54561, 54853, 55307, 55349, 55607, 55854, 56372, 56447, 56458, 56648, 56692, 56979, 57042, 57350, 57648, 57666, 57835, 57856, 58049, 58149, 58200, 58429, 58471, 58581, 59004, 59080, 59362, 59403, 59785, 60069, 60915, 61024, 61068, 61125, 61163, 61265, 61451, 61869, 62378, 62878, 63197, 63294, 63512, 63792, 63982, 64008, 65085, 65690, 66446, 66979, 67031, 67298, 67393, 67468, 67898, 68310, 68908, 69036, 69297, 69399, 69998, 70067, 70070, 70373, 70467, 70470, 70873, 71286, 71381, 71850, 71853, 72008, 72550, 72666, 73146, 73520, 73957, 74535, 74621, 74703, 75692, 76232, 76615, 76619, 77209, 77471, 77557, 78298, 78890, 79144, 79188, 79307, 80015, 80072, 80218, 80332, 80614, 80619, 80752, 81020, 81087, 81410, 81427, 81450, 81625, 81980, 82276, 82564, 82626, 82637, 83103, 83326, 83550, 83583, 83658, 83712, 83927, 84093, 84861, 84936, 85778, 86057, 86199, 86709, 87291, 88191, 88376, 88425, 88500, 88601, 89091, 89338, 89436, 89531, 89951, 89977, 90226, 90733, 90885, 91068, 91137, 91830, 91911, 91946, 92309, 92397, 92454, 92713, 93578, 93815, 94167, 94203, 94627, 94808, 95042, 95447, 95464, 95806, 96577, 96976, 97790, 98294, 98360, 99149, 99194, 99223, 99447, 99555, 99823, 99900 AND isnotnull(substr(ca_zip#38327, 1, 5)))
+                                 :     +- BatchScan[ca_zip#38327] spark_catalog.tpcds_iceberg_10g.customer_address [filters=] RuntimeFilters: []
+                                 +- Sort [coalesce(ca_zip#38236, ) ASC NULLS FIRST, isnull(ca_zip#38236) ASC NULLS FIRST], false, 0
+                                    +- Project [ca_zip#38236]
+                                       +- Filter (cnt#38237L > 10)
+                                          +- HashAggregate(keys=[ca_zip#38340], functions=[count(1)], output=[ca_zip#38236, cnt#38237L])
+                                             +- HashAggregate(keys=[ca_zip#38340], functions=[partial_count(1)], output=[ca_zip#38340, count#38416L])
+                                                +- Project [ca_zip#38340]
+                                                   +- BroadcastHashJoin [ca_address_sk#38331], [c_current_addr_sk#38348], Inner, BuildRight, false
+                                                      :- Filter isnotnull(ca_address_sk#38331)
+                                                      :  +- BatchScan[ca_address_sk#38331, ca_zip#38340] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_address_sk IS NOT NULL] RuntimeFilters: []
+                                                      +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=28163]
+                                                         +- Project [c_current_addr_sk#38348]
+                                                            +- Filter ((isnotnull(c_preferred_cust_flag#38354) AND (c_preferred_cust_flag#38354 = Y)) AND isnotnull(c_current_addr_sk#38348))
+                                                               +- BatchScan[c_current_addr_sk#38348, c_preferred_cust_flag#38354] spark_catalog.tpcds_iceberg_10g.customer [filters=c_preferred_cust_flag IS NOT NULL, c_preferred_cust_flag = 'Y', c_current_addr_sk IS NOT NULL] RuntimeFilters: []
+

@@ -1,0 +1,34 @@
+== Optimized Logical Plan ==
+Sort [num_orders#20973L DESC NULLS LAST], true
++- Aggregate [p_type#20978], [p_type#20978, count(distinct l_orderkey#20983L) AS num_orders#20973L]
+   +- Project [p_type#20978, l_orderkey#20983L]
+      +- Join Inner, (p_partkey#20974L = l_partkey#20984L)
+         :- Project [p_partkey#20974L, p_type#20978]
+         :  +- Filter ((isnotnull(p_container#20980) AND (p_container#20980 = SM CASE)) AND isnotnull(p_partkey#20974L))
+         :     +- RelationV2[p_partkey#20974L, p_type#20978, p_container#20980] spark_catalog.tpch_iceberg_10g.part
+         +- Filter isnotnull(l_partkey#20984L)
+            +- RelationV2[l_orderkey#20983L, l_partkey#20984L] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_orders#20973L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(num_orders#20973L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=23842]
+      +- HashAggregate(keys=[p_type#20978], functions=[count(distinct l_orderkey#20983L)], output=[p_type#20978, num_orders#20973L])
+         +- Exchange hashpartitioning(p_type#20978, 200), ENSURE_REQUIREMENTS, [plan_id=23839]
+            +- HashAggregate(keys=[p_type#20978], functions=[partial_count(distinct l_orderkey#20983L)], output=[p_type#20978, count#21019L])
+               +- HashAggregate(keys=[p_type#20978, l_orderkey#20983L], functions=[], output=[p_type#20978, l_orderkey#20983L])
+                  +- Exchange hashpartitioning(p_type#20978, l_orderkey#20983L, 200), ENSURE_REQUIREMENTS, [plan_id=23835]
+                     +- HashAggregate(keys=[p_type#20978, l_orderkey#20983L], functions=[], output=[p_type#20978, l_orderkey#20983L])
+                        +- Project [p_type#20978, l_orderkey#20983L]
+                           +- SortMergeJoin [p_partkey#20974L], [l_partkey#20984L], Inner
+                              :- Sort [p_partkey#20974L ASC NULLS FIRST], false, 0
+                              :  +- Exchange hashpartitioning(p_partkey#20974L, 200), ENSURE_REQUIREMENTS, [plan_id=23828]
+                              :     +- Project [p_partkey#20974L, p_type#20978]
+                              :        +- Filter ((isnotnull(p_container#20980) AND (p_container#20980 = SM CASE)) AND isnotnull(p_partkey#20974L))
+                              :           +- BatchScan[p_partkey#20974L, p_type#20978, p_container#20980] spark_catalog.tpch_iceberg_10g.part [filters=p_container IS NOT NULL, p_container = 'SM CASE', p_partkey IS NOT NULL] RuntimeFilters: []
+                              +- Sort [l_partkey#20984L ASC NULLS FIRST], false, 0
+                                 +- Exchange hashpartitioning(l_partkey#20984L, 200), ENSURE_REQUIREMENTS, [plan_id=23827]
+                                    +- Filter isnotnull(l_partkey#20984L)
+                                       +- BatchScan[l_orderkey#20983L, l_partkey#20984L] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_partkey IS NOT NULL] RuntimeFilters: []
+

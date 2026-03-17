@@ -1,0 +1,55 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [w_warehouse_name#12446 ASC NULLS FIRST, i_item_id#12459 ASC NULLS FIRST], true
+      +- Filter (CASE WHEN (inv_before#12438L > 0) THEN ((cast(inv_after#12439L as double) / cast(inv_before#12438L as double)) >= 0.666667) END AND CASE WHEN (inv_before#12438L > 0) THEN ((cast(inv_after#12439L as double) / cast(inv_before#12438L as double)) <= 1.5) END)
+         +- Aggregate [w_warehouse_name#12446, i_item_id#12459], [w_warehouse_name#12446, i_item_id#12459, sum(CASE WHEN (d_date#12482 < 1998-04-08) THEN inv_quantity_on_hand#12442 ELSE 0 END) AS inv_before#12438L, sum(CASE WHEN (d_date#12482 >= 1998-04-08) THEN inv_quantity_on_hand#12442 ELSE 0 END) AS inv_after#12439L]
+            +- Project [inv_quantity_on_hand#12442, w_warehouse_name#12446, i_item_id#12459, d_date#12482]
+               +- Join Inner, (inv_date_sk#12443 = d_date_sk#12480)
+                  :- Project [inv_quantity_on_hand#12442, inv_date_sk#12443, w_warehouse_name#12446, i_item_id#12459]
+                  :  +- Join Inner, (i_item_sk#12458 = inv_item_sk#12440)
+                  :     :- Project [inv_item_sk#12440, inv_quantity_on_hand#12442, inv_date_sk#12443, w_warehouse_name#12446]
+                  :     :  +- Join Inner, (inv_warehouse_sk#12441 = w_warehouse_sk#12444)
+                  :     :     :- Filter (((isnotnull(inv_warehouse_sk#12441) AND isnotnull(inv_item_sk#12440)) AND isnotnull(inv_date_sk#12443)) AND dynamicpruning#12545 [inv_date_sk#12443])
+                  :     :     :  :  +- Filter (((isnotnull(d_date#12482) AND (d_date#12482 >= 1998-03-09)) AND (d_date#12482 <= 1998-05-08)) AND isnotnull(d_date_sk#12480))
+                  :     :     :  :     +- RelationV2[d_date_sk#12480, d_date#12482] spark_catalog.tpcds_iceberg_10g.date_dim
+                  :     :     :  +- RelationV2[inv_item_sk#12440, inv_warehouse_sk#12441, inv_quantity_on_hand#12442, inv_date_sk#12443] spark_catalog.tpcds_iceberg_10g.inventory
+                  :     :     +- Filter isnotnull(w_warehouse_sk#12444)
+                  :     :        +- RelationV2[w_warehouse_sk#12444, w_warehouse_name#12446] spark_catalog.tpcds_iceberg_10g.warehouse
+                  :     +- Project [i_item_sk#12458, i_item_id#12459]
+                  :        +- Filter (((isnotnull(i_current_price#12463) AND (i_current_price#12463 >= 0.99)) AND (i_current_price#12463 <= 1.49)) AND isnotnull(i_item_sk#12458))
+                  :           +- RelationV2[i_item_sk#12458, i_item_id#12459, i_current_price#12463] spark_catalog.tpcds_iceberg_10g.item
+                  +- Filter (((isnotnull(d_date#12482) AND (d_date#12482 >= 1998-03-09)) AND (d_date#12482 <= 1998-05-08)) AND isnotnull(d_date_sk#12480))
+                     +- RelationV2[d_date_sk#12480, d_date#12482] spark_catalog.tpcds_iceberg_10g.date_dim
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[w_warehouse_name#12446 ASC NULLS FIRST,i_item_id#12459 ASC NULLS FIRST], output=[w_warehouse_name#12446,i_item_id#12459,inv_before#12438L,inv_after#12439L])
+   +- Filter (CASE WHEN (inv_before#12438L > 0) THEN ((cast(inv_after#12439L as double) / cast(inv_before#12438L as double)) >= 0.666667) END AND CASE WHEN (inv_before#12438L > 0) THEN ((cast(inv_after#12439L as double) / cast(inv_before#12438L as double)) <= 1.5) END)
+      +- HashAggregate(keys=[w_warehouse_name#12446, i_item_id#12459], functions=[sum(CASE WHEN (d_date#12482 < 1998-04-08) THEN inv_quantity_on_hand#12442 ELSE 0 END), sum(CASE WHEN (d_date#12482 >= 1998-04-08) THEN inv_quantity_on_hand#12442 ELSE 0 END)], output=[w_warehouse_name#12446, i_item_id#12459, inv_before#12438L, inv_after#12439L])
+         +- Exchange hashpartitioning(w_warehouse_name#12446, i_item_id#12459, 200), ENSURE_REQUIREMENTS, [plan_id=10797]
+            +- HashAggregate(keys=[w_warehouse_name#12446, i_item_id#12459], functions=[partial_sum(CASE WHEN (d_date#12482 < 1998-04-08) THEN inv_quantity_on_hand#12442 ELSE 0 END), partial_sum(CASE WHEN (d_date#12482 >= 1998-04-08) THEN inv_quantity_on_hand#12442 ELSE 0 END)], output=[w_warehouse_name#12446, i_item_id#12459, sum#12548L, sum#12549L])
+               +- Project [inv_quantity_on_hand#12442, w_warehouse_name#12446, i_item_id#12459, d_date#12482]
+                  +- BroadcastHashJoin [inv_date_sk#12443], [d_date_sk#12480], Inner, BuildRight, false
+                     :- Project [inv_quantity_on_hand#12442, inv_date_sk#12443, w_warehouse_name#12446, i_item_id#12459]
+                     :  +- BroadcastHashJoin [inv_item_sk#12440], [i_item_sk#12458], Inner, BuildRight, false
+                     :     :- Project [inv_item_sk#12440, inv_quantity_on_hand#12442, inv_date_sk#12443, w_warehouse_name#12446]
+                     :     :  +- BroadcastHashJoin [inv_warehouse_sk#12441], [w_warehouse_sk#12444], Inner, BuildRight, false
+                     :     :     :- Filter ((isnotnull(inv_warehouse_sk#12441) AND isnotnull(inv_item_sk#12440)) AND isnotnull(inv_date_sk#12443))
+                     :     :     :  +- BatchScan[inv_item_sk#12440, inv_warehouse_sk#12441, inv_quantity_on_hand#12442, inv_date_sk#12443] spark_catalog.tpcds_iceberg_10g.inventory [filters=inv_warehouse_sk IS NOT NULL, inv_item_sk IS NOT NULL, inv_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(inv_date_sk#12443 IN dynamicpruning#12545)]
+                     :     :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#12545, 0, true, Filter (((isnotnull(d_date#12482) AND (d_date#12482 >= 1998-03-09)) AND (d_date#12482 <= 1998-05-08)) AND isnotnull(d_date_sk#12480)), [d_date_sk#12480]
+                     :     :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                     :     :     :              +- Filter (((isnotnull(d_date#12482) AND (d_date#12482 >= 1998-03-09)) AND (d_date#12482 <= 1998-05-08)) AND isnotnull(d_date_sk#12480))
+                     :     :     :                 +- BatchScan[d_date_sk#12480, d_date#12482] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date >= 10294, d_date <= 10354, d_date_sk IS NOT NULL] RuntimeFilters: []
+                     :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=10784]
+                     :     :        +- Filter isnotnull(w_warehouse_sk#12444)
+                     :     :           +- BatchScan[w_warehouse_sk#12444, w_warehouse_name#12446] spark_catalog.tpcds_iceberg_10g.warehouse [filters=w_warehouse_sk IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=10788]
+                     :        +- Project [i_item_sk#12458, i_item_id#12459]
+                     :           +- Filter (((isnotnull(i_current_price#12463) AND (i_current_price#12463 >= 0.99)) AND (i_current_price#12463 <= 1.49)) AND isnotnull(i_item_sk#12458))
+                     :              +- BatchScan[i_item_sk#12458, i_item_id#12459, i_current_price#12463] spark_catalog.tpcds_iceberg_10g.item [filters=i_current_price IS NOT NULL, i_current_price >= 0.99, i_current_price <= 1.49, i_item_sk IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=10792]
+                        +- Filter (((isnotnull(d_date#12482) AND (d_date#12482 >= 1998-03-09)) AND (d_date#12482 <= 1998-05-08)) AND isnotnull(d_date_sk#12480))
+                           +- BatchScan[d_date_sk#12480, d_date#12482] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date >= 10294, d_date <= 10354, d_date_sk IS NOT NULL] RuntimeFilters: []
+

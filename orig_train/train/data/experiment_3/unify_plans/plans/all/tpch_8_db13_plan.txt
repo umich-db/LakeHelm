@@ -1,0 +1,53 @@
+== Parsed Logical Plan ==
+'Sort ['custdist DESC NULLS LAST, 'c_count DESC NULLS LAST], true
++- 'Aggregate ['c_count], ['c_count, 'count(1) AS custdist#9825]
+   +- 'SubqueryAlias c_orders
+      +- 'UnresolvedSubqueryColumnAliases [c_custkey, c_count]
+         +- 'Aggregate ['c_custkey], ['c_custkey, unresolvedalias('count('o_orderkey), None)]
+            +- 'Join LeftOuter, (('c_custkey = 'o_custkey) AND NOT 'o_comment LIKE %special%packages%)
+               :- 'UnresolvedRelation [customer], [], false
+               +- 'UnresolvedRelation [orders], [], false
+
+== Analyzed Logical Plan ==
+c_count: bigint, custdist: bigint
+Sort [custdist#9825L DESC NULLS LAST, c_count#9853L DESC NULLS LAST], true
++- Aggregate [c_count#9853L], [c_count#9853L, count(1) AS custdist#9825L]
+   +- SubqueryAlias c_orders
+      +- Project [c_custkey#9832L AS c_custkey#9852L, count(o_orderkey)#9851L AS c_count#9853L]
+         +- Aggregate [c_custkey#9832L], [c_custkey#9832L, count(o_orderkey#9840L) AS count(o_orderkey)#9851L]
+            +- Join LeftOuter, ((c_custkey#9832L = o_custkey#9841L) AND NOT o_comment#9848 LIKE %special%packages%)
+               :- SubqueryAlias spark_catalog.tpch_iceberg_10g.customer
+               :  +- RelationV2[c_custkey#9832L, c_name#9833, c_address#9834, c_nationkey#9835L, c_phone#9836, c_acctbal#9837, c_mktsegment#9838, c_comment#9839] spark_catalog.tpch_iceberg_10g.customer
+               +- SubqueryAlias spark_catalog.tpch_iceberg_10g.orders
+                  +- RelationV2[o_orderkey#9840L, o_custkey#9841L, o_orderstatus#9842, o_totalprice#9843, o_orderdate#9844, o_orderpriority#9845, o_clerk#9846, o_shippriority#9847L, o_comment#9848] spark_catalog.tpch_iceberg_10g.orders
+
+== Optimized Logical Plan ==
+Sort [custdist#9825L DESC NULLS LAST, c_count#9853L DESC NULLS LAST], true
++- Aggregate [c_count#9853L], [c_count#9853L, count(1) AS custdist#9825L]
+   +- Aggregate [c_custkey#9832L], [count(o_orderkey#9840L) AS c_count#9853L]
+      +- Project [c_custkey#9832L, o_orderkey#9840L]
+         +- Join LeftOuter, (c_custkey#9832L = o_custkey#9841L)
+            :- RelationV2[c_custkey#9832L] spark_catalog.tpch_iceberg_10g.customer
+            +- Project [o_orderkey#9840L, o_custkey#9841L]
+               +- Filter ((NOT o_comment#9848 LIKE %special%packages% AND isnotnull(o_comment#9848)) AND isnotnull(o_custkey#9841L))
+                  +- RelationV2[o_orderkey#9840L, o_custkey#9841L, o_comment#9848] spark_catalog.tpch_iceberg_10g.orders
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [custdist#9825L DESC NULLS LAST, c_count#9853L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(custdist#9825L DESC NULLS LAST, c_count#9853L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=11257]
+      +- HashAggregate(keys=[c_count#9853L], functions=[count(1)], output=[c_count#9853L, custdist#9825L])
+         +- Exchange hashpartitioning(c_count#9853L, 200), ENSURE_REQUIREMENTS, [plan_id=11254]
+            +- HashAggregate(keys=[c_count#9853L], functions=[partial_count(1)], output=[c_count#9853L, count#9869L])
+               +- HashAggregate(keys=[c_custkey#9832L], functions=[count(o_orderkey#9840L)], output=[c_count#9853L])
+                  +- HashAggregate(keys=[c_custkey#9832L], functions=[partial_count(o_orderkey#9840L)], output=[c_custkey#9832L, count#9871L])
+                     +- Project [c_custkey#9832L, o_orderkey#9840L]
+                        +- SortMergeJoin [c_custkey#9832L], [o_custkey#9841L], LeftOuter
+                           :- Sort [c_custkey#9832L ASC NULLS FIRST], false, 0
+                           :  +- Exchange hashpartitioning(c_custkey#9832L, 200), ENSURE_REQUIREMENTS, [plan_id=11245]
+                           :     +- BatchScan[c_custkey#9832L] spark_catalog.tpch_iceberg_10g.customer [filters=] RuntimeFilters: []
+                           +- Sort [o_custkey#9841L ASC NULLS FIRST], false, 0
+                              +- Exchange hashpartitioning(o_custkey#9841L, 200), ENSURE_REQUIREMENTS, [plan_id=11244]
+                                 +- Project [o_orderkey#9840L, o_custkey#9841L]
+                                    +- Filter ((NOT o_comment#9848 LIKE %special%packages% AND isnotnull(o_comment#9848)) AND isnotnull(o_custkey#9841L))
+                                       +- BatchScan[o_orderkey#9840L, o_custkey#9841L, o_comment#9848] spark_catalog.tpch_iceberg_10g.orders [filters=o_comment IS NOT NULL, o_custkey IS NOT NULL] RuntimeFilters: []

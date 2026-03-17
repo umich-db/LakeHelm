@@ -1,0 +1,12 @@
+=== Optimized Logical Plan ===
+Sort [o_orderpriority#80 ASC NULLS FIRST], true
++- Aggregate [o_orderpriority#80], [o_orderpriority#80, count(1) AS order_count#277L]
+   +- Project [o_orderpriority#80]
+      +- Join LeftSemi, (l_orderkey#6L = o_orderkey#75L)
+         :- Project [o_orderkey#75L, o_orderpriority#80]
+         :  +- Filter ((isnotnull(o_orderdate#79) AND (cast(o_orderdate#79 as date) >= 1995-03-01)) AND (cast(o_orderdate#79 as date) < 1995-06-01))
+         :     +- Relation tpch_hudi_10g.orders[_hoodie_commit_time#70,_hoodie_commit_seqno#71,_hoodie_record_key#72,_hoodie_partition_path#73,_hoodie_file_name#74,o_orderkey#75L,o_custkey#76L,o_orderstatus#77,o_totalprice#78,o_orderdate#79,o_orderpriority#80,o_clerk#81,o_shippriority#82L,o_comment#83] parquet
+         +- Project [l_orderkey#6L]
+            +- Filter ((isnotnull(l_commitdate#17) AND isnotnull(l_receiptdate#18)) AND (l_commitdate#17 < l_receiptdate#18))
+               +- Relation tpch_hudi_10g.lineitem[_hoodie_commit_time#1,_hoodie_commit_seqno#2,_hoodie_record_key#3,_hoodie_partition_path#4,_hoodie_file_name#5,l_orderkey#6L,l_partkey#7L,l_suppkey#8L,l_linenumber#9L,l_quantity#10L,l_extendedprice#11,l_discount#12,l_tax#13,l_returnflag#14,l_linestatus#15,l_shipdate#16,l_commitdate#17,l_receiptdate#18,l_shipinstruct#19,l_shipmode#20,l_comment#21] parquet
+=== Physical Plan ===

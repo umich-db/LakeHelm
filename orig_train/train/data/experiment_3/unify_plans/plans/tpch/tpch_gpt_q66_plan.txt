@@ -1,0 +1,26 @@
+== Optimized Logical Plan ==
+Sort [avg_acctbal#19243 DESC NULLS LAST], true
++- Aggregate [n_name#19245], [n_name#19245, avg(c_acctbal#19253) AS avg_acctbal#19243]
+   +- Project [n_name#19245, c_acctbal#19253]
+      +- Join Inner, (n_nationkey#19244L = c_nationkey#19251L)
+         :- Filter isnotnull(n_nationkey#19244L)
+         :  +- RelationV2[n_nationkey#19244L, n_name#19245] spark_catalog.tpch_iceberg_10g.nation
+         +- Project [c_nationkey#19251L, c_acctbal#19253]
+            +- Filter ((isnotnull(c_mktsegment#19254) AND (c_mktsegment#19254 = FURNITURE)) AND isnotnull(c_nationkey#19251L))
+               +- RelationV2[c_nationkey#19251L, c_acctbal#19253, c_mktsegment#19254] spark_catalog.tpch_iceberg_10g.customer
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [avg_acctbal#19243 DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[n_name#19245], functions=[avg(c_acctbal#19253)], output=[n_name#19245, avg_acctbal#19243])
+      +- HashAggregate(keys=[n_name#19245], functions=[partial_avg(c_acctbal#19253)], output=[n_name#19245, sum#19276, count#19277L])
+         +- Project [n_name#19245, c_acctbal#19253]
+            +- BroadcastHashJoin [n_nationkey#19244L], [c_nationkey#19251L], Inner, BuildLeft, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=21403]
+               :  +- Filter isnotnull(n_nationkey#19244L)
+               :     +- BatchScan[n_nationkey#19244L, n_name#19245] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL] RuntimeFilters: []
+               +- Project [c_nationkey#19251L, c_acctbal#19253]
+                  +- Filter ((isnotnull(c_mktsegment#19254) AND (c_mktsegment#19254 = FURNITURE)) AND isnotnull(c_nationkey#19251L))
+                     +- BatchScan[c_nationkey#19251L, c_acctbal#19253, c_mktsegment#19254] spark_catalog.tpch_iceberg_10g.customer [filters=c_mktsegment IS NOT NULL, c_mktsegment = 'FURNITURE', c_nationkey IS NOT NULL] RuntimeFilters: []
+

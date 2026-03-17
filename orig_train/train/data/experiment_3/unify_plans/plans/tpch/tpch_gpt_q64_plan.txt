@@ -1,0 +1,31 @@
+== Optimized Logical Plan ==
+Sort [avg_discount#25446 DESC NULLS LAST], true
++- Aggregate [p_type#25451], [p_type#25451, avg(l_discount#25462) AS avg_discount#25446]
+   +- Project [p_type#25451, l_discount#25462]
+      +- Join Inner, (p_partkey#25447L = l_partkey#25457L)
+         :- Filter isnotnull(p_partkey#25447L)
+         :  +- RelationV2[p_partkey#25447L, p_type#25451] spark_catalog.tpch_iceberg_10g.part
+         +- Project [l_partkey#25457L, l_discount#25462]
+            +- Filter ((isnotnull(l_shipmode#25470) AND (l_shipmode#25470 = RAIL)) AND isnotnull(l_partkey#25457L))
+               +- RelationV2[l_partkey#25457L, l_discount#25462, l_shipmode#25470] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [avg_discount#25446 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(avg_discount#25446 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=30213]
+      +- HashAggregate(keys=[p_type#25451], functions=[avg(l_discount#25462)], output=[p_type#25451, avg_discount#25446])
+         +- Exchange hashpartitioning(p_type#25451, 200), ENSURE_REQUIREMENTS, [plan_id=30210]
+            +- HashAggregate(keys=[p_type#25451], functions=[partial_avg(l_discount#25462)], output=[p_type#25451, sum#25492, count#25493L])
+               +- Project [p_type#25451, l_discount#25462]
+                  +- SortMergeJoin [p_partkey#25447L], [l_partkey#25457L], Inner
+                     :- Sort [p_partkey#25447L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(p_partkey#25447L, 200), ENSURE_REQUIREMENTS, [plan_id=30203]
+                     :     +- Filter isnotnull(p_partkey#25447L)
+                     :        +- BatchScan[p_partkey#25447L, p_type#25451] spark_catalog.tpch_iceberg_10g.part [filters=p_partkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [l_partkey#25457L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(l_partkey#25457L, 200), ENSURE_REQUIREMENTS, [plan_id=30202]
+                           +- Project [l_partkey#25457L, l_discount#25462]
+                              +- Filter ((isnotnull(l_shipmode#25470) AND (l_shipmode#25470 = RAIL)) AND isnotnull(l_partkey#25457L))
+                                 +- BatchScan[l_partkey#25457L, l_discount#25462, l_shipmode#25470] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipmode IS NOT NULL, l_shipmode = 'RAIL', l_partkey IS NOT NULL] RuntimeFilters: []
+

@@ -1,0 +1,122 @@
+== Parsed Logical Plan ==
+CTE [CustomerRevenue]
+:  +- 'SubqueryAlias CustomerRevenue
+:     +- 'Aggregate ['c.c_custkey, 'c.c_name], ['c.c_custkey, 'c.c_name, 'SUM(('lo.lo_extendedprice * (1 - 'lo.lo_discount))) AS revenue#17011]
+:        +- 'Join Inner, ('c.c_custkey = 'lo.lo_custkey)
+:           :- 'SubqueryAlias c
+:           :  +- 'UnresolvedRelation [customer], [], false
+:           +- 'SubqueryAlias lo
+:              +- 'UnresolvedRelation [lineorder], [], false
++- 'Project ['c_name, 'revenue, 'RANK() windowspecdefinition('revenue DESC NULLS LAST, unspecifiedframe$()) AS revenue_rank#17007, scalar-subquery#17008 [] AS avg_revenue#17009]
+   :  +- 'Project [unresolvedalias('AVG('revenue), None)]
+   :     +- 'UnresolvedRelation [CustomerRevenue], [], false
+   +- 'Filter ('revenue > scalar-subquery#17010 [])
+      :  +- 'Project [unresolvedalias('AVG('revenue), None)]
+      :     +- 'UnresolvedRelation [CustomerRevenue], [], false
+      +- 'UnresolvedRelation [CustomerRevenue], [], false
+
+== Analyzed Logical Plan ==
+c_name: string, revenue: bigint, revenue_rank: int, avg_revenue: double
+WithCTE
+:- CTERelationDef 0, false
+:  +- SubqueryAlias CustomerRevenue
+:     +- Aggregate [c_custkey#17012, c_name#17013], [c_custkey#17012, c_name#17013, sum((lo_extendedprice#17029L * (cast(1 as bigint) - lo_discount#17031L))) AS revenue#17011L]
+:        +- Join Inner, (c_custkey#17012 = lo_custkey#17022)
+:           :- SubqueryAlias c
+:           :  +- SubqueryAlias spark_catalog.ssb_iceberg_10g.customer
+:           :     +- RelationV2[c_custkey#17012, c_name#17013, c_address#17014, c_city#17015, c_nation#17016, c_region#17017, c_phone#17018, c_mktsegment#17019] spark_catalog.ssb_iceberg_10g.customer
+:           +- SubqueryAlias lo
+:              +- SubqueryAlias spark_catalog.ssb_iceberg_10g.lineorder
+:                 +- RelationV2[lo_orderkey#17020L, lo_linenumber#17021L, lo_custkey#17022, lo_partkey#17023, lo_suppkey#17024, lo_orderdate#17025, lo_orderpriotity#17026, lo_shippriotity#17027, lo_quantity#17028L, lo_extendedprice#17029L, lo_ordtotalprice#17030L, lo_discount#17031L, lo_revenue#17032L, lo_supplycost#17033L, lo_tax#17034L, lo_commitdate#17035, lo_shipmode#17036] spark_catalog.ssb_iceberg_10g.lineorder
++- Project [c_name#17013, revenue#17011L, revenue_rank#17007, avg_revenue#17009]
+   +- Project [c_name#17013, revenue#17011L, avg_revenue#17009, revenue_rank#17007, revenue_rank#17007]
+      +- Window [rank(revenue#17011L) windowspecdefinition(revenue#17011L DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS revenue_rank#17007], [revenue#17011L DESC NULLS LAST]
+         +- Project [c_name#17013, revenue#17011L, scalar-subquery#17008 [] AS avg_revenue#17009]
+            :  +- Aggregate [avg(revenue#17011L) AS avg(revenue)#17053]
+            :     +- SubqueryAlias CustomerRevenue
+            :        +- CTERelationRef 0, true, [c_custkey#17012, c_name#17013, revenue#17011L]
+            +- Filter (cast(revenue#17011L as double) > scalar-subquery#17010 [])
+               :  +- Aggregate [avg(revenue#17011L) AS avg(revenue)#17051]
+               :     +- SubqueryAlias CustomerRevenue
+               :        +- CTERelationRef 0, true, [c_custkey#17012, c_name#17013, revenue#17011L]
+               +- SubqueryAlias CustomerRevenue
+                  +- CTERelationRef 0, true, [c_custkey#17012, c_name#17013, revenue#17011L]
+
+== Optimized Logical Plan ==
+Project [c_name#17013, revenue#17011L, revenue_rank#17007, avg_revenue#17009]
++- Window [rank(revenue#17011L) windowspecdefinition(revenue#17011L DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS revenue_rank#17007], [revenue#17011L DESC NULLS LAST]
+   +- Project [c_name#17013, revenue#17011L, scalar-subquery#17008 [] AS avg_revenue#17009]
+      :  +- Aggregate [avg(revenue#17011L) AS avg(revenue)#17051]
+      :     +- Aggregate [c_custkey#17012, c_name#17013], [sum((lo_extendedprice#17029L * (1 - lo_discount#17031L))) AS revenue#17011L]
+      :        +- Project [c_custkey#17012, c_name#17013, lo_extendedprice#17029L, lo_discount#17031L]
+      :           +- Join Inner, (c_custkey#17012 = lo_custkey#17022)
+      :              :- Filter isnotnull(c_custkey#17012)
+      :              :  +- RelationV2[c_custkey#17012, c_name#17013] spark_catalog.ssb_iceberg_10g.customer
+      :              +- Filter isnotnull(lo_custkey#17022)
+      :                 +- RelationV2[lo_custkey#17022, lo_extendedprice#17029L, lo_discount#17031L] spark_catalog.ssb_iceberg_10g.lineorder
+      +- Filter (isnotnull(revenue#17011L) AND (cast(revenue#17011L as double) > scalar-subquery#17010 []))
+         :  +- Aggregate [avg(revenue#17011L) AS avg(revenue)#17051]
+         :     +- Aggregate [c_custkey#17012, c_name#17013], [sum((lo_extendedprice#17029L * (1 - lo_discount#17031L))) AS revenue#17011L]
+         :        +- Project [c_custkey#17012, c_name#17013, lo_extendedprice#17029L, lo_discount#17031L]
+         :           +- Join Inner, (c_custkey#17012 = lo_custkey#17022)
+         :              :- Filter isnotnull(c_custkey#17012)
+         :              :  +- RelationV2[c_custkey#17012, c_name#17013] spark_catalog.ssb_iceberg_10g.customer
+         :              +- Filter isnotnull(lo_custkey#17022)
+         :                 +- RelationV2[lo_custkey#17022, lo_extendedprice#17029L, lo_discount#17031L] spark_catalog.ssb_iceberg_10g.lineorder
+         +- Aggregate [c_custkey#17012, c_name#17013], [c_name#17013, sum((lo_extendedprice#17029L * (1 - lo_discount#17031L))) AS revenue#17011L]
+            +- Project [c_custkey#17012, c_name#17013, lo_extendedprice#17029L, lo_discount#17031L]
+               +- Join Inner, (c_custkey#17012 = lo_custkey#17022)
+                  :- Filter isnotnull(c_custkey#17012)
+                  :  +- RelationV2[c_custkey#17012, c_name#17013] spark_catalog.ssb_iceberg_10g.customer
+                  +- Filter isnotnull(lo_custkey#17022)
+                     +- RelationV2[lo_custkey#17022, lo_extendedprice#17029L, lo_discount#17031L] spark_catalog.ssb_iceberg_10g.lineorder
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Project [c_name#17013, revenue#17011L, revenue_rank#17007, avg_revenue#17009]
+   +- Window [rank(revenue#17011L) windowspecdefinition(revenue#17011L DESC NULLS LAST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS revenue_rank#17007], [revenue#17011L DESC NULLS LAST]
+      +- Sort [revenue#17011L DESC NULLS LAST], false, 0
+         +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=25570]
+            +- Project [c_name#17013, revenue#17011L, Subquery subquery#17008, [id=#25501] AS avg_revenue#17009]
+               :  +- Subquery subquery#17008, [id=#25501]
+               :     +- AdaptiveSparkPlan isFinalPlan=false
+               :        +- HashAggregate(keys=[], functions=[avg(revenue#17011L)], output=[avg(revenue)#17051])
+               :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=25499]
+               :              +- HashAggregate(keys=[], functions=[partial_avg(revenue#17011L)], output=[sum#17083, count#17084L])
+               :                 +- HashAggregate(keys=[c_custkey#17012, c_name#17013], functions=[sum((lo_extendedprice#17029L * (1 - lo_discount#17031L)))], output=[revenue#17011L])
+               :                    +- Exchange hashpartitioning(c_custkey#17012, c_name#17013, 200), ENSURE_REQUIREMENTS, [plan_id=25495]
+               :                       +- HashAggregate(keys=[c_custkey#17012, c_name#17013], functions=[partial_sum((lo_extendedprice#17029L * (1 - lo_discount#17031L)))], output=[c_custkey#17012, c_name#17013, sum#17086L])
+               :                          +- Project [c_custkey#17012, c_name#17013, lo_extendedprice#17029L, lo_discount#17031L]
+               :                             +- BroadcastHashJoin [c_custkey#17012], [lo_custkey#17022], Inner, BuildLeft, false
+               :                                :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=25490]
+               :                                :  +- Filter isnotnull(c_custkey#17012)
+               :                                :     +- BatchScan[c_custkey#17012, c_name#17013] spark_catalog.ssb_iceberg_10g.customer [filters=c_custkey IS NOT NULL] RuntimeFilters: []
+               :                                +- Filter isnotnull(lo_custkey#17022)
+               :                                   +- BatchScan[lo_custkey#17022, lo_extendedprice#17029L, lo_discount#17031L] spark_catalog.ssb_iceberg_10g.lineorder [filters=lo_custkey IS NOT NULL] RuntimeFilters: []
+               +- Filter (isnotnull(revenue#17011L) AND (cast(revenue#17011L as double) > Subquery subquery#17010, [id=#25545]))
+                  :  +- Subquery subquery#17010, [id=#25545]
+                  :     +- AdaptiveSparkPlan isFinalPlan=false
+                  :        +- HashAggregate(keys=[], functions=[avg(revenue#17011L)], output=[avg(revenue)#17051])
+                  :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=25543]
+                  :              +- HashAggregate(keys=[], functions=[partial_avg(revenue#17011L)], output=[sum#17083, count#17084L])
+                  :                 +- HashAggregate(keys=[c_custkey#17012, c_name#17013], functions=[sum((lo_extendedprice#17029L * (1 - lo_discount#17031L)))], output=[revenue#17011L])
+                  :                    +- Exchange hashpartitioning(c_custkey#17012, c_name#17013, 200), ENSURE_REQUIREMENTS, [plan_id=25539]
+                  :                       +- HashAggregate(keys=[c_custkey#17012, c_name#17013], functions=[partial_sum((lo_extendedprice#17029L * (1 - lo_discount#17031L)))], output=[c_custkey#17012, c_name#17013, sum#17086L])
+                  :                          +- Project [c_custkey#17012, c_name#17013, lo_extendedprice#17029L, lo_discount#17031L]
+                  :                             +- BroadcastHashJoin [c_custkey#17012], [lo_custkey#17022], Inner, BuildLeft, false
+                  :                                :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=25534]
+                  :                                :  +- Filter isnotnull(c_custkey#17012)
+                  :                                :     +- BatchScan[c_custkey#17012, c_name#17013] spark_catalog.ssb_iceberg_10g.customer [filters=c_custkey IS NOT NULL] RuntimeFilters: []
+                  :                                +- Filter isnotnull(lo_custkey#17022)
+                  :                                   +- BatchScan[lo_custkey#17022, lo_extendedprice#17029L, lo_discount#17031L] spark_catalog.ssb_iceberg_10g.lineorder [filters=lo_custkey IS NOT NULL] RuntimeFilters: []
+                  +- HashAggregate(keys=[c_custkey#17012, c_name#17013], functions=[sum((lo_extendedprice#17029L * (1 - lo_discount#17031L)))], output=[c_name#17013, revenue#17011L])
+                     +- Exchange hashpartitioning(c_custkey#17012, c_name#17013, 200), ENSURE_REQUIREMENTS, [plan_id=25565]
+                        +- HashAggregate(keys=[c_custkey#17012, c_name#17013], functions=[partial_sum((lo_extendedprice#17029L * (1 - lo_discount#17031L)))], output=[c_custkey#17012, c_name#17013, sum#17080L])
+                           +- Project [c_custkey#17012, c_name#17013, lo_extendedprice#17029L, lo_discount#17031L]
+                              +- BroadcastHashJoin [c_custkey#17012], [lo_custkey#17022], Inner, BuildLeft, false
+                                 :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=25560]
+                                 :  +- Filter isnotnull(c_custkey#17012)
+                                 :     +- BatchScan[c_custkey#17012, c_name#17013] spark_catalog.ssb_iceberg_10g.customer [filters=c_custkey IS NOT NULL] RuntimeFilters: []
+                                 +- Filter isnotnull(lo_custkey#17022)
+                                    +- BatchScan[lo_custkey#17022, lo_extendedprice#17029L, lo_discount#17031L] spark_catalog.ssb_iceberg_10g.lineorder [filters=lo_custkey IS NOT NULL] RuntimeFilters: []
+

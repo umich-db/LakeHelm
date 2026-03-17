@@ -1,0 +1,43 @@
+== Optimized Logical Plan ==
+Sort [total_quantity#23554L DESC NULLS LAST], true
++- Aggregate [p_brand#23558, p_type#23559], [p_brand#23558, p_type#23559, sum(l_quantity#23568L) AS total_quantity#23554L]
+   +- Project [p_brand#23558, p_type#23559, l_quantity#23568L]
+      +- Join Inner, (l_orderkey#23564L = o_orderkey#23580L)
+         :- Project [p_brand#23558, p_type#23559, l_orderkey#23564L, l_quantity#23568L]
+         :  +- Join Inner, (p_partkey#23555L = l_partkey#23565L)
+         :     :- Filter isnotnull(p_partkey#23555L)
+         :     :  +- RelationV2[p_partkey#23555L, p_brand#23558, p_type#23559] spark_catalog.tpch_iceberg_10g.part
+         :     +- Filter (isnotnull(l_partkey#23565L) AND isnotnull(l_orderkey#23564L))
+         :        +- RelationV2[l_orderkey#23564L, l_partkey#23565L, l_quantity#23568L] spark_catalog.tpch_iceberg_10g.lineitem
+         +- Project [o_orderkey#23580L]
+            +- Filter (((isnotnull(o_orderdate#23584) AND (o_orderdate#23584 >= 1994-01-01)) AND (o_orderdate#23584 < 1995-01-01)) AND isnotnull(o_orderkey#23580L))
+               +- RelationV2[o_orderkey#23580L, o_orderdate#23584] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_quantity#23554L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_quantity#23554L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=27703]
+      +- HashAggregate(keys=[p_brand#23558, p_type#23559], functions=[sum(l_quantity#23568L)], output=[p_brand#23558, p_type#23559, total_quantity#23554L])
+         +- Exchange hashpartitioning(p_brand#23558, p_type#23559, 200), ENSURE_REQUIREMENTS, [plan_id=27700]
+            +- HashAggregate(keys=[p_brand#23558, p_type#23559], functions=[partial_sum(l_quantity#23568L)], output=[p_brand#23558, p_type#23559, sum#23617L])
+               +- Project [p_brand#23558, p_type#23559, l_quantity#23568L]
+                  +- SortMergeJoin [l_orderkey#23564L], [o_orderkey#23580L], Inner
+                     :- Sort [l_orderkey#23564L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(l_orderkey#23564L, 200), ENSURE_REQUIREMENTS, [plan_id=27692]
+                     :     +- Project [p_brand#23558, p_type#23559, l_orderkey#23564L, l_quantity#23568L]
+                     :        +- SortMergeJoin [p_partkey#23555L], [l_partkey#23565L], Inner
+                     :           :- Sort [p_partkey#23555L ASC NULLS FIRST], false, 0
+                     :           :  +- Exchange hashpartitioning(p_partkey#23555L, 200), ENSURE_REQUIREMENTS, [plan_id=27685]
+                     :           :     +- Filter isnotnull(p_partkey#23555L)
+                     :           :        +- BatchScan[p_partkey#23555L, p_brand#23558, p_type#23559] spark_catalog.tpch_iceberg_10g.part [filters=p_partkey IS NOT NULL] RuntimeFilters: []
+                     :           +- Sort [l_partkey#23565L ASC NULLS FIRST], false, 0
+                     :              +- Exchange hashpartitioning(l_partkey#23565L, 200), ENSURE_REQUIREMENTS, [plan_id=27684]
+                     :                 +- Filter (isnotnull(l_partkey#23565L) AND isnotnull(l_orderkey#23564L))
+                     :                    +- BatchScan[l_orderkey#23564L, l_partkey#23565L, l_quantity#23568L] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_partkey IS NOT NULL, l_orderkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [o_orderkey#23580L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(o_orderkey#23580L, 200), ENSURE_REQUIREMENTS, [plan_id=27693]
+                           +- Project [o_orderkey#23580L]
+                              +- Filter (((isnotnull(o_orderdate#23584) AND (o_orderdate#23584 >= 1994-01-01)) AND (o_orderdate#23584 < 1995-01-01)) AND isnotnull(o_orderkey#23580L))
+                                 +- BatchScan[o_orderkey#23580L, o_orderdate#23584] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderdate IS NOT NULL, o_orderdate >= '1994-01-01', o_orderdate < '1995-01-01', o_orderkey IS NOT NULL] RuntimeFilters: []
+

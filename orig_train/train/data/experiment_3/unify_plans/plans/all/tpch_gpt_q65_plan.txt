@@ -1,0 +1,29 @@
+== Optimized Logical Plan ==
+Sort [revenue#20221 DESC NULLS LAST], true
++- Aggregate [s_name#20223], [s_name#20223, sum((l_extendedprice#20234 * (1.0 - l_discount#20235))) AS revenue#20221]
+   +- Project [s_name#20223, l_extendedprice#20234, l_discount#20235]
+      +- Join Inner, (s_suppkey#20222L = l_suppkey#20231L)
+         :- Filter isnotnull(s_suppkey#20222L)
+         :  +- RelationV2[s_suppkey#20222L, s_name#20223] spark_catalog.tpch_iceberg_10g.supplier
+         +- Project [l_suppkey#20231L, l_extendedprice#20234, l_discount#20235]
+            +- Filter ((isnotnull(l_returnflag#20237) AND (l_returnflag#20237 = R)) AND isnotnull(l_suppkey#20231L))
+               +- RelationV2[l_suppkey#20231L, l_extendedprice#20234, l_discount#20235, l_returnflag#20237] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [revenue#20221 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(revenue#20221 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=22804]
+      +- HashAggregate(keys=[s_name#20223], functions=[sum((l_extendedprice#20234 * (1.0 - l_discount#20235)))], output=[s_name#20223, revenue#20221])
+         +- Exchange hashpartitioning(s_name#20223, 200), ENSURE_REQUIREMENTS, [plan_id=22801]
+            +- HashAggregate(keys=[s_name#20223], functions=[partial_sum((l_extendedprice#20234 * (1.0 - l_discount#20235)))], output=[s_name#20223, sum#20265])
+               +- Project [s_name#20223, l_extendedprice#20234, l_discount#20235]
+                  +- BroadcastHashJoin [s_suppkey#20222L], [l_suppkey#20231L], Inner, BuildLeft, false
+                     :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=22796]
+                     :  +- Filter isnotnull(s_suppkey#20222L)
+                     :     +- BatchScan[s_suppkey#20222L, s_name#20223] spark_catalog.tpch_iceberg_10g.supplier [filters=s_suppkey IS NOT NULL] RuntimeFilters: []
+                     +- Project [l_suppkey#20231L, l_extendedprice#20234, l_discount#20235]
+                        +- Filter ((isnotnull(l_returnflag#20237) AND (l_returnflag#20237 = R)) AND isnotnull(l_suppkey#20231L))
+                           +- BatchScan[l_suppkey#20231L, l_extendedprice#20234, l_discount#20235, l_returnflag#20237] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_returnflag IS NOT NULL, l_returnflag = 'R', l_suppkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

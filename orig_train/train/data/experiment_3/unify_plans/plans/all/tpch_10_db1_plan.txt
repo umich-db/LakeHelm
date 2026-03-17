@@ -1,0 +1,31 @@
+== Parsed Logical Plan ==
+'Sort ['l_returnflag ASC NULLS FIRST, 'l_linestatus ASC NULLS FIRST], true
++- 'Aggregate ['l_returnflag, 'l_linestatus], ['l_returnflag, 'l_linestatus, 'sum('l_quantity) AS sum_qty#16505, 'sum('l_extendedprice) AS sum_base_price#16506, 'sum(('l_extendedprice * (1 - 'l_discount))) AS sum_disc_price#16507, 'sum((('l_extendedprice * (1 - 'l_discount)) * (1 + 'l_tax))) AS sum_charge#16508, 'avg('l_quantity) AS avg_qty#16509, 'avg('l_extendedprice) AS avg_price#16510, 'avg('l_discount) AS avg_disc#16511, 'count(1) AS count_order#16512]
+   +- 'Filter ('date('l_shipdate) <= (1998-12-01 - INTERVAL '114' DAY))
+      +- 'UnresolvedRelation [lineitem], [], false
+
+== Analyzed Logical Plan ==
+l_returnflag: string, l_linestatus: string, sum_qty: bigint, sum_base_price: double, sum_disc_price: double, sum_charge: double, avg_qty: double, avg_price: double, avg_disc: double, count_order: bigint
+Sort [l_returnflag#16527 ASC NULLS FIRST, l_linestatus#16528 ASC NULLS FIRST], true
++- Aggregate [l_returnflag#16527, l_linestatus#16528], [l_returnflag#16527, l_linestatus#16528, sum(l_quantity#16523L) AS sum_qty#16505L, sum(l_extendedprice#16524) AS sum_base_price#16506, sum((l_extendedprice#16524 * (cast(1 as double) - l_discount#16525))) AS sum_disc_price#16507, sum(((l_extendedprice#16524 * (cast(1 as double) - l_discount#16525)) * (cast(1 as double) + l_tax#16526))) AS sum_charge#16508, avg(l_quantity#16523L) AS avg_qty#16509, avg(l_extendedprice#16524) AS avg_price#16510, avg(l_discount#16525) AS avg_disc#16511, count(1) AS count_order#16512L]
+   +- Filter (cast(l_shipdate#16529 as date) <= date_add(1998-12-01, -extractansiintervaldays(INTERVAL '114' DAY)))
+      +- SubqueryAlias spark_catalog.tpch_iceberg_10g.lineitem
+         +- RelationV2[l_orderkey#16519L, l_partkey#16520L, l_suppkey#16521L, l_linenumber#16522L, l_quantity#16523L, l_extendedprice#16524, l_discount#16525, l_tax#16526, l_returnflag#16527, l_linestatus#16528, l_shipdate#16529, l_commitdate#16530, l_receiptdate#16531, l_shipinstruct#16532, l_shipmode#16533, l_comment#16534] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Optimized Logical Plan ==
+Sort [l_returnflag#16527 ASC NULLS FIRST, l_linestatus#16528 ASC NULLS FIRST], true
++- Aggregate [l_returnflag#16527, l_linestatus#16528], [l_returnflag#16527, l_linestatus#16528, sum(l_quantity#16523L) AS sum_qty#16505L, sum(l_extendedprice#16524) AS sum_base_price#16506, sum((l_extendedprice#16524 * (1.0 - l_discount#16525))) AS sum_disc_price#16507, sum(((l_extendedprice#16524 * (1.0 - l_discount#16525)) * (1.0 + l_tax#16526))) AS sum_charge#16508, avg(l_quantity#16523L) AS avg_qty#16509, avg(l_extendedprice#16524) AS avg_price#16510, avg(l_discount#16525) AS avg_disc#16511, count(1) AS count_order#16512L]
+   +- Project [l_quantity#16523L, l_extendedprice#16524, l_discount#16525, l_tax#16526, l_returnflag#16527, l_linestatus#16528]
+      +- Filter ((cast(l_shipdate#16529 as date) <= 1998-08-09) AND isnotnull(l_shipdate#16529))
+         +- RelationV2[l_quantity#16523L, l_extendedprice#16524, l_discount#16525, l_tax#16526, l_returnflag#16527, l_linestatus#16528, l_shipdate#16529] spark_catalog.tpch_iceberg_10g.lineitem
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [l_returnflag#16527 ASC NULLS FIRST, l_linestatus#16528 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(l_returnflag#16527 ASC NULLS FIRST, l_linestatus#16528 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=19678]
+      +- HashAggregate(keys=[l_returnflag#16527, l_linestatus#16528], functions=[sum(l_quantity#16523L), sum(l_extendedprice#16524), sum((l_extendedprice#16524 * (1.0 - l_discount#16525))), sum(((l_extendedprice#16524 * (1.0 - l_discount#16525)) * (1.0 + l_tax#16526))), avg(l_quantity#16523L), avg(l_extendedprice#16524), avg(l_discount#16525), count(1)], output=[l_returnflag#16527, l_linestatus#16528, sum_qty#16505L, sum_base_price#16506, sum_disc_price#16507, sum_charge#16508, avg_qty#16509, avg_price#16510, avg_disc#16511, count_order#16512L])
+         +- Exchange hashpartitioning(l_returnflag#16527, l_linestatus#16528, 200), ENSURE_REQUIREMENTS, [plan_id=19675]
+            +- HashAggregate(keys=[l_returnflag#16527, l_linestatus#16528], functions=[partial_sum(l_quantity#16523L), partial_sum(l_extendedprice#16524), partial_sum((l_extendedprice#16524 * (1.0 - l_discount#16525))), partial_sum(((l_extendedprice#16524 * (1.0 - l_discount#16525)) * (1.0 + l_tax#16526))), partial_avg(l_quantity#16523L), partial_avg(l_extendedprice#16524), partial_avg(l_discount#16525), partial_count(1)], output=[l_returnflag#16527, l_linestatus#16528, sum#16566L, sum#16567, sum#16568, sum#16569, sum#16570, count#16571L, sum#16572, count#16573L, sum#16574, count#16575L, count#16576L])
+               +- Project [l_quantity#16523L, l_extendedprice#16524, l_discount#16525, l_tax#16526, l_returnflag#16527, l_linestatus#16528]
+                  +- Filter ((cast(l_shipdate#16529 as date) <= 1998-08-09) AND isnotnull(l_shipdate#16529))
+                     +- BatchScan[l_quantity#16523L, l_extendedprice#16524, l_discount#16525, l_tax#16526, l_returnflag#16527, l_linestatus#16528, l_shipdate#16529] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL] RuntimeFilters: []

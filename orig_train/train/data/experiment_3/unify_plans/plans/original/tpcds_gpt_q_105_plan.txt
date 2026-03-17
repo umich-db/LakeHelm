@@ -1,0 +1,63 @@
+== Optimized Logical Plan ==
+Aggregate [s_store_name#9618], [s_store_name#9618, MakeDecimal(sum(UnscaledValue(ss_sales_price#9654)),17,2) AS total_sales#9610]
++- Project [s_store_name#9618, ss_sales_price#9654]
+   +- Join Inner, (s_store_sk#9613 = ss_store_sk#9648)
+      :- Join LeftSemi, (s_store_sk#9613 = ss_store_sk#9671)
+      :  :- Filter isnotnull(s_store_sk#9613)
+      :  :  +- RelationV2[s_store_sk#9613, s_store_name#9618] spark_catalog.tpcds_iceberg_10g.store
+      :  +- Project [ss_store_sk#9671]
+      :     +- Filter (isnotnull(ss_sales_price#9677) AND (cast(ss_sales_price#9677 as decimal(11,6)) > scalar-subquery#9611 []))
+      :        :  +- Aggregate [cast((avg(UnscaledValue(ss_sales_price#9700)) / 100.0) as decimal(11,6)) AS avg(ss_sales_price)#9712]
+      :        :     +- RelationV2[ss_sales_price#9700] spark_catalog.tpcds_iceberg_10g.store_sales
+      :        +- RelationV2[ss_store_sk#9671, ss_sales_price#9677] spark_catalog.tpcds_iceberg_10g.store_sales
+      +- Join LeftSemi, (ss_store_sk#9648 = ss_store_sk#9671)
+         :- Filter isnotnull(ss_store_sk#9648)
+         :  +- RelationV2[ss_store_sk#9648, ss_sales_price#9654] spark_catalog.tpcds_iceberg_10g.store_sales
+         +- Project [ss_store_sk#9671]
+            +- Filter (isnotnull(ss_sales_price#9677) AND (cast(ss_sales_price#9677 as decimal(11,6)) > scalar-subquery#9611 []))
+               :  +- Aggregate [cast((avg(UnscaledValue(ss_sales_price#9700)) / 100.0) as decimal(11,6)) AS avg(ss_sales_price)#9712]
+               :     +- RelationV2[ss_sales_price#9700] spark_catalog.tpcds_iceberg_10g.store_sales
+               +- RelationV2[ss_store_sk#9671, ss_sales_price#9677] spark_catalog.tpcds_iceberg_10g.store_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[s_store_name#9618], functions=[sum(UnscaledValue(ss_sales_price#9654))], output=[s_store_name#9618, total_sales#9610])
+   +- Exchange hashpartitioning(s_store_name#9618, 200), ENSURE_REQUIREMENTS, [plan_id=7294]
+      +- HashAggregate(keys=[s_store_name#9618], functions=[partial_sum(UnscaledValue(ss_sales_price#9654))], output=[s_store_name#9618, sum#9744L])
+         +- Project [s_store_name#9618, ss_sales_price#9654]
+            +- BroadcastHashJoin [s_store_sk#9613], [ss_store_sk#9648], Inner, BuildLeft, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=7289]
+               :  +- SortMergeJoin [s_store_sk#9613], [ss_store_sk#9671], LeftSemi
+               :     :- Sort [s_store_sk#9613 ASC NULLS FIRST], false, 0
+               :     :  +- Exchange hashpartitioning(s_store_sk#9613, 200), ENSURE_REQUIREMENTS, [plan_id=7278]
+               :     :     +- Filter isnotnull(s_store_sk#9613)
+               :     :        +- BatchScan[s_store_sk#9613, s_store_name#9618] spark_catalog.tpcds_iceberg_10g.store [filters=s_store_sk IS NOT NULL] RuntimeFilters: []
+               :     +- Sort [ss_store_sk#9671 ASC NULLS FIRST], false, 0
+               :        +- Exchange hashpartitioning(ss_store_sk#9671, 200), ENSURE_REQUIREMENTS, [plan_id=7277]
+               :           +- Project [ss_store_sk#9671]
+               :              +- Filter (isnotnull(ss_sales_price#9677) AND (cast(ss_sales_price#9677 as decimal(11,6)) > Subquery subquery#9611, [id=#7258]))
+               :                 :  +- Subquery subquery#9611, [id=#7258]
+               :                 :     +- AdaptiveSparkPlan isFinalPlan=false
+               :                 :        +- HashAggregate(keys=[], functions=[avg(UnscaledValue(ss_sales_price#9700))], output=[avg(ss_sales_price)#9712])
+               :                 :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=7256]
+               :                 :              +- HashAggregate(keys=[], functions=[partial_avg(UnscaledValue(ss_sales_price#9700))], output=[sum#9747, count#9748L])
+               :                 :                 +- BatchScan[ss_sales_price#9700] spark_catalog.tpcds_iceberg_10g.store_sales [filters=] RuntimeFilters: []
+               :                 +- BatchScan[ss_store_sk#9671, ss_sales_price#9677] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sales_price IS NOT NULL] RuntimeFilters: []
+               +- SortMergeJoin [ss_store_sk#9648], [ss_store_sk#9671], LeftSemi
+                  :- Sort [ss_store_sk#9648 ASC NULLS FIRST], false, 0
+                  :  +- Exchange hashpartitioning(ss_store_sk#9648, 200), ENSURE_REQUIREMENTS, [plan_id=7283]
+                  :     +- Filter isnotnull(ss_store_sk#9648)
+                  :        +- BatchScan[ss_store_sk#9648, ss_sales_price#9654] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_store_sk IS NOT NULL] RuntimeFilters: []
+                  +- Sort [ss_store_sk#9671 ASC NULLS FIRST], false, 0
+                     +- Exchange hashpartitioning(ss_store_sk#9671, 200), ENSURE_REQUIREMENTS, [plan_id=7284]
+                        +- Project [ss_store_sk#9671]
+                           +- Filter (isnotnull(ss_sales_price#9677) AND (cast(ss_sales_price#9677 as decimal(11,6)) > Subquery subquery#9611, [id=#7258]))
+                              :  +- Subquery subquery#9611, [id=#7258]
+                              :     +- AdaptiveSparkPlan isFinalPlan=false
+                              :        +- HashAggregate(keys=[], functions=[avg(UnscaledValue(ss_sales_price#9700))], output=[avg(ss_sales_price)#9712])
+                              :           +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=7256]
+                              :              +- HashAggregate(keys=[], functions=[partial_avg(UnscaledValue(ss_sales_price#9700))], output=[sum#9747, count#9748L])
+                              :                 +- BatchScan[ss_sales_price#9700] spark_catalog.tpcds_iceberg_10g.store_sales [filters=] RuntimeFilters: []
+                              +- BatchScan[ss_store_sk#9671, ss_sales_price#9677] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sales_price IS NOT NULL] RuntimeFilters: []
+

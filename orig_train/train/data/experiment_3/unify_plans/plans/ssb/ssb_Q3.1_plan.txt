@@ -1,0 +1,49 @@
+== Optimized Logical Plan ==
+Sort [d_year#29164 ASC NULLS FIRST, lo_revenue#29142L DESC NULLS LAST], true
++- Aggregate [c_nation#29181, s_nation#29189, d_year#29164], [c_nation#29181, s_nation#29189, d_year#29164, sum(lo_revenue#29155L) AS lo_revenue#29142L]
+   +- Project [lo_revenue#29155L, d_year#29164, c_nation#29181, s_nation#29189]
+      +- Join Inner, (lo_suppkey#29147 = s_suppkey#29185)
+         :- Project [lo_suppkey#29147, lo_revenue#29155L, d_year#29164, c_nation#29181]
+         :  +- Join Inner, (lo_custkey#29145 = c_custkey#29177)
+         :     :- Project [lo_custkey#29145, lo_suppkey#29147, lo_revenue#29155L, d_year#29164]
+         :     :  +- Join Inner, (lo_orderdate#29148 = d_datekey#29161)
+         :     :     :- Filter ((isnotnull(lo_orderdate#29148) AND isnotnull(lo_custkey#29145)) AND isnotnull(lo_suppkey#29147))
+         :     :     :  +- RelationV2[lo_custkey#29145, lo_suppkey#29147, lo_orderdate#29148, lo_revenue#29155L] spark_catalog.ssb_iceberg_10g.lineorder
+         :     :     +- Filter (((isnotnull(d_year#29164) AND (d_year#29164 >= 1992)) AND (d_year#29164 <= 1997)) AND isnotnull(d_datekey#29161))
+         :     :        +- RelationV2[d_datekey#29161, d_year#29164] spark_catalog.ssb_iceberg_10g.date
+         :     +- Project [c_custkey#29177, c_nation#29181]
+         :        +- Filter ((isnotnull(c_region#29182) AND (c_region#29182 = ASIA)) AND isnotnull(c_custkey#29177))
+         :           +- RelationV2[c_custkey#29177, c_nation#29181, c_region#29182] spark_catalog.ssb_iceberg_10g.customer
+         +- Project [s_suppkey#29185, s_nation#29189]
+            +- Filter ((isnotnull(s_region#29190) AND (s_region#29190 = ASIA)) AND isnotnull(s_suppkey#29185))
+               +- RelationV2[s_suppkey#29185, s_nation#29189, s_region#29190] spark_catalog.ssb_iceberg_10g.supplier
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [d_year#29164 ASC NULLS FIRST, lo_revenue#29142L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(d_year#29164 ASC NULLS FIRST, lo_revenue#29142L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=35222]
+      +- HashAggregate(keys=[c_nation#29181, s_nation#29189, d_year#29164], functions=[sum(lo_revenue#29155L)], output=[c_nation#29181, s_nation#29189, d_year#29164, lo_revenue#29142L])
+         +- Exchange hashpartitioning(c_nation#29181, s_nation#29189, d_year#29164, 200), ENSURE_REQUIREMENTS, [plan_id=35219]
+            +- HashAggregate(keys=[c_nation#29181, s_nation#29189, d_year#29164], functions=[partial_sum(lo_revenue#29155L)], output=[c_nation#29181, s_nation#29189, d_year#29164, sum#29230L])
+               +- Project [lo_revenue#29155L, d_year#29164, c_nation#29181, s_nation#29189]
+                  +- BroadcastHashJoin [lo_suppkey#29147], [s_suppkey#29185], Inner, BuildRight, false
+                     :- Project [lo_suppkey#29147, lo_revenue#29155L, d_year#29164, c_nation#29181]
+                     :  +- BroadcastHashJoin [lo_custkey#29145], [c_custkey#29177], Inner, BuildRight, false
+                     :     :- Project [lo_custkey#29145, lo_suppkey#29147, lo_revenue#29155L, d_year#29164]
+                     :     :  +- BroadcastHashJoin [lo_orderdate#29148], [d_datekey#29161], Inner, BuildRight, false
+                     :     :     :- Filter ((isnotnull(lo_orderdate#29148) AND isnotnull(lo_custkey#29145)) AND isnotnull(lo_suppkey#29147))
+                     :     :     :  +- BatchScan[lo_custkey#29145, lo_suppkey#29147, lo_orderdate#29148, lo_revenue#29155L] spark_catalog.ssb_iceberg_10g.lineorder [filters=lo_orderdate IS NOT NULL, lo_custkey IS NOT NULL, lo_suppkey IS NOT NULL] RuntimeFilters: []
+                     :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=35206]
+                     :     :        +- Project [d_datekey#29161, d_year#29164]
+                     :     :           +- Filter (((isnotnull(d_year#29164) AND (d_year#29164 >= 1992)) AND (d_year#29164 <= 1997)) AND isnotnull(d_datekey#29161))
+                     :     :              +- BatchScan[d_datekey#29161, d_year#29164] spark_catalog.ssb_iceberg_10g.date [filters=d_year IS NOT NULL, d_year >= 1992, d_year <= 1997, d_datekey IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=35210]
+                     :        +- Project [c_custkey#29177, c_nation#29181]
+                     :           +- Filter ((isnotnull(c_region#29182) AND (c_region#29182 = ASIA)) AND isnotnull(c_custkey#29177))
+                     :              +- BatchScan[c_custkey#29177, c_nation#29181, c_region#29182] spark_catalog.ssb_iceberg_10g.customer [filters=c_region IS NOT NULL, c_region = 'ASIA', c_custkey IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=35214]
+                        +- Project [s_suppkey#29185, s_nation#29189]
+                           +- Filter ((isnotnull(s_region#29190) AND (s_region#29190 = ASIA)) AND isnotnull(s_suppkey#29185))
+                              +- BatchScan[s_suppkey#29185, s_nation#29189, s_region#29190] spark_catalog.ssb_iceberg_10g.supplier [filters=s_region IS NOT NULL, s_region = 'ASIA', s_suppkey IS NOT NULL] RuntimeFilters: []
+

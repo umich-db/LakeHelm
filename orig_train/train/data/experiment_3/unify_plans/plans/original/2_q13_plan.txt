@@ -1,0 +1,11 @@
+=== Optimized Logical Plan ===
+Sort [custdist#304L DESC NULLS LAST, c_count#309L DESC NULLS LAST], true
++- Aggregate [c_count#309L], [c_count#309L, count(1) AS custdist#304L]
+   +- Aggregate [c_custkey#215L], [count(o_orderkey#75L) AS c_count#309L]
+      +- Project [c_custkey#215L, o_orderkey#75L]
+         +- Join LeftOuter, (c_custkey#215L = o_custkey#76L)
+            :- Project [c_custkey#215L]
+            :  +- Relation tpch_hudi_10g.customer[_hoodie_commit_time#210,_hoodie_commit_seqno#211,_hoodie_record_key#212,_hoodie_partition_path#213,_hoodie_file_name#214,c_custkey#215L,c_name#216,c_address#217,c_nationkey#218L,c_phone#219,c_acctbal#220,c_mktsegment#221,c_comment#222] parquet
+            +- Project [o_orderkey#75L, o_custkey#76L]
+               +- Filter ((isnotnull(o_comment#83) AND NOT o_comment#83 LIKE %pending%requests%) AND isnotnull(o_custkey#76L))
+                  +- Relation tpch_hudi_10g.orders[_hoodie_commit_time#70,_hoodie_commit_seqno#71,_hoodie_record_key#72,_hoodie_partition_path#73,_hoodie_file_name#74,o_orderkey#75L,o_custkey#76L,o_orderstatus#77,o_totalprice#78,o_orderdate#79,o_orderpriority#80,o_clerk#81,o_shippriority#82L,o_comment#83] parquet

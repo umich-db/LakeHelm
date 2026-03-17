@@ -1,0 +1,36 @@
+== Optimized Logical Plan ==
+Sort [avg_acctbal#19927 DESC NULLS LAST], true
++- Aggregate [r_name#19929], [r_name#19929, avg(c_acctbal#19940) AS avg_acctbal#19927]
+   +- Project [r_name#19929, c_acctbal#19940]
+      +- Join Inner, (n_nationkey#19931L = c_nationkey#19938L)
+         :- Project [r_name#19929, n_nationkey#19931L]
+         :  +- Join Inner, (r_regionkey#19928L = n_regionkey#19933L)
+         :     :- Filter isnotnull(r_regionkey#19928L)
+         :     :  +- RelationV2[r_regionkey#19928L, r_name#19929] spark_catalog.tpch_iceberg_10g.region
+         :     +- Filter (isnotnull(n_regionkey#19933L) AND isnotnull(n_nationkey#19931L))
+         :        +- RelationV2[n_nationkey#19931L, n_regionkey#19933L] spark_catalog.tpch_iceberg_10g.nation
+         +- Project [c_nationkey#19938L, c_acctbal#19940]
+            +- Filter ((isnotnull(c_mktsegment#19941) AND (c_mktsegment#19941 = BUILDING)) AND isnotnull(c_nationkey#19938L))
+               +- RelationV2[c_nationkey#19938L, c_acctbal#19940, c_mktsegment#19941] spark_catalog.tpch_iceberg_10g.customer
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [avg_acctbal#19927 DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[r_name#19929], functions=[avg(c_acctbal#19940)], output=[r_name#19929, avg_acctbal#19927])
+      +- HashAggregate(keys=[r_name#19929], functions=[partial_avg(c_acctbal#19940)], output=[r_name#19929, sum#19970, count#19971L])
+         +- Project [r_name#19929, c_acctbal#19940]
+            +- BroadcastHashJoin [n_nationkey#19931L], [c_nationkey#19938L], Inner, BuildLeft, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(input[1, bigint, true]),false), [plan_id=22368]
+               :  +- Project [r_name#19929, n_nationkey#19931L]
+               :     +- BroadcastHashJoin [r_regionkey#19928L], [n_regionkey#19933L], Inner, BuildLeft, false
+               :        :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=22364]
+               :        :  +- Filter isnotnull(r_regionkey#19928L)
+               :        :     +- BatchScan[r_regionkey#19928L, r_name#19929] spark_catalog.tpch_iceberg_10g.region [filters=r_regionkey IS NOT NULL] RuntimeFilters: []
+               :        +- Filter (isnotnull(n_regionkey#19933L) AND isnotnull(n_nationkey#19931L))
+               :           +- BatchScan[n_nationkey#19931L, n_regionkey#19933L] spark_catalog.tpch_iceberg_10g.nation [filters=n_regionkey IS NOT NULL, n_nationkey IS NOT NULL] RuntimeFilters: []
+               +- Project [c_nationkey#19938L, c_acctbal#19940]
+                  +- Filter ((isnotnull(c_mktsegment#19941) AND (c_mktsegment#19941 = BUILDING)) AND isnotnull(c_nationkey#19938L))
+                     +- BatchScan[c_nationkey#19938L, c_acctbal#19940, c_mktsegment#19941] spark_catalog.tpch_iceberg_10g.customer [filters=c_mktsegment IS NOT NULL, c_mktsegment = 'BUILDING', c_nationkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

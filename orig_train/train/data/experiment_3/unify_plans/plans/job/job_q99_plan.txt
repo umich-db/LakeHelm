@@ -1,0 +1,37 @@
+== Optimized Logical Plan ==
+Sort [subjects#11795L DESC NULLS LAST], true
++- Aggregate [title#11797], [title#11797, count(distinct subject_id#11810L) AS subjects#11795L]
+   +- Project [title#11797, subject_id#11810L]
+      +- Join Inner, (subject_id#11810L = id#11812L)
+         :- Project [title#11797, subject_id#11810L]
+         :  +- Join Inner, (id#11796L = movie_id#11809L)
+         :     :- Filter isnotnull(id#11796L)
+         :     :  +- RelationV2[id#11796L, title#11797] spark_catalog.job_iceberg_10g.title
+         :     +- Filter (isnotnull(movie_id#11809L) AND isnotnull(subject_id#11810L))
+         :        +- RelationV2[movie_id#11809L, subject_id#11810L] spark_catalog.job_iceberg_10g.complete_cast
+         +- Project [id#11812L]
+            +- Filter ((isnotnull(kind#11813) AND (kind#11813 = Main cast)) AND isnotnull(id#11812L))
+               +- RelationV2[id#11812L, kind#11813] spark_catalog.job_iceberg_10g.comp_cast_type
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [subjects#11795L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[title#11797], functions=[count(distinct subject_id#11810L)], output=[title#11797, subjects#11795L])
+      +- HashAggregate(keys=[title#11797], functions=[partial_count(distinct subject_id#11810L)], output=[title#11797, count#11840L])
+         +- HashAggregate(keys=[title#11797, subject_id#11810L], functions=[], output=[title#11797, subject_id#11810L])
+            +- HashAggregate(keys=[title#11797, subject_id#11810L], functions=[], output=[title#11797, subject_id#11810L])
+               +- Project [title#11797, subject_id#11810L]
+                  +- BroadcastHashJoin [subject_id#11810L], [id#11812L], Inner, BuildRight, false
+                     :- Project [title#11797, subject_id#11810L]
+                     :  +- BroadcastHashJoin [id#11796L], [movie_id#11809L], Inner, BuildRight, false
+                     :     :- Filter isnotnull(id#11796L)
+                     :     :  +- BatchScan[id#11796L, title#11797] spark_catalog.job_iceberg_10g.title [filters=id IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=10004]
+                     :        +- Filter (isnotnull(movie_id#11809L) AND isnotnull(subject_id#11810L))
+                     :           +- BatchScan[movie_id#11809L, subject_id#11810L] spark_catalog.job_iceberg_10g.complete_cast [filters=movie_id IS NOT NULL, subject_id IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=10008]
+                        +- Project [id#11812L]
+                           +- Filter ((isnotnull(kind#11813) AND (kind#11813 = Main cast)) AND isnotnull(id#11812L))
+                              +- BatchScan[id#11812L, kind#11813] spark_catalog.job_iceberg_10g.comp_cast_type [filters=kind IS NOT NULL, kind = 'Main cast', id IS NOT NULL] RuntimeFilters: []
+

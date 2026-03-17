@@ -1,0 +1,67 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Project [customer_id#39925, customername#39926]
+      +- Sort [c_customer_id#39928 ASC NULLS FIRST], true
+         +- Project [c_customer_id#39928 AS customer_id#39925, concat(c_last_name#39936, ,, c_first_name#39935) AS customername#39926, c_customer_id#39928]
+            +- Join Inner, (sr_cdemo_sk#39978 = cd_demo_sk#39958)
+               :- Project [c_customer_id#39928, c_first_name#39935, c_last_name#39936, cd_demo_sk#39958]
+               :  +- Join Inner, (ib_income_band_sk#39972 = hd_income_band_sk#39968)
+               :     :- Project [c_customer_id#39928, c_first_name#39935, c_last_name#39936, cd_demo_sk#39958, hd_income_band_sk#39968]
+               :     :  +- Join Inner, (hd_demo_sk#39967 = c_current_hdemo_sk#39930)
+               :     :     :- Project [c_customer_id#39928, c_current_hdemo_sk#39930, c_first_name#39935, c_last_name#39936, cd_demo_sk#39958]
+               :     :     :  +- Join Inner, (cd_demo_sk#39958 = c_current_cdemo_sk#39929)
+               :     :     :     :- Project [c_customer_id#39928, c_current_cdemo_sk#39929, c_current_hdemo_sk#39930, c_first_name#39935, c_last_name#39936]
+               :     :     :     :  +- Join Inner, (c_current_addr_sk#39931 = ca_address_sk#39945)
+               :     :     :     :     :- Filter ((isnotnull(c_current_addr_sk#39931) AND isnotnull(c_current_cdemo_sk#39929)) AND isnotnull(c_current_hdemo_sk#39930))
+               :     :     :     :     :  +- RelationV2[c_customer_id#39928, c_current_cdemo_sk#39929, c_current_hdemo_sk#39930, c_current_addr_sk#39931, c_first_name#39935, c_last_name#39936] spark_catalog.tpcds_iceberg_10g.customer
+               :     :     :     :     +- Project [ca_address_sk#39945]
+               :     :     :     :        +- Filter ((isnotnull(ca_city#39951) AND (ca_city#39951 = Hopewell)) AND isnotnull(ca_address_sk#39945))
+               :     :     :     :           +- RelationV2[ca_address_sk#39945, ca_city#39951] spark_catalog.tpcds_iceberg_10g.customer_address
+               :     :     :     +- Filter isnotnull(cd_demo_sk#39958)
+               :     :     :        +- RelationV2[cd_demo_sk#39958] spark_catalog.tpcds_iceberg_10g.customer_demographics
+               :     :     +- Filter (isnotnull(hd_demo_sk#39967) AND isnotnull(hd_income_band_sk#39968))
+               :     :        +- RelationV2[hd_demo_sk#39967, hd_income_band_sk#39968] spark_catalog.tpcds_iceberg_10g.household_demographics
+               :     +- Project [ib_income_band_sk#39972]
+               :        +- Filter ((((isnotnull(ib_lower_bound#39973) AND isnotnull(ib_upper_bound#39974)) AND (ib_lower_bound#39973 >= 32287)) AND (ib_upper_bound#39974 <= 82287)) AND isnotnull(ib_income_band_sk#39972))
+               :           +- RelationV2[ib_income_band_sk#39972, ib_lower_bound#39973, ib_upper_bound#39974] spark_catalog.tpcds_iceberg_10g.income_band
+               +- Filter isnotnull(sr_cdemo_sk#39978)
+                  +- RelationV2[sr_cdemo_sk#39978] spark_catalog.tpcds_iceberg_10g.store_returns
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[c_customer_id#39928 ASC NULLS FIRST], output=[customer_id#39925,customername#39926])
+   +- Project [c_customer_id#39928 AS customer_id#39925, concat(c_last_name#39936, ,, c_first_name#39935) AS customername#39926, c_customer_id#39928]
+      +- SortMergeJoin [cd_demo_sk#39958], [sr_cdemo_sk#39978], Inner
+         :- Sort [cd_demo_sk#39958 ASC NULLS FIRST], false, 0
+         :  +- Exchange hashpartitioning(cd_demo_sk#39958, 200), ENSURE_REQUIREMENTS, [plan_id=29660]
+         :     +- Project [c_customer_id#39928, c_first_name#39935, c_last_name#39936, cd_demo_sk#39958]
+         :        +- BroadcastHashJoin [hd_income_band_sk#39968], [ib_income_band_sk#39972], Inner, BuildRight, false
+         :           :- Project [c_customer_id#39928, c_first_name#39935, c_last_name#39936, cd_demo_sk#39958, hd_income_band_sk#39968]
+         :           :  +- BroadcastHashJoin [c_current_hdemo_sk#39930], [hd_demo_sk#39967], Inner, BuildRight, false
+         :           :     :- Project [c_customer_id#39928, c_current_hdemo_sk#39930, c_first_name#39935, c_last_name#39936, cd_demo_sk#39958]
+         :           :     :  +- BroadcastHashJoin [c_current_cdemo_sk#39929], [cd_demo_sk#39958], Inner, BuildRight, false
+         :           :     :     :- Project [c_customer_id#39928, c_current_cdemo_sk#39929, c_current_hdemo_sk#39930, c_first_name#39935, c_last_name#39936]
+         :           :     :     :  +- BroadcastHashJoin [c_current_addr_sk#39931], [ca_address_sk#39945], Inner, BuildRight, false
+         :           :     :     :     :- Filter ((isnotnull(c_current_addr_sk#39931) AND isnotnull(c_current_cdemo_sk#39929)) AND isnotnull(c_current_hdemo_sk#39930))
+         :           :     :     :     :  +- BatchScan[c_customer_id#39928, c_current_cdemo_sk#39929, c_current_hdemo_sk#39930, c_current_addr_sk#39931, c_first_name#39935, c_last_name#39936] spark_catalog.tpcds_iceberg_10g.customer [filters=c_current_addr_sk IS NOT NULL, c_current_cdemo_sk IS NOT NULL, c_current_hdemo_sk IS NOT NULL] RuntimeFilters: []
+         :           :     :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29642]
+         :           :     :     :        +- Project [ca_address_sk#39945]
+         :           :     :     :           +- Filter ((isnotnull(ca_city#39951) AND (ca_city#39951 = Hopewell)) AND isnotnull(ca_address_sk#39945))
+         :           :     :     :              +- BatchScan[ca_address_sk#39945, ca_city#39951] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_city IS NOT NULL, ca_city = 'Hopewell', ca_address_sk IS NOT NULL] RuntimeFilters: []
+         :           :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=29646]
+         :           :     :        +- Filter isnotnull(cd_demo_sk#39958)
+         :           :     :           +- BatchScan[cd_demo_sk#39958] spark_catalog.tpcds_iceberg_10g.customer_demographics [filters=cd_demo_sk IS NOT NULL] RuntimeFilters: []
+         :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=29650]
+         :           :        +- Filter (isnotnull(hd_demo_sk#39967) AND isnotnull(hd_income_band_sk#39968))
+         :           :           +- BatchScan[hd_demo_sk#39967, hd_income_band_sk#39968] spark_catalog.tpcds_iceberg_10g.household_demographics [filters=hd_demo_sk IS NOT NULL, hd_income_band_sk IS NOT NULL] RuntimeFilters: []
+         :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=29654]
+         :              +- Project [ib_income_band_sk#39972]
+         :                 +- Filter ((((isnotnull(ib_lower_bound#39973) AND isnotnull(ib_upper_bound#39974)) AND (ib_lower_bound#39973 >= 32287)) AND (ib_upper_bound#39974 <= 82287)) AND isnotnull(ib_income_band_sk#39972))
+         :                    +- BatchScan[ib_income_band_sk#39972, ib_lower_bound#39973, ib_upper_bound#39974] spark_catalog.tpcds_iceberg_10g.income_band [filters=ib_lower_bound IS NOT NULL, ib_upper_bound IS NOT NULL, ib_lower_bound >= 32287, ib_upper_bound <= 82287, ib_income_band_sk IS NOT NULL] RuntimeFilters: []
+         +- Sort [sr_cdemo_sk#39978 ASC NULLS FIRST], false, 0
+            +- Exchange hashpartitioning(sr_cdemo_sk#39978, 200), ENSURE_REQUIREMENTS, [plan_id=29659]
+               +- Filter isnotnull(sr_cdemo_sk#39978)
+                  +- BatchScan[sr_cdemo_sk#39978] spark_catalog.tpcds_iceberg_10g.store_returns [filters=sr_cdemo_sk IS NOT NULL] RuntimeFilters: []
+

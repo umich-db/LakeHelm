@@ -1,0 +1,83 @@
+== Optimized Logical Plan ==
+Aggregate [s_store_name#9282], [s_store_name#9282, count(ss_ticket_number#9314L) AS transaction_count#9274L]
++- Project [s_store_name#9282, ss_ticket_number#9314L]
+   +- Join Inner, (s_store_sk#9277 = ss_store_sk#9312)
+      :- Join LeftSemi, (s_store_sk#9277 = ss_store_sk#9335)
+      :  :- Filter isnotnull(s_store_sk#9277)
+      :  :  +- RelationV2[s_store_sk#9277, s_store_name#9282] spark_catalog.tpcds_iceberg_10g.store
+      :  +- Aggregate [ss_store_sk#9335], [ss_store_sk#9335]
+      :     +- Project [ss_store_sk#9335]
+      :        +- Join Inner, ((cast(ss_sales_price#9341 as decimal(11,6)) > avg(ss_sales_price)#9381) AND (ss_sold_date_sk#9374 = ss_sold_date_sk#9351))
+      :           :- Filter (isnotnull(ss_sales_price#9341) AND isnotnull(ss_sold_date_sk#9351))
+      :           :  +- RelationV2[ss_store_sk#9335, ss_sales_price#9341, ss_sold_date_sk#9351] spark_catalog.tpcds_iceberg_10g.store_sales
+      :           +- Filter isnotnull(avg(ss_sales_price)#9381)
+      :              +- Aggregate [ss_sold_date_sk#9374], [cast((avg(UnscaledValue(ss_sales_price#9364)) / 100.0) as decimal(11,6)) AS avg(ss_sales_price)#9381, ss_sold_date_sk#9374]
+      :                 +- Filter isnotnull(ss_sold_date_sk#9374)
+      :                    +- RelationV2[ss_sales_price#9364, ss_sold_date_sk#9374] spark_catalog.tpcds_iceberg_10g.store_sales
+      +- Join LeftSemi, (ss_store_sk#9312 = ss_store_sk#9335)
+         :- Filter isnotnull(ss_store_sk#9312)
+         :  +- RelationV2[ss_store_sk#9312, ss_ticket_number#9314L] spark_catalog.tpcds_iceberg_10g.store_sales
+         +- Aggregate [ss_store_sk#9335], [ss_store_sk#9335]
+            +- Project [ss_store_sk#9335]
+               +- Join Inner, ((cast(ss_sales_price#9341 as decimal(11,6)) > avg(ss_sales_price)#9381) AND (ss_sold_date_sk#9374 = ss_sold_date_sk#9351))
+                  :- Filter (isnotnull(ss_sales_price#9341) AND isnotnull(ss_sold_date_sk#9351))
+                  :  +- RelationV2[ss_store_sk#9335, ss_sales_price#9341, ss_sold_date_sk#9351] spark_catalog.tpcds_iceberg_10g.store_sales
+                  +- Filter isnotnull(avg(ss_sales_price)#9381)
+                     +- Aggregate [ss_sold_date_sk#9374], [cast((avg(UnscaledValue(ss_sales_price#9364)) / 100.0) as decimal(11,6)) AS avg(ss_sales_price)#9381, ss_sold_date_sk#9374]
+                        +- Filter isnotnull(ss_sold_date_sk#9374)
+                           +- RelationV2[ss_sales_price#9364, ss_sold_date_sk#9374] spark_catalog.tpcds_iceberg_10g.store_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[s_store_name#9282], functions=[count(ss_ticket_number#9314L)], output=[s_store_name#9282, transaction_count#9274L])
+   +- Exchange hashpartitioning(s_store_name#9282, 200), ENSURE_REQUIREMENTS, [plan_id=7032]
+      +- HashAggregate(keys=[s_store_name#9282], functions=[partial_count(ss_ticket_number#9314L)], output=[s_store_name#9282, count#9410L])
+         +- Project [s_store_name#9282, ss_ticket_number#9314L]
+            +- BroadcastHashJoin [s_store_sk#9277], [ss_store_sk#9312], Inner, BuildLeft, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=7027]
+               :  +- SortMergeJoin [s_store_sk#9277], [ss_store_sk#9335], LeftSemi
+               :     :- Sort [s_store_sk#9277 ASC NULLS FIRST], false, 0
+               :     :  +- Exchange hashpartitioning(s_store_sk#9277, 200), ENSURE_REQUIREMENTS, [plan_id=7002]
+               :     :     +- Filter isnotnull(s_store_sk#9277)
+               :     :        +- BatchScan[s_store_sk#9277, s_store_name#9282] spark_catalog.tpcds_iceberg_10g.store [filters=s_store_sk IS NOT NULL] RuntimeFilters: []
+               :     +- Sort [ss_store_sk#9335 ASC NULLS FIRST], false, 0
+               :        +- HashAggregate(keys=[ss_store_sk#9335], functions=[], output=[ss_store_sk#9335])
+               :           +- Exchange hashpartitioning(ss_store_sk#9335, 200), ENSURE_REQUIREMENTS, [plan_id=6998]
+               :              +- HashAggregate(keys=[ss_store_sk#9335], functions=[], output=[ss_store_sk#9335])
+               :                 +- Project [ss_store_sk#9335]
+               :                    +- SortMergeJoin [ss_sold_date_sk#9351], [ss_sold_date_sk#9374], Inner, (cast(ss_sales_price#9341 as decimal(11,6)) > avg(ss_sales_price)#9381)
+               :                       :- Sort [ss_sold_date_sk#9351 ASC NULLS FIRST], false, 0
+               :                       :  +- Exchange hashpartitioning(ss_sold_date_sk#9351, 200), ENSURE_REQUIREMENTS, [plan_id=6991]
+               :                       :     +- Filter (isnotnull(ss_sales_price#9341) AND isnotnull(ss_sold_date_sk#9351))
+               :                       :        +- BatchScan[ss_store_sk#9335, ss_sales_price#9341, ss_sold_date_sk#9351] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sales_price IS NOT NULL, ss_sold_date_sk IS NOT NULL] RuntimeFilters: []
+               :                       +- Sort [ss_sold_date_sk#9374 ASC NULLS FIRST], false, 0
+               :                          +- Filter isnotnull(avg(ss_sales_price)#9381)
+               :                             +- HashAggregate(keys=[ss_sold_date_sk#9374], functions=[avg(UnscaledValue(ss_sales_price#9364))], output=[avg(ss_sales_price)#9381, ss_sold_date_sk#9374])
+               :                                +- Exchange hashpartitioning(ss_sold_date_sk#9374, 200), ENSURE_REQUIREMENTS, [plan_id=6986]
+               :                                   +- HashAggregate(keys=[ss_sold_date_sk#9374], functions=[partial_avg(UnscaledValue(ss_sales_price#9364))], output=[ss_sold_date_sk#9374, sum#9413, count#9414L])
+               :                                      +- Filter isnotnull(ss_sold_date_sk#9374)
+               :                                         +- BatchScan[ss_sales_price#9364, ss_sold_date_sk#9374] spark_catalog.tpcds_iceberg_10g.store_sales [filters=] RuntimeFilters: []
+               +- SortMergeJoin [ss_store_sk#9312], [ss_store_sk#9335], LeftSemi
+                  :- Sort [ss_store_sk#9312 ASC NULLS FIRST], false, 0
+                  :  +- Exchange hashpartitioning(ss_store_sk#9312, 200), ENSURE_REQUIREMENTS, [plan_id=7022]
+                  :     +- Filter isnotnull(ss_store_sk#9312)
+                  :        +- BatchScan[ss_store_sk#9312, ss_ticket_number#9314L] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_store_sk IS NOT NULL] RuntimeFilters: []
+                  +- Sort [ss_store_sk#9335 ASC NULLS FIRST], false, 0
+                     +- HashAggregate(keys=[ss_store_sk#9335], functions=[], output=[ss_store_sk#9335])
+                        +- Exchange hashpartitioning(ss_store_sk#9335, 200), ENSURE_REQUIREMENTS, [plan_id=7018]
+                           +- HashAggregate(keys=[ss_store_sk#9335], functions=[], output=[ss_store_sk#9335])
+                              +- Project [ss_store_sk#9335]
+                                 +- SortMergeJoin [ss_sold_date_sk#9351], [ss_sold_date_sk#9374], Inner, (cast(ss_sales_price#9341 as decimal(11,6)) > avg(ss_sales_price)#9381)
+                                    :- Sort [ss_sold_date_sk#9351 ASC NULLS FIRST], false, 0
+                                    :  +- Exchange hashpartitioning(ss_sold_date_sk#9351, 200), ENSURE_REQUIREMENTS, [plan_id=7011]
+                                    :     +- Filter (isnotnull(ss_sales_price#9341) AND isnotnull(ss_sold_date_sk#9351))
+                                    :        +- BatchScan[ss_store_sk#9335, ss_sales_price#9341, ss_sold_date_sk#9351] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_sales_price IS NOT NULL, ss_sold_date_sk IS NOT NULL] RuntimeFilters: []
+                                    +- Sort [ss_sold_date_sk#9374 ASC NULLS FIRST], false, 0
+                                       +- Filter isnotnull(avg(ss_sales_price)#9381)
+                                          +- HashAggregate(keys=[ss_sold_date_sk#9374], functions=[avg(UnscaledValue(ss_sales_price#9364))], output=[avg(ss_sales_price)#9381, ss_sold_date_sk#9374])
+                                             +- Exchange hashpartitioning(ss_sold_date_sk#9374, 200), ENSURE_REQUIREMENTS, [plan_id=7006]
+                                                +- HashAggregate(keys=[ss_sold_date_sk#9374], functions=[partial_avg(UnscaledValue(ss_sales_price#9364))], output=[ss_sold_date_sk#9374, sum#9413, count#9414L])
+                                                   +- Filter isnotnull(ss_sold_date_sk#9374)
+                                                      +- BatchScan[ss_sales_price#9364, ss_sold_date_sk#9374] spark_catalog.tpcds_iceberg_10g.store_sales [filters=] RuntimeFilters: []
+

@@ -1,0 +1,69 @@
+=== Optimized Logical Plan ===
+Aggregate [count(distinct cs_order_number#10781L) AS ordercount#10760L, MakeDecimal(sum(UnscaledValue(cs_ext_ship_cost#10792)),17,2) AS totalshippingcost#10761, MakeDecimal(sum(UnscaledValue(cs_net_profit#10797)),17,2) AS totalnetprofit#10762]
++- Project [cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797]
+   +- Join Inner, (cs_call_center_sk#10775 = cc_call_center_sk#10840)
+      :- Project [cs_call_center_sk#10775, cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797]
+      :  +- Join Inner, (cs_ship_addr_sk#10774 = ca_address_sk#10827)
+      :     :- Project [cs_ship_addr_sk#10774, cs_call_center_sk#10775, cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797]
+      :     :  +- Join Inner, (cs_ship_date_sk#10766 = d_date_sk#10799)
+      :     :     :- Join LeftAnti, (cs_order_number#10781L = cr_order_number#10925L)
+      :     :     :  :- Project [cs_ship_date_sk#10766, cs_ship_addr_sk#10774, cs_call_center_sk#10775, cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797]
+      :     :     :  :  +- Join LeftSemi, ((cs_order_number#10781L = cs_order_number#10887L) AND NOT (cs_warehouse_sk#10778 = cs_warehouse_sk#10884))
+      :     :     :  :     :- Filter ((isnotnull(cs_ship_date_sk#10766) AND isnotnull(cs_ship_addr_sk#10774)) AND isnotnull(cs_call_center_sk#10775))
+      :     :     :  :     :  +- RelationV2[cs_ship_date_sk#10766, cs_ship_addr_sk#10774, cs_call_center_sk#10775, cs_warehouse_sk#10778, cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797] spark_catalog.tpcds_iceberg_10g.catalog_sales
+      :     :     :  :     +- Project [cs_warehouse_sk#10884, cs_order_number#10887L]
+      :     :     :  :        +- RelationV2[cs_sold_time_sk#10871, cs_ship_date_sk#10872, cs_bill_customer_sk#10873, cs_bill_cdemo_sk#10874, cs_bill_hdemo_sk#10875, cs_bill_addr_sk#10876, cs_ship_customer_sk#10877, cs_ship_cdemo_sk#10878, cs_ship_hdemo_sk#10879, cs_ship_addr_sk#10880, cs_call_center_sk#10881, cs_catalog_page_sk#10882, cs_ship_mode_sk#10883, cs_warehouse_sk#10884, cs_item_sk#10885, cs_promo_sk#10886, cs_order_number#10887L, cs_quantity#10888, cs_wholesale_cost#10889, cs_list_price#10890, cs_sales_price#10891, cs_ext_discount_amt#10892, cs_ext_sales_price#10893, cs_ext_wholesale_cost#10894, ... 10 more fields] spark_catalog.tpcds_iceberg_10g.catalog_sales
+      :     :     :  +- Project [cr_order_number#10925L]
+      :     :     :     +- RelationV2[cr_returned_time_sk#10910, cr_item_sk#10911, cr_refunded_customer_sk#10912, cr_refunded_cdemo_sk#10913, cr_refunded_hdemo_sk#10914, cr_refunded_addr_sk#10915, cr_returning_customer_sk#10916, cr_returning_cdemo_sk#10917, cr_returning_hdemo_sk#10918, cr_returning_addr_sk#10919, cr_call_center_sk#10920, cr_catalog_page_sk#10921, cr_ship_mode_sk#10922, cr_warehouse_sk#10923, cr_reason_sk#10924, cr_order_number#10925L, cr_return_quantity#10926, cr_return_amount#10927, cr_return_tax#10928, cr_return_amt_inc_tax#10929, cr_fee#10930, cr_return_ship_cost#10931, cr_refunded_cash#10932, cr_reversed_charge#10933, ... 3 more fields] spark_catalog.tpcds_iceberg_10g.catalog_returns
+      :     :     +- Project [d_date_sk#10799]
+      :     :        +- Filter (((isnotnull(d_date#10801) AND (d_date#10801 >= 2001-04-01)) AND (d_date#10801 <= 2001-05-31)) AND isnotnull(d_date_sk#10799))
+      :     :           +- RelationV2[d_date_sk#10799, d_date#10801] spark_catalog.tpcds_iceberg_10g.date_dim
+      :     +- Project [ca_address_sk#10827]
+      :        +- Filter ((isnotnull(ca_state#10835) AND (ca_state#10835 = NY)) AND isnotnull(ca_address_sk#10827))
+      :           +- RelationV2[ca_address_sk#10827, ca_state#10835] spark_catalog.tpcds_iceberg_10g.customer_address
+      +- Project [cc_call_center_sk#10840]
+         +- Filter (cc_county#10865 IN (Ziebach County,Levy County,Huron County,Franklin Parish,Daviess County) AND isnotnull(cc_call_center_sk#10840))
+            +- RelationV2[cc_call_center_sk#10840, cc_county#10865] spark_catalog.tpcds_iceberg_10g.call_center
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[], functions=[sum(UnscaledValue(cs_ext_ship_cost#10792)), sum(UnscaledValue(cs_net_profit#10797)), count(distinct cs_order_number#10781L)], output=[ordercount#10760L, totalshippingcost#10761, totalnetprofit#10762])
+   +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=9820]
+      +- HashAggregate(keys=[], functions=[merge_sum(UnscaledValue(cs_ext_ship_cost#10792)), merge_sum(UnscaledValue(cs_net_profit#10797)), partial_count(distinct cs_order_number#10781L)], output=[sum#11044L, sum#11046L, count#11049L])
+         +- HashAggregate(keys=[cs_order_number#10781L], functions=[merge_sum(UnscaledValue(cs_ext_ship_cost#10792)), merge_sum(UnscaledValue(cs_net_profit#10797))], output=[cs_order_number#10781L, sum#11044L, sum#11046L])
+            +- HashAggregate(keys=[cs_order_number#10781L], functions=[partial_sum(UnscaledValue(cs_ext_ship_cost#10792)), partial_sum(UnscaledValue(cs_net_profit#10797))], output=[cs_order_number#10781L, sum#11044L, sum#11046L])
+               +- Project [cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797]
+                  +- BroadcastHashJoin [cs_call_center_sk#10775], [cc_call_center_sk#10840], Inner, BuildRight, false
+                     :- Project [cs_call_center_sk#10775, cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797]
+                     :  +- BroadcastHashJoin [cs_ship_addr_sk#10774], [ca_address_sk#10827], Inner, BuildRight, false
+                     :     :- Project [cs_ship_addr_sk#10774, cs_call_center_sk#10775, cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797]
+                     :     :  +- BroadcastHashJoin [cs_ship_date_sk#10766], [d_date_sk#10799], Inner, BuildRight, false
+                     :     :     :- SortMergeJoin [cs_order_number#10781L], [cr_order_number#10925L], LeftAnti
+                     :     :     :  :- Project [cs_ship_date_sk#10766, cs_ship_addr_sk#10774, cs_call_center_sk#10775, cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797]
+                     :     :     :  :  +- SortMergeJoin [cs_order_number#10781L], [cs_order_number#10887L], LeftSemi, NOT (cs_warehouse_sk#10778 = cs_warehouse_sk#10884)
+                     :     :     :  :     :- Sort [cs_order_number#10781L ASC NULLS FIRST], false, 0
+                     :     :     :  :     :  +- Exchange hashpartitioning(cs_order_number#10781L, 200), ENSURE_REQUIREMENTS, [plan_id=9793]
+                     :     :     :  :     :     +- Filter ((isnotnull(cs_ship_date_sk#10766) AND isnotnull(cs_ship_addr_sk#10774)) AND isnotnull(cs_call_center_sk#10775))
+                     :     :     :  :     :        +- BatchScan[cs_ship_date_sk#10766, cs_ship_addr_sk#10774, cs_call_center_sk#10775, cs_warehouse_sk#10778, cs_order_number#10781L, cs_ext_ship_cost#10792, cs_net_profit#10797] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_ship_date_sk IS NOT NULL, cs_ship_addr_sk IS NOT NULL, cs_call_center_sk IS NOT NULL] RuntimeFilters: []
+                     :     :     :  :     +- Sort [cs_order_number#10887L ASC NULLS FIRST], false, 0
+                     :     :     :  :        +- Exchange hashpartitioning(cs_order_number#10887L, 200), ENSURE_REQUIREMENTS, [plan_id=9794]
+                     :     :     :  :           +- Project [cs_warehouse_sk#10884, cs_order_number#10887L]
+                     :     :     :  :              +- BatchScan[cs_sold_time_sk#10871, cs_ship_date_sk#10872, cs_bill_customer_sk#10873, cs_bill_cdemo_sk#10874, cs_bill_hdemo_sk#10875, cs_bill_addr_sk#10876, cs_ship_customer_sk#10877, cs_ship_cdemo_sk#10878, cs_ship_hdemo_sk#10879, cs_ship_addr_sk#10880, cs_call_center_sk#10881, cs_catalog_page_sk#10882, cs_ship_mode_sk#10883, cs_warehouse_sk#10884, cs_item_sk#10885, cs_promo_sk#10886, cs_order_number#10887L, cs_quantity#10888, cs_wholesale_cost#10889, cs_list_price#10890, cs_sales_price#10891, cs_ext_discount_amt#10892, cs_ext_sales_price#10893, cs_ext_wholesale_cost#10894, ... 10 more fields] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=] RuntimeFilters: []
+                     :     :     :  +- Sort [cr_order_number#10925L ASC NULLS FIRST], false, 0
+                     :     :     :     +- Exchange hashpartitioning(cr_order_number#10925L, 200), ENSURE_REQUIREMENTS, [plan_id=9801]
+                     :     :     :        +- Project [cr_order_number#10925L]
+                     :     :     :           +- BatchScan[cr_returned_time_sk#10910, cr_item_sk#10911, cr_refunded_customer_sk#10912, cr_refunded_cdemo_sk#10913, cr_refunded_hdemo_sk#10914, cr_refunded_addr_sk#10915, cr_returning_customer_sk#10916, cr_returning_cdemo_sk#10917, cr_returning_hdemo_sk#10918, cr_returning_addr_sk#10919, cr_call_center_sk#10920, cr_catalog_page_sk#10921, cr_ship_mode_sk#10922, cr_warehouse_sk#10923, cr_reason_sk#10924, cr_order_number#10925L, cr_return_quantity#10926, cr_return_amount#10927, cr_return_tax#10928, cr_return_amt_inc_tax#10929, cr_fee#10930, cr_return_ship_cost#10931, cr_refunded_cash#10932, cr_reversed_charge#10933, ... 3 more fields] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=] RuntimeFilters: []
+                     :     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=9805]
+                     :     :        +- Project [d_date_sk#10799]
+                     :     :           +- Filter (((isnotnull(d_date#10801) AND (d_date#10801 >= 2001-04-01)) AND (d_date#10801 <= 2001-05-31)) AND isnotnull(d_date_sk#10799))
+                     :     :              +- BatchScan[d_date_sk#10799, d_date#10801] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_date IS NOT NULL, d_date >= 11413, d_date <= 11473, d_date_sk IS NOT NULL] RuntimeFilters: []
+                     :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=9809]
+                     :        +- Project [ca_address_sk#10827]
+                     :           +- Filter ((isnotnull(ca_state#10835) AND (ca_state#10835 = NY)) AND isnotnull(ca_address_sk#10827))
+                     :              +- BatchScan[ca_address_sk#10827, ca_state#10835] spark_catalog.tpcds_iceberg_10g.customer_address [filters=ca_state IS NOT NULL, ca_state = 'NY', ca_address_sk IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=9813]
+                        +- Project [cc_call_center_sk#10840]
+                           +- Filter (cc_county#10865 IN (Ziebach County,Levy County,Huron County,Franklin Parish,Daviess County) AND isnotnull(cc_call_center_sk#10840))
+                              +- BatchScan[cc_call_center_sk#10840, cc_county#10865] spark_catalog.tpcds_iceberg_10g.call_center [filters=cc_county IN ('Ziebach County', 'Levy County', 'Huron County', 'Franklin Parish', 'Daviess County'), cc_call_center_sk IS NOT NULL] RuntimeFilters: []
+

@@ -1,0 +1,47 @@
+== Optimized Logical Plan ==
+Sort [num_customers#22578L DESC NULLS LAST], true
++- Aggregate [r_name#22580], [r_name#22580, count(distinct c_custkey#22586L) AS num_customers#22578L]
+   +- Project [r_name#22580, c_custkey#22586L]
+      +- Join Inner, (c_custkey#22586L = o_custkey#22595L)
+         :- Project [r_name#22580, c_custkey#22586L]
+         :  +- Join Inner, (n_nationkey#22582L = c_nationkey#22589L)
+         :     :- Project [r_name#22580, n_nationkey#22582L]
+         :     :  +- Join Inner, (r_regionkey#22579L = n_regionkey#22584L)
+         :     :     :- Filter isnotnull(r_regionkey#22579L)
+         :     :     :  +- RelationV2[r_regionkey#22579L, r_name#22580] spark_catalog.tpch_iceberg_10g.region
+         :     :     +- Filter (isnotnull(n_regionkey#22584L) AND isnotnull(n_nationkey#22582L))
+         :     :        +- RelationV2[n_nationkey#22582L, n_regionkey#22584L] spark_catalog.tpch_iceberg_10g.nation
+         :     +- Filter (isnotnull(c_nationkey#22589L) AND isnotnull(c_custkey#22586L))
+         :        +- RelationV2[c_custkey#22586L, c_nationkey#22589L] spark_catalog.tpch_iceberg_10g.customer
+         +- Project [o_custkey#22595L]
+            +- Filter (((isnotnull(o_orderdate#22598) AND (o_orderdate#22598 >= 2023-01-01)) AND (o_orderdate#22598 <= 2023-12-31)) AND isnotnull(o_custkey#22595L))
+               +- RelationV2[o_custkey#22595L, o_orderdate#22598] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_customers#22578L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[r_name#22580], functions=[count(distinct c_custkey#22586L)], output=[r_name#22580, num_customers#22578L])
+      +- HashAggregate(keys=[r_name#22580], functions=[partial_count(distinct c_custkey#22586L)], output=[r_name#22580, count#22636L])
+         +- HashAggregate(keys=[r_name#22580, c_custkey#22586L], functions=[], output=[r_name#22580, c_custkey#22586L])
+            +- HashAggregate(keys=[r_name#22580, c_custkey#22586L], functions=[], output=[r_name#22580, c_custkey#22586L])
+               +- Project [r_name#22580, c_custkey#22586L]
+                  +- BroadcastHashJoin [c_custkey#22586L], [o_custkey#22595L], Inner, BuildRight, false
+                     :- Project [r_name#22580, c_custkey#22586L]
+                     :  +- BroadcastHashJoin [n_nationkey#22582L], [c_nationkey#22589L], Inner, BuildLeft, false
+                     :     :- BroadcastExchange HashedRelationBroadcastMode(List(input[1, bigint, true]),false), [plan_id=26281]
+                     :     :  +- Project [r_name#22580, n_nationkey#22582L]
+                     :     :     +- BroadcastHashJoin [r_regionkey#22579L], [n_regionkey#22584L], Inner, BuildLeft, false
+                     :     :        :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=26277]
+                     :     :        :  +- Filter isnotnull(r_regionkey#22579L)
+                     :     :        :     +- BatchScan[r_regionkey#22579L, r_name#22580] spark_catalog.tpch_iceberg_10g.region [filters=r_regionkey IS NOT NULL] RuntimeFilters: []
+                     :     :        +- Filter (isnotnull(n_regionkey#22584L) AND isnotnull(n_nationkey#22582L))
+                     :     :           +- BatchScan[n_nationkey#22582L, n_regionkey#22584L] spark_catalog.tpch_iceberg_10g.nation [filters=n_regionkey IS NOT NULL, n_nationkey IS NOT NULL] RuntimeFilters: []
+                     :     +- Filter (isnotnull(c_nationkey#22589L) AND isnotnull(c_custkey#22586L))
+                     :        +- BatchScan[c_custkey#22586L, c_nationkey#22589L] spark_catalog.tpch_iceberg_10g.customer [filters=c_nationkey IS NOT NULL, c_custkey IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=26285]
+                        +- Project [o_custkey#22595L]
+                           +- Filter (((isnotnull(o_orderdate#22598) AND (o_orderdate#22598 >= 2023-01-01)) AND (o_orderdate#22598 <= 2023-12-31)) AND isnotnull(o_custkey#22595L))
+                              +- BatchScan[o_custkey#22595L, o_orderdate#22598] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderdate IS NOT NULL, o_orderdate >= '2023-01-01', o_orderdate <= '2023-12-31', o_custkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

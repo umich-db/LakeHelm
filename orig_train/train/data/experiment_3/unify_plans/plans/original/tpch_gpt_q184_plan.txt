@@ -1,0 +1,57 @@
+== Optimized Logical Plan ==
+Sort [total_quantity#27134L DESC NULLS LAST], true
++- Aggregate [p_brand#27138, p_type#27139], [p_brand#27138, p_type#27139, sum(l_quantity#27148L) AS total_quantity#27134L]
+   +- Project [p_brand#27138, p_type#27139, l_quantity#27148L]
+      +- Join Inner, (o_custkey#27161L = c_custkey#27169L)
+         :- Project [p_brand#27138, p_type#27139, l_quantity#27148L, o_custkey#27161L]
+         :  +- Join Inner, (l_orderkey#27144L = o_orderkey#27160L)
+         :     :- Project [p_brand#27138, p_type#27139, l_orderkey#27144L, l_quantity#27148L]
+         :     :  +- Join Inner, (p_partkey#27135L = l_partkey#27145L)
+         :     :     :- Filter isnotnull(p_partkey#27135L)
+         :     :     :  +- RelationV2[p_partkey#27135L, p_brand#27138, p_type#27139] spark_catalog.tpch_iceberg_10g.part
+         :     :     +- Filter (isnotnull(l_partkey#27145L) AND isnotnull(l_orderkey#27144L))
+         :     :        +- RelationV2[l_orderkey#27144L, l_partkey#27145L, l_quantity#27148L] spark_catalog.tpch_iceberg_10g.lineitem
+         :     +- Project [o_orderkey#27160L, o_custkey#27161L]
+         :        +- Filter (((isnotnull(o_orderdate#27164) AND (o_orderdate#27164 < 1995-03-15)) AND isnotnull(o_orderkey#27160L)) AND isnotnull(o_custkey#27161L))
+         :           +- RelationV2[o_orderkey#27160L, o_custkey#27161L, o_orderdate#27164] spark_catalog.tpch_iceberg_10g.orders
+         +- Project [c_custkey#27169L]
+            +- Filter ((isnotnull(c_mktsegment#27175) AND (c_mktsegment#27175 = BUILDING)) AND isnotnull(c_custkey#27169L))
+               +- RelationV2[c_custkey#27169L, c_mktsegment#27175] spark_catalog.tpch_iceberg_10g.customer
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_quantity#27134L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_quantity#27134L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=32539]
+      +- HashAggregate(keys=[p_brand#27138, p_type#27139], functions=[sum(l_quantity#27148L)], output=[p_brand#27138, p_type#27139, total_quantity#27134L])
+         +- Exchange hashpartitioning(p_brand#27138, p_type#27139, 200), ENSURE_REQUIREMENTS, [plan_id=32536]
+            +- HashAggregate(keys=[p_brand#27138, p_type#27139], functions=[partial_sum(l_quantity#27148L)], output=[p_brand#27138, p_type#27139, sum#27213L])
+               +- Project [p_brand#27138, p_type#27139, l_quantity#27148L]
+                  +- SortMergeJoin [o_custkey#27161L], [c_custkey#27169L], Inner
+                     :- Sort [o_custkey#27161L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(o_custkey#27161L, 200), ENSURE_REQUIREMENTS, [plan_id=32528]
+                     :     +- Project [p_brand#27138, p_type#27139, l_quantity#27148L, o_custkey#27161L]
+                     :        +- SortMergeJoin [l_orderkey#27144L], [o_orderkey#27160L], Inner
+                     :           :- Sort [l_orderkey#27144L ASC NULLS FIRST], false, 0
+                     :           :  +- Exchange hashpartitioning(l_orderkey#27144L, 200), ENSURE_REQUIREMENTS, [plan_id=32520]
+                     :           :     +- Project [p_brand#27138, p_type#27139, l_orderkey#27144L, l_quantity#27148L]
+                     :           :        +- SortMergeJoin [p_partkey#27135L], [l_partkey#27145L], Inner
+                     :           :           :- Sort [p_partkey#27135L ASC NULLS FIRST], false, 0
+                     :           :           :  +- Exchange hashpartitioning(p_partkey#27135L, 200), ENSURE_REQUIREMENTS, [plan_id=32513]
+                     :           :           :     +- Filter isnotnull(p_partkey#27135L)
+                     :           :           :        +- BatchScan[p_partkey#27135L, p_brand#27138, p_type#27139] spark_catalog.tpch_iceberg_10g.part [filters=p_partkey IS NOT NULL] RuntimeFilters: []
+                     :           :           +- Sort [l_partkey#27145L ASC NULLS FIRST], false, 0
+                     :           :              +- Exchange hashpartitioning(l_partkey#27145L, 200), ENSURE_REQUIREMENTS, [plan_id=32512]
+                     :           :                 +- Filter (isnotnull(l_partkey#27145L) AND isnotnull(l_orderkey#27144L))
+                     :           :                    +- BatchScan[l_orderkey#27144L, l_partkey#27145L, l_quantity#27148L] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_partkey IS NOT NULL, l_orderkey IS NOT NULL] RuntimeFilters: []
+                     :           +- Sort [o_orderkey#27160L ASC NULLS FIRST], false, 0
+                     :              +- Exchange hashpartitioning(o_orderkey#27160L, 200), ENSURE_REQUIREMENTS, [plan_id=32521]
+                     :                 +- Project [o_orderkey#27160L, o_custkey#27161L]
+                     :                    +- Filter (((isnotnull(o_orderdate#27164) AND (o_orderdate#27164 < 1995-03-15)) AND isnotnull(o_orderkey#27160L)) AND isnotnull(o_custkey#27161L))
+                     :                       +- BatchScan[o_orderkey#27160L, o_custkey#27161L, o_orderdate#27164] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderdate IS NOT NULL, o_orderdate < '1995-03-15', o_orderkey IS NOT NULL, o_custkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [c_custkey#27169L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(c_custkey#27169L, 200), ENSURE_REQUIREMENTS, [plan_id=32529]
+                           +- Project [c_custkey#27169L]
+                              +- Filter ((isnotnull(c_mktsegment#27175) AND (c_mktsegment#27175 = BUILDING)) AND isnotnull(c_custkey#27169L))
+                                 +- BatchScan[c_custkey#27169L, c_mktsegment#27175] spark_catalog.tpch_iceberg_10g.customer [filters=c_mktsegment IS NOT NULL, c_mktsegment = 'BUILDING', c_custkey IS NOT NULL] RuntimeFilters: []
+

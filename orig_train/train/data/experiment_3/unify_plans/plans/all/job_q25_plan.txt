@@ -1,0 +1,49 @@
+== Optimized Logical Plan ==
+Sort [movie_count#17367L DESC NULLS LAST], true
++- Aggregate [name#17369], [name#17369 AS company_name#17366, count(distinct id#17380L) AS movie_count#17367L]
+   +- Project [name#17369, id#17380L]
+      +- Join Inner, (kind_id#17383L = id#17392L)
+         :- Project [name#17369, id#17380L, kind_id#17383L]
+         :  +- Join Inner, (movie_id#17376L = id#17380L)
+         :     :- Project [name#17369, movie_id#17376L]
+         :     :  +- Join Inner, (id#17368L = company_id#17377L)
+         :     :     :- Project [id#17368L, name#17369]
+         :     :     :  +- Filter ((isnotnull(country_code#17370) AND (country_code#17370 = US)) AND isnotnull(id#17368L))
+         :     :     :     +- RelationV2[id#17368L, name#17369, country_code#17370] spark_catalog.job_iceberg_10g.company_name
+         :     :     +- Filter (isnotnull(company_id#17377L) AND isnotnull(movie_id#17376L))
+         :     :        +- RelationV2[movie_id#17376L, company_id#17377L] spark_catalog.job_iceberg_10g.movie_companies
+         :     +- Filter (isnotnull(id#17380L) AND isnotnull(kind_id#17383L))
+         :        +- RelationV2[id#17380L, kind_id#17383L] spark_catalog.job_iceberg_10g.title
+         +- Project [id#17392L]
+            +- Filter ((isnotnull(kind#17393) AND (kind#17393 = TV Series)) AND isnotnull(id#17392L))
+               +- RelationV2[id#17392L, kind#17393] spark_catalog.job_iceberg_10g.kind_type
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [movie_count#17367L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[name#17369], functions=[count(distinct id#17380L)], output=[company_name#17366, movie_count#17367L])
+      +- HashAggregate(keys=[name#17369], functions=[partial_count(distinct id#17380L)], output=[name#17369, count#17428L])
+         +- HashAggregate(keys=[name#17369, id#17380L], functions=[], output=[name#17369, id#17380L])
+            +- HashAggregate(keys=[name#17369, id#17380L], functions=[], output=[name#17369, id#17380L])
+               +- Project [name#17369, id#17380L]
+                  +- BroadcastHashJoin [kind_id#17383L], [id#17392L], Inner, BuildRight, false
+                     :- Project [name#17369, id#17380L, kind_id#17383L]
+                     :  +- SortMergeJoin [movie_id#17376L], [id#17380L], Inner
+                     :     :- Sort [movie_id#17376L ASC NULLS FIRST], false, 0
+                     :     :  +- Project [name#17369, movie_id#17376L]
+                     :     :     +- BroadcastHashJoin [id#17368L], [company_id#17377L], Inner, BuildLeft, false
+                     :     :        :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=18629]
+                     :     :        :  +- Project [id#17368L, name#17369]
+                     :     :        :     +- Filter ((isnotnull(country_code#17370) AND (country_code#17370 = US)) AND isnotnull(id#17368L))
+                     :     :        :        +- BatchScan[id#17368L, name#17369, country_code#17370] spark_catalog.job_iceberg_10g.company_name [filters=country_code IS NOT NULL, country_code = 'US', id IS NOT NULL] RuntimeFilters: []
+                     :     :        +- Filter (isnotnull(company_id#17377L) AND isnotnull(movie_id#17376L))
+                     :     :           +- BatchScan[movie_id#17376L, company_id#17377L] spark_catalog.job_iceberg_10g.movie_companies [filters=company_id IS NOT NULL, movie_id IS NOT NULL] RuntimeFilters: []
+                     :     +- Sort [id#17380L ASC NULLS FIRST], false, 0
+                     :        +- Filter (isnotnull(id#17380L) AND isnotnull(kind_id#17383L))
+                     :           +- BatchScan[id#17380L, kind_id#17383L] spark_catalog.job_iceberg_10g.title [filters=id IS NOT NULL, kind_id IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, true]),false), [plan_id=18639]
+                        +- Project [id#17392L]
+                           +- Filter ((isnotnull(kind#17393) AND (kind#17393 = TV Series)) AND isnotnull(id#17392L))
+                              +- BatchScan[id#17392L, kind#17393] spark_catalog.job_iceberg_10g.kind_type [filters=kind IS NOT NULL, kind = 'TV Series', id IS NOT NULL] RuntimeFilters: []
+

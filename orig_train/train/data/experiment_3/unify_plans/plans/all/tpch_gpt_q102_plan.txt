@@ -1,0 +1,44 @@
+== Optimized Logical Plan ==
+Sort [num_orders#26679L DESC NULLS LAST], true
++- Aggregate [n_name#26681], [n_name#26681, count(distinct o_orderkey#26692L) AS num_orders#26679L]
+   +- Project [n_name#26681, o_orderkey#26692L]
+      +- Join Inner, (c_custkey#26684L = o_custkey#26693L)
+         :- Project [n_name#26681, c_custkey#26684L]
+         :  +- Join Inner, (n_nationkey#26680L = c_nationkey#26687L)
+         :     :- Filter isnotnull(n_nationkey#26680L)
+         :     :  +- RelationV2[n_nationkey#26680L, n_name#26681] spark_catalog.tpch_iceberg_10g.nation
+         :     +- Filter (isnotnull(c_nationkey#26687L) AND isnotnull(c_custkey#26684L))
+         :        +- RelationV2[c_custkey#26684L, c_nationkey#26687L] spark_catalog.tpch_iceberg_10g.customer
+         +- Project [o_orderkey#26692L, o_custkey#26693L]
+            +- Filter ((isnotnull(o_orderstatus#26694) AND (o_orderstatus#26694 = O)) AND isnotnull(o_custkey#26693L))
+               +- RelationV2[o_orderkey#26692L, o_custkey#26693L, o_orderstatus#26694] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_orders#26679L DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(num_orders#26679L DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=31930]
+      +- HashAggregate(keys=[n_name#26681], functions=[count(distinct o_orderkey#26692L)], output=[n_name#26681, num_orders#26679L])
+         +- Exchange hashpartitioning(n_name#26681, 200), ENSURE_REQUIREMENTS, [plan_id=31927]
+            +- HashAggregate(keys=[n_name#26681], functions=[partial_count(distinct o_orderkey#26692L)], output=[n_name#26681, count#26728L])
+               +- HashAggregate(keys=[n_name#26681, o_orderkey#26692L], functions=[], output=[n_name#26681, o_orderkey#26692L])
+                  +- Exchange hashpartitioning(n_name#26681, o_orderkey#26692L, 200), ENSURE_REQUIREMENTS, [plan_id=31923]
+                     +- HashAggregate(keys=[n_name#26681, o_orderkey#26692L], functions=[], output=[n_name#26681, o_orderkey#26692L])
+                        +- Project [n_name#26681, o_orderkey#26692L]
+                           +- SortMergeJoin [c_custkey#26684L], [o_custkey#26693L], Inner
+                              :- Sort [c_custkey#26684L ASC NULLS FIRST], false, 0
+                              :  +- Exchange hashpartitioning(c_custkey#26684L, 200), ENSURE_REQUIREMENTS, [plan_id=31916]
+                              :     +- Project [n_name#26681, c_custkey#26684L]
+                              :        +- BroadcastHashJoin [n_nationkey#26680L], [c_nationkey#26687L], Inner, BuildLeft, false
+                              :           :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, bigint, false]),false), [plan_id=31910]
+                              :           :  +- Filter isnotnull(n_nationkey#26680L)
+                              :           :     +- BatchScan[n_nationkey#26680L, n_name#26681] spark_catalog.tpch_iceberg_10g.nation [filters=n_nationkey IS NOT NULL] RuntimeFilters: []
+                              :           +- Filter (isnotnull(c_nationkey#26687L) AND isnotnull(c_custkey#26684L))
+                              :              +- BatchScan[c_custkey#26684L, c_nationkey#26687L] spark_catalog.tpch_iceberg_10g.customer [filters=c_nationkey IS NOT NULL, c_custkey IS NOT NULL] RuntimeFilters: []
+                              +- Sort [o_custkey#26693L ASC NULLS FIRST], false, 0
+                                 +- Exchange hashpartitioning(o_custkey#26693L, 200), ENSURE_REQUIREMENTS, [plan_id=31915]
+                                    +- Project [o_orderkey#26692L, o_custkey#26693L]
+                                       +- Filter ((isnotnull(o_orderstatus#26694) AND (o_orderstatus#26694 = O)) AND isnotnull(o_custkey#26693L))
+                                          +- BatchScan[o_orderkey#26692L, o_custkey#26693L, o_orderstatus#26694] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderstatus IS NOT NULL, o_orderstatus = 'O', o_custkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

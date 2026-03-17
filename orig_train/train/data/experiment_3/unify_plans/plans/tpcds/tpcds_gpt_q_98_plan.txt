@@ -1,0 +1,23 @@
+== Optimized Logical Plan ==
+Aggregate [s_store_name#6484], [s_store_name#6484, count(ss_ticket_number#6516L) AS total_tickets#6478L]
++- Project [s_store_name#6484, ss_ticket_number#6516L]
+   +- Join Inner, (s_store_sk#6479 = ss_store_sk#6514)
+      :- Filter isnotnull(s_store_sk#6479)
+      :  +- RelationV2[s_store_sk#6479, s_store_name#6484] spark_catalog.tpcds_iceberg_10g.store
+      +- Filter isnotnull(ss_store_sk#6514)
+         +- RelationV2[ss_store_sk#6514, ss_ticket_number#6516L] spark_catalog.tpcds_iceberg_10g.store_sales
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[s_store_name#6484], functions=[count(ss_ticket_number#6516L)], output=[s_store_name#6484, total_tickets#6478L])
+   +- Exchange hashpartitioning(s_store_name#6484, 200), ENSURE_REQUIREMENTS, [plan_id=4949]
+      +- HashAggregate(keys=[s_store_name#6484], functions=[partial_count(ss_ticket_number#6516L)], output=[s_store_name#6484, count#6549L])
+         +- Project [s_store_name#6484, ss_ticket_number#6516L]
+            +- BroadcastHashJoin [s_store_sk#6479], [ss_store_sk#6514], Inner, BuildLeft, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=4944]
+               :  +- Filter isnotnull(s_store_sk#6479)
+               :     +- BatchScan[s_store_sk#6479, s_store_name#6484] spark_catalog.tpcds_iceberg_10g.store [filters=s_store_sk IS NOT NULL] RuntimeFilters: []
+               +- Filter isnotnull(ss_store_sk#6514)
+                  +- BatchScan[ss_store_sk#6514, ss_ticket_number#6516L] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_store_sk IS NOT NULL] RuntimeFilters: []
+

@@ -1,0 +1,32 @@
+== Optimized Logical Plan ==
+Sort [total_revenue#19123 DESC NULLS LAST], true
++- Aggregate [l_shipmode#19138], [l_shipmode#19138, sum((l_extendedprice#19129 * (1.0 - l_discount#19130))) AS total_revenue#19123]
+   +- Project [l_extendedprice#19129, l_discount#19130, l_shipmode#19138]
+      +- Join Inner, (l_orderkey#19124L = o_orderkey#19140L)
+         :- Filter isnotnull(l_orderkey#19124L)
+         :  +- RelationV2[l_orderkey#19124L, l_extendedprice#19129, l_discount#19130, l_shipmode#19138] spark_catalog.tpch_iceberg_10g.lineitem
+         +- Project [o_orderkey#19140L]
+            +- Filter ((isnotnull(o_orderpriority#19145) AND (o_orderpriority#19145 = 1-URGENT)) AND isnotnull(o_orderkey#19140L))
+               +- RelationV2[o_orderkey#19140L, o_orderpriority#19145] spark_catalog.tpch_iceberg_10g.orders
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [total_revenue#19123 DESC NULLS LAST], true, 0
+   +- Exchange rangepartitioning(total_revenue#19123 DESC NULLS LAST, 200), ENSURE_REQUIREMENTS, [plan_id=21259]
+      +- HashAggregate(keys=[l_shipmode#19138], functions=[sum((l_extendedprice#19129 * (1.0 - l_discount#19130)))], output=[l_shipmode#19138, total_revenue#19123])
+         +- Exchange hashpartitioning(l_shipmode#19138, 200), ENSURE_REQUIREMENTS, [plan_id=21256]
+            +- HashAggregate(keys=[l_shipmode#19138], functions=[partial_sum((l_extendedprice#19129 * (1.0 - l_discount#19130)))], output=[l_shipmode#19138, sum#19169])
+               +- Project [l_extendedprice#19129, l_discount#19130, l_shipmode#19138]
+                  +- SortMergeJoin [l_orderkey#19124L], [o_orderkey#19140L], Inner
+                     :- Sort [l_orderkey#19124L ASC NULLS FIRST], false, 0
+                     :  +- Exchange hashpartitioning(l_orderkey#19124L, 200), ENSURE_REQUIREMENTS, [plan_id=21248]
+                     :     +- Filter isnotnull(l_orderkey#19124L)
+                     :        +- BatchScan[l_orderkey#19124L, l_extendedprice#19129, l_discount#19130, l_shipmode#19138] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_orderkey IS NOT NULL] RuntimeFilters: []
+                     +- Sort [o_orderkey#19140L ASC NULLS FIRST], false, 0
+                        +- Exchange hashpartitioning(o_orderkey#19140L, 200), ENSURE_REQUIREMENTS, [plan_id=21249]
+                           +- Project [o_orderkey#19140L]
+                              +- Filter ((isnotnull(o_orderpriority#19145) AND (o_orderpriority#19145 = 1-URGENT)) AND isnotnull(o_orderkey#19140L))
+                                 +- BatchScan[o_orderkey#19140L, o_orderpriority#19145] spark_catalog.tpch_iceberg_10g.orders [filters=o_orderpriority IS NOT NULL, o_orderpriority = '1-URGENT', o_orderkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

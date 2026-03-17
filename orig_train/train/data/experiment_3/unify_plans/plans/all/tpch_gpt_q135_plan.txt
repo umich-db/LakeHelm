@@ -1,0 +1,42 @@
+== Optimized Logical Plan ==
+Sort [o_orderdate#19290 ASC NULLS FIRST], true
++- Project [c_name#19279, o_orderdate#19290, l_extendedprice#19300]
+   +- Join Inner, (o_orderkey#19286L = l_orderkey#19295L)
+      :- Project [c_name#19279, o_orderkey#19286L, o_orderdate#19290]
+      :  +- Join Inner, (c_custkey#19278L = o_custkey#19287L)
+      :     :- Project [c_custkey#19278L, c_name#19279]
+      :     :  +- Filter ((isnotnull(c_mktsegment#19284) AND (c_mktsegment#19284 = AUTOMOBILE)) AND isnotnull(c_custkey#19278L))
+      :     :     +- RelationV2[c_custkey#19278L, c_name#19279, c_mktsegment#19284] spark_catalog.tpch_iceberg_10g.customer
+      :     +- Filter (isnotnull(o_custkey#19287L) AND isnotnull(o_orderkey#19286L))
+      :        +- RelationV2[o_orderkey#19286L, o_custkey#19287L, o_orderdate#19290] spark_catalog.tpch_iceberg_10g.orders
+      +- Project [l_orderkey#19295L, l_extendedprice#19300]
+         +- Filter ((isnotnull(l_shipdate#19305) AND (l_shipdate#19305 > 1994-01-01)) AND isnotnull(l_orderkey#19295L))
+            +- RelationV2[l_orderkey#19295L, l_extendedprice#19300, l_shipdate#19305] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [o_orderdate#19290 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(o_orderdate#19290 ASC NULLS FIRST, 200), ENSURE_REQUIREMENTS, [plan_id=21474]
+      +- Project [c_name#19279, o_orderdate#19290, l_extendedprice#19300]
+         +- SortMergeJoin [o_orderkey#19286L], [l_orderkey#19295L], Inner
+            :- Sort [o_orderkey#19286L ASC NULLS FIRST], false, 0
+            :  +- Exchange hashpartitioning(o_orderkey#19286L, 200), ENSURE_REQUIREMENTS, [plan_id=21467]
+            :     +- Project [c_name#19279, o_orderkey#19286L, o_orderdate#19290]
+            :        +- SortMergeJoin [c_custkey#19278L], [o_custkey#19287L], Inner
+            :           :- Sort [c_custkey#19278L ASC NULLS FIRST], false, 0
+            :           :  +- Exchange hashpartitioning(c_custkey#19278L, 200), ENSURE_REQUIREMENTS, [plan_id=21460]
+            :           :     +- Project [c_custkey#19278L, c_name#19279]
+            :           :        +- Filter ((isnotnull(c_mktsegment#19284) AND (c_mktsegment#19284 = AUTOMOBILE)) AND isnotnull(c_custkey#19278L))
+            :           :           +- BatchScan[c_custkey#19278L, c_name#19279, c_mktsegment#19284] spark_catalog.tpch_iceberg_10g.customer [filters=c_mktsegment IS NOT NULL, c_mktsegment = 'AUTOMOBILE', c_custkey IS NOT NULL] RuntimeFilters: []
+            :           +- Sort [o_custkey#19287L ASC NULLS FIRST], false, 0
+            :              +- Exchange hashpartitioning(o_custkey#19287L, 200), ENSURE_REQUIREMENTS, [plan_id=21459]
+            :                 +- Filter (isnotnull(o_custkey#19287L) AND isnotnull(o_orderkey#19286L))
+            :                    +- BatchScan[o_orderkey#19286L, o_custkey#19287L, o_orderdate#19290] spark_catalog.tpch_iceberg_10g.orders [filters=o_custkey IS NOT NULL, o_orderkey IS NOT NULL] RuntimeFilters: []
+            +- Sort [l_orderkey#19295L ASC NULLS FIRST], false, 0
+               +- Exchange hashpartitioning(l_orderkey#19295L, 200), ENSURE_REQUIREMENTS, [plan_id=21468]
+                  +- Project [l_orderkey#19295L, l_extendedprice#19300]
+                     +- Filter ((isnotnull(l_shipdate#19305) AND (l_shipdate#19305 > 1994-01-01)) AND isnotnull(l_orderkey#19295L))
+                        +- BatchScan[l_orderkey#19295L, l_extendedprice#19300, l_shipdate#19305] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_shipdate > '1994-01-01', l_orderkey IS NOT NULL] RuntimeFilters: []
+
+=== Physical Plan ===

@@ -1,0 +1,28 @@
+== Optimized Logical Plan ==
+Sort [num_orders#26452L DESC NULLS LAST], true
++- Aggregate [p_container#26459], [p_container#26459, count(distinct l_orderkey#26462L) AS num_orders#26452L]
+   +- Project [p_container#26459, l_orderkey#26462L]
+      +- Join Inner, (p_partkey#26453L = l_partkey#26463L)
+         :- Filter isnotnull(p_partkey#26453L)
+         :  +- RelationV2[p_partkey#26453L, p_container#26459] spark_catalog.tpch_iceberg_10g.part
+         +- Project [l_orderkey#26462L, l_partkey#26463L]
+            +- Filter (((isnotnull(l_shipdate#26472) AND (l_shipdate#26472 >= 2000-01-01)) AND (l_shipdate#26472 <= 2000-12-31)) AND isnotnull(l_partkey#26463L))
+               +- RelationV2[l_orderkey#26462L, l_partkey#26463L, l_shipdate#26472] spark_catalog.tpch_iceberg_10g.lineitem
+
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [num_orders#26452L DESC NULLS LAST], true, 0
+   +- HashAggregate(keys=[p_container#26459], functions=[count(distinct l_orderkey#26462L)], output=[p_container#26459, num_orders#26452L])
+      +- HashAggregate(keys=[p_container#26459], functions=[partial_count(distinct l_orderkey#26462L)], output=[p_container#26459, count#26498L])
+         +- HashAggregate(keys=[p_container#26459, l_orderkey#26462L], functions=[], output=[p_container#26459, l_orderkey#26462L])
+            +- HashAggregate(keys=[p_container#26459, l_orderkey#26462L], functions=[], output=[p_container#26459, l_orderkey#26462L])
+               +- Project [p_container#26459, l_orderkey#26462L]
+                  +- BroadcastHashJoin [p_partkey#26453L], [l_partkey#26463L], Inner, BuildRight, false
+                     :- Filter isnotnull(p_partkey#26453L)
+                     :  +- BatchScan[p_partkey#26453L, p_container#26459] spark_catalog.tpch_iceberg_10g.part [filters=p_partkey IS NOT NULL] RuntimeFilters: []
+                     +- BroadcastExchange HashedRelationBroadcastMode(List(input[1, bigint, true]),false), [plan_id=31577]
+                        +- Project [l_orderkey#26462L, l_partkey#26463L]
+                           +- Filter (((isnotnull(l_shipdate#26472) AND (l_shipdate#26472 >= 2000-01-01)) AND (l_shipdate#26472 <= 2000-12-31)) AND isnotnull(l_partkey#26463L))
+                              +- BatchScan[l_orderkey#26462L, l_partkey#26463L, l_shipdate#26472] spark_catalog.tpch_iceberg_10g.lineitem [filters=l_shipdate IS NOT NULL, l_shipdate >= '2000-01-01', l_shipdate <= '2000-12-31', l_partkey IS NOT NULL] RuntimeFilters: []
+

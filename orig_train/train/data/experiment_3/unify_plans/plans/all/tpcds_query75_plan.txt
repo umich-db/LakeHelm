@@ -1,0 +1,290 @@
+=== Optimized Logical Plan ===
+GlobalLimit 100
++- LocalLimit 100
+   +- Sort [sales_cnt_diff#35573L ASC NULLS FIRST], true
+      +- Project [d_year#36350 AS prev_year#35569, d_year#35645 AS year#35570, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35962L AS prev_yr_cnt#35571L, sales_cnt#35581L AS curr_yr_cnt#35572L, (sales_cnt#35581L - sales_cnt#35962L) AS sales_cnt_diff#35573L, CheckOverflow((promote_precision(cast(sales_amt#35582 as decimal(19,2))) - promote_precision(cast(sales_amt#35963 as decimal(19,2)))), DecimalType(19,2)) AS sales_amt_diff#35574]
+         +- Join Inner, (((((i_brand_id#35624 = i_brand_id#36329) AND (i_class_id#35626 = i_class_id#36331)) AND (i_category_id#35628 = i_category_id#36333)) AND (i_manufact_id#35630 = i_manufact_id#36335)) AND (CheckOverflow((promote_precision(cast(sales_cnt#35581L as decimal(17,2))) / promote_precision(cast(sales_cnt#35962L as decimal(17,2)))), DecimalType(37,20)) < 0.90000000000000000000))
+            :- Aggregate [d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630], [d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sum(sales_cnt#35575) AS sales_cnt#35581L, MakeDecimal(sum(UnscaledValue(sales_amt#35576)),18,2) AS sales_amt#35582]
+            :  +- Aggregate [d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35575, sales_amt#35576], [d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35575, sales_amt#35576]
+            :     +- Union false, false
+            :        :- Project [d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, (cs_quantity#35600 - coalesce(cr_return_quantity#35683, 0)) AS sales_cnt#35575, CheckOverflow((promote_precision(cast(cs_ext_sales_price#35605 as decimal(8,2))) - promote_precision(cast(coalesce(cr_return_amount#35684, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35576]
+            :        :  +- Join LeftOuter, ((cs_order_number#35599L = cr_order_number#35682L) AND (cs_item_sk#35597 = cr_item_sk#35668))
+            :        :     :- Project [cs_item_sk#35597, cs_order_number#35599L, cs_quantity#35600, cs_ext_sales_price#35605, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, d_year#35645]
+            :        :     :  +- Join Inner, (d_date_sk#35639 = cs_sold_date_sk#35616)
+            :        :     :     :- Project [cs_item_sk#35597, cs_order_number#35599L, cs_quantity#35600, cs_ext_sales_price#35605, cs_sold_date_sk#35616, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630]
+            :        :     :     :  +- Join Inner, (i_item_sk#35617 = cs_item_sk#35597)
+            :        :     :     :     :- Filter ((isnotnull(cs_item_sk#35597) AND isnotnull(cs_sold_date_sk#35616)) AND dynamicpruning#36704 [cs_sold_date_sk#35616])
+            :        :     :     :     :  :  +- Filter ((isnotnull(d_year#35645) AND (d_year#35645 = 2002)) AND isnotnull(d_date_sk#35639))
+            :        :     :     :     :  :     +- RelationV2[d_date_sk#35639, d_year#35645] spark_catalog.tpcds_iceberg_10g.date_dim
+            :        :     :     :     :  +- RelationV2[cs_item_sk#35597, cs_order_number#35599L, cs_quantity#35600, cs_ext_sales_price#35605, cs_sold_date_sk#35616] spark_catalog.tpcds_iceberg_10g.catalog_sales
+            :        :     :     :     +- Project [i_item_sk#35617, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630]
+            :        :     :     :        +- Filter ((((((isnotnull(i_category#35629) AND (i_category#35629 = Sports)) AND isnotnull(i_item_sk#35617)) AND isnotnull(i_brand_id#35624)) AND isnotnull(i_class_id#35626)) AND isnotnull(i_category_id#35628)) AND isnotnull(i_manufact_id#35630))
+            :        :     :     :           +- RelationV2[i_item_sk#35617, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_category#35629, i_manufact_id#35630] spark_catalog.tpcds_iceberg_10g.item
+            :        :     :     +- Filter ((isnotnull(d_year#35645) AND (d_year#35645 = 2002)) AND isnotnull(d_date_sk#35639))
+            :        :     :        +- RelationV2[d_date_sk#35639, d_year#35645] spark_catalog.tpcds_iceberg_10g.date_dim
+            :        :     +- Filter (isnotnull(cr_order_number#35682L) AND isnotnull(cr_item_sk#35668))
+            :        :        +- RelationV2[cr_item_sk#35668, cr_order_number#35682L, cr_return_quantity#35683, cr_return_amount#35684] spark_catalog.tpcds_iceberg_10g.catalog_returns
+            :        :- Project [d_year#35745, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_manufact_id#35730, (ss_quantity#35703 - coalesce(sr_return_quantity#35776, 0)) AS sales_cnt#35577, CheckOverflow((promote_precision(cast(ss_ext_sales_price#35708 as decimal(8,2))) - promote_precision(cast(coalesce(sr_return_amt#35777, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35578]
+            :        :  +- Join LeftOuter, ((ss_ticket_number#35702L = sr_ticket_number#35775L) AND (ss_item_sk#35695 = sr_item_sk#35768))
+            :        :     :- Project [ss_item_sk#35695, ss_ticket_number#35702L, ss_quantity#35703, ss_ext_sales_price#35708, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_manufact_id#35730, d_year#35745]
+            :        :     :  +- Join Inner, (d_date_sk#35739 = ss_sold_date_sk#35716)
+            :        :     :     :- Project [ss_item_sk#35695, ss_ticket_number#35702L, ss_quantity#35703, ss_ext_sales_price#35708, ss_sold_date_sk#35716, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_manufact_id#35730]
+            :        :     :     :  +- Join Inner, (i_item_sk#35717 = ss_item_sk#35695)
+            :        :     :     :     :- Filter ((isnotnull(ss_item_sk#35695) AND isnotnull(ss_sold_date_sk#35716)) AND dynamicpruning#36705 [ss_sold_date_sk#35716])
+            :        :     :     :     :  :  +- Filter ((isnotnull(d_year#35745) AND (d_year#35745 = 2002)) AND isnotnull(d_date_sk#35739))
+            :        :     :     :     :  :     +- RelationV2[d_date_sk#35739, d_year#35745] spark_catalog.tpcds_iceberg_10g.date_dim
+            :        :     :     :     :  +- RelationV2[ss_item_sk#35695, ss_ticket_number#35702L, ss_quantity#35703, ss_ext_sales_price#35708, ss_sold_date_sk#35716] spark_catalog.tpcds_iceberg_10g.store_sales
+            :        :     :     :     +- Project [i_item_sk#35717, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_manufact_id#35730]
+            :        :     :     :        +- Filter ((((((isnotnull(i_category#35729) AND (i_category#35729 = Sports)) AND isnotnull(i_item_sk#35717)) AND isnotnull(i_brand_id#35724)) AND isnotnull(i_class_id#35726)) AND isnotnull(i_category_id#35728)) AND isnotnull(i_manufact_id#35730))
+            :        :     :     :           +- RelationV2[i_item_sk#35717, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_category#35729, i_manufact_id#35730] spark_catalog.tpcds_iceberg_10g.item
+            :        :     :     +- Filter ((isnotnull(d_year#35745) AND (d_year#35745 = 2002)) AND isnotnull(d_date_sk#35739))
+            :        :     :        +- RelationV2[d_date_sk#35739, d_year#35745] spark_catalog.tpcds_iceberg_10g.date_dim
+            :        :     +- Filter (isnotnull(sr_ticket_number#35775L) AND isnotnull(sr_item_sk#35768))
+            :        :        +- RelationV2[sr_item_sk#35768, sr_ticket_number#35775L, sr_return_quantity#35776, sr_return_amt#35777] spark_catalog.tpcds_iceberg_10g.store_returns
+            :        +- Project [d_year#35849, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_manufact_id#35834, (ws_quantity#35804 - coalesce(wr_return_quantity#35884, 0)) AS sales_cnt#35579, CheckOverflow((promote_precision(cast(ws_ext_sales_price#35809 as decimal(8,2))) - promote_precision(cast(coalesce(wr_return_amt#35885, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35580]
+            :           +- Join LeftOuter, ((ws_order_number#35803L = wr_order_number#35883L) AND (ws_item_sk#35789 = wr_item_sk#35872))
+            :              :- Project [ws_item_sk#35789, ws_order_number#35803L, ws_quantity#35804, ws_ext_sales_price#35809, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_manufact_id#35834, d_year#35849]
+            :              :  +- Join Inner, (d_date_sk#35843 = ws_sold_date_sk#35820)
+            :              :     :- Project [ws_item_sk#35789, ws_order_number#35803L, ws_quantity#35804, ws_ext_sales_price#35809, ws_sold_date_sk#35820, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_manufact_id#35834]
+            :              :     :  +- Join Inner, (i_item_sk#35821 = ws_item_sk#35789)
+            :              :     :     :- Filter ((isnotnull(ws_item_sk#35789) AND isnotnull(ws_sold_date_sk#35820)) AND dynamicpruning#36706 [ws_sold_date_sk#35820])
+            :              :     :     :  :  +- Filter ((isnotnull(d_year#35849) AND (d_year#35849 = 2002)) AND isnotnull(d_date_sk#35843))
+            :              :     :     :  :     +- RelationV2[d_date_sk#35843, d_year#35849] spark_catalog.tpcds_iceberg_10g.date_dim
+            :              :     :     :  +- RelationV2[ws_item_sk#35789, ws_order_number#35803L, ws_quantity#35804, ws_ext_sales_price#35809, ws_sold_date_sk#35820] spark_catalog.tpcds_iceberg_10g.web_sales
+            :              :     :     +- Project [i_item_sk#35821, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_manufact_id#35834]
+            :              :     :        +- Filter ((((((isnotnull(i_category#35833) AND (i_category#35833 = Sports)) AND isnotnull(i_item_sk#35821)) AND isnotnull(i_brand_id#35828)) AND isnotnull(i_class_id#35830)) AND isnotnull(i_category_id#35832)) AND isnotnull(i_manufact_id#35834))
+            :              :     :           +- RelationV2[i_item_sk#35821, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_category#35833, i_manufact_id#35834] spark_catalog.tpcds_iceberg_10g.item
+            :              :     +- Filter ((isnotnull(d_year#35849) AND (d_year#35849 = 2002)) AND isnotnull(d_date_sk#35843))
+            :              :        +- RelationV2[d_date_sk#35843, d_year#35849] spark_catalog.tpcds_iceberg_10g.date_dim
+            :              +- Filter (isnotnull(wr_order_number#35883L) AND isnotnull(wr_item_sk#35872))
+            :                 +- RelationV2[wr_item_sk#35872, wr_order_number#35883L, wr_return_quantity#35884, wr_return_amt#35885] spark_catalog.tpcds_iceberg_10g.web_returns
+            +- Aggregate [d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335], [d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sum(sales_cnt#35575) AS sales_cnt#35962L, MakeDecimal(sum(UnscaledValue(sales_amt#35576)),18,2) AS sales_amt#35963]
+               +- Aggregate [d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sales_cnt#35575, sales_amt#35576], [d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sales_cnt#35575, sales_amt#35576]
+                  +- Union false, false
+                     :- Project [d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, (cs_quantity#36305 - coalesce(cr_return_quantity#36388, 0)) AS sales_cnt#35575, CheckOverflow((promote_precision(cast(cs_ext_sales_price#36310 as decimal(8,2))) - promote_precision(cast(coalesce(cr_return_amount#36389, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35576]
+                     :  +- Join LeftOuter, ((cs_order_number#36304L = cr_order_number#36387L) AND (cs_item_sk#36302 = cr_item_sk#36373))
+                     :     :- Project [cs_item_sk#36302, cs_order_number#36304L, cs_quantity#36305, cs_ext_sales_price#36310, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, d_year#36350]
+                     :     :  +- Join Inner, (d_date_sk#36344 = cs_sold_date_sk#36321)
+                     :     :     :- Project [cs_item_sk#36302, cs_order_number#36304L, cs_quantity#36305, cs_ext_sales_price#36310, cs_sold_date_sk#36321, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335]
+                     :     :     :  +- Join Inner, (i_item_sk#36322 = cs_item_sk#36302)
+                     :     :     :     :- Filter ((isnotnull(cs_item_sk#36302) AND isnotnull(cs_sold_date_sk#36321)) AND dynamicpruning#36707 [cs_sold_date_sk#36321])
+                     :     :     :     :  :  +- Filter ((isnotnull(d_year#36350) AND (d_year#36350 = 2001)) AND isnotnull(d_date_sk#36344))
+                     :     :     :     :  :     +- RelationV2[d_date_sk#36344, d_year#36350] spark_catalog.tpcds_iceberg_10g.date_dim
+                     :     :     :     :  +- RelationV2[cs_item_sk#36302, cs_order_number#36304L, cs_quantity#36305, cs_ext_sales_price#36310, cs_sold_date_sk#36321] spark_catalog.tpcds_iceberg_10g.catalog_sales
+                     :     :     :     +- Project [i_item_sk#36322, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335]
+                     :     :     :        +- Filter ((((((isnotnull(i_category#36334) AND (i_category#36334 = Sports)) AND isnotnull(i_item_sk#36322)) AND isnotnull(i_brand_id#36329)) AND isnotnull(i_class_id#36331)) AND isnotnull(i_category_id#36333)) AND isnotnull(i_manufact_id#36335))
+                     :     :     :           +- RelationV2[i_item_sk#36322, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_category#36334, i_manufact_id#36335] spark_catalog.tpcds_iceberg_10g.item
+                     :     :     +- Filter ((isnotnull(d_year#36350) AND (d_year#36350 = 2001)) AND isnotnull(d_date_sk#36344))
+                     :     :        +- RelationV2[d_date_sk#36344, d_year#36350] spark_catalog.tpcds_iceberg_10g.date_dim
+                     :     +- Filter (isnotnull(cr_order_number#36387L) AND isnotnull(cr_item_sk#36373))
+                     :        +- RelationV2[cr_item_sk#36373, cr_order_number#36387L, cr_return_quantity#36388, cr_return_amount#36389] spark_catalog.tpcds_iceberg_10g.catalog_returns
+                     :- Project [d_year#36450, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_manufact_id#36435, (ss_quantity#36408 - coalesce(sr_return_quantity#36481, 0)) AS sales_cnt#35577, CheckOverflow((promote_precision(cast(ss_ext_sales_price#36413 as decimal(8,2))) - promote_precision(cast(coalesce(sr_return_amt#36482, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35578]
+                     :  +- Join LeftOuter, ((ss_ticket_number#36407L = sr_ticket_number#36480L) AND (ss_item_sk#36400 = sr_item_sk#36473))
+                     :     :- Project [ss_item_sk#36400, ss_ticket_number#36407L, ss_quantity#36408, ss_ext_sales_price#36413, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_manufact_id#36435, d_year#36450]
+                     :     :  +- Join Inner, (d_date_sk#36444 = ss_sold_date_sk#36421)
+                     :     :     :- Project [ss_item_sk#36400, ss_ticket_number#36407L, ss_quantity#36408, ss_ext_sales_price#36413, ss_sold_date_sk#36421, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_manufact_id#36435]
+                     :     :     :  +- Join Inner, (i_item_sk#36422 = ss_item_sk#36400)
+                     :     :     :     :- Filter ((isnotnull(ss_item_sk#36400) AND isnotnull(ss_sold_date_sk#36421)) AND dynamicpruning#36708 [ss_sold_date_sk#36421])
+                     :     :     :     :  :  +- Filter ((isnotnull(d_year#36450) AND (d_year#36450 = 2001)) AND isnotnull(d_date_sk#36444))
+                     :     :     :     :  :     +- RelationV2[d_date_sk#36444, d_year#36450] spark_catalog.tpcds_iceberg_10g.date_dim
+                     :     :     :     :  +- RelationV2[ss_item_sk#36400, ss_ticket_number#36407L, ss_quantity#36408, ss_ext_sales_price#36413, ss_sold_date_sk#36421] spark_catalog.tpcds_iceberg_10g.store_sales
+                     :     :     :     +- Project [i_item_sk#36422, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_manufact_id#36435]
+                     :     :     :        +- Filter ((((((isnotnull(i_category#36434) AND (i_category#36434 = Sports)) AND isnotnull(i_item_sk#36422)) AND isnotnull(i_brand_id#36429)) AND isnotnull(i_class_id#36431)) AND isnotnull(i_category_id#36433)) AND isnotnull(i_manufact_id#36435))
+                     :     :     :           +- RelationV2[i_item_sk#36422, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_category#36434, i_manufact_id#36435] spark_catalog.tpcds_iceberg_10g.item
+                     :     :     +- Filter ((isnotnull(d_year#36450) AND (d_year#36450 = 2001)) AND isnotnull(d_date_sk#36444))
+                     :     :        +- RelationV2[d_date_sk#36444, d_year#36450] spark_catalog.tpcds_iceberg_10g.date_dim
+                     :     +- Filter (isnotnull(sr_ticket_number#36480L) AND isnotnull(sr_item_sk#36473))
+                     :        +- RelationV2[sr_item_sk#36473, sr_ticket_number#36480L, sr_return_quantity#36481, sr_return_amt#36482] spark_catalog.tpcds_iceberg_10g.store_returns
+                     +- Project [d_year#36554, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_manufact_id#36539, (ws_quantity#36509 - coalesce(wr_return_quantity#36589, 0)) AS sales_cnt#35579, CheckOverflow((promote_precision(cast(ws_ext_sales_price#36514 as decimal(8,2))) - promote_precision(cast(coalesce(wr_return_amt#36590, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35580]
+                        +- Join LeftOuter, ((ws_order_number#36508L = wr_order_number#36588L) AND (ws_item_sk#36494 = wr_item_sk#36577))
+                           :- Project [ws_item_sk#36494, ws_order_number#36508L, ws_quantity#36509, ws_ext_sales_price#36514, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_manufact_id#36539, d_year#36554]
+                           :  +- Join Inner, (d_date_sk#36548 = ws_sold_date_sk#36525)
+                           :     :- Project [ws_item_sk#36494, ws_order_number#36508L, ws_quantity#36509, ws_ext_sales_price#36514, ws_sold_date_sk#36525, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_manufact_id#36539]
+                           :     :  +- Join Inner, (i_item_sk#36526 = ws_item_sk#36494)
+                           :     :     :- Filter ((isnotnull(ws_item_sk#36494) AND isnotnull(ws_sold_date_sk#36525)) AND dynamicpruning#36709 [ws_sold_date_sk#36525])
+                           :     :     :  :  +- Filter ((isnotnull(d_year#36554) AND (d_year#36554 = 2001)) AND isnotnull(d_date_sk#36548))
+                           :     :     :  :     +- RelationV2[d_date_sk#36548, d_year#36554] spark_catalog.tpcds_iceberg_10g.date_dim
+                           :     :     :  +- RelationV2[ws_item_sk#36494, ws_order_number#36508L, ws_quantity#36509, ws_ext_sales_price#36514, ws_sold_date_sk#36525] spark_catalog.tpcds_iceberg_10g.web_sales
+                           :     :     +- Project [i_item_sk#36526, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_manufact_id#36539]
+                           :     :        +- Filter ((((((isnotnull(i_category#36538) AND (i_category#36538 = Sports)) AND isnotnull(i_item_sk#36526)) AND isnotnull(i_brand_id#36533)) AND isnotnull(i_class_id#36535)) AND isnotnull(i_category_id#36537)) AND isnotnull(i_manufact_id#36539))
+                           :     :           +- RelationV2[i_item_sk#36526, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_category#36538, i_manufact_id#36539] spark_catalog.tpcds_iceberg_10g.item
+                           :     +- Filter ((isnotnull(d_year#36554) AND (d_year#36554 = 2001)) AND isnotnull(d_date_sk#36548))
+                           :        +- RelationV2[d_date_sk#36548, d_year#36554] spark_catalog.tpcds_iceberg_10g.date_dim
+                           +- Filter (isnotnull(wr_order_number#36588L) AND isnotnull(wr_item_sk#36577))
+                              +- RelationV2[wr_item_sk#36577, wr_order_number#36588L, wr_return_quantity#36589, wr_return_amt#36590] spark_catalog.tpcds_iceberg_10g.web_returns
+
+
+=== Physical Plan ===
+AdaptiveSparkPlan isFinalPlan=false
++- TakeOrderedAndProject(limit=100, orderBy=[sales_cnt_diff#35573L ASC NULLS FIRST], output=[prev_year#35569,year#35570,i_brand_id#35624,i_class_id#35626,i_category_id#35628,i_manufact_id#35630,prev_yr_cnt#35571L,curr_yr_cnt#35572L,sales_cnt_diff#35573L,sales_amt_diff#35574])
+   +- Project [d_year#36350 AS prev_year#35569, d_year#35645 AS year#35570, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35962L AS prev_yr_cnt#35571L, sales_cnt#35581L AS curr_yr_cnt#35572L, (sales_cnt#35581L - sales_cnt#35962L) AS sales_cnt_diff#35573L, CheckOverflow((promote_precision(cast(sales_amt#35582 as decimal(19,2))) - promote_precision(cast(sales_amt#35963 as decimal(19,2)))), DecimalType(19,2)) AS sales_amt_diff#35574]
+      +- SortMergeJoin [i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630], [i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335], Inner, (CheckOverflow((promote_precision(cast(sales_cnt#35581L as decimal(17,2))) / promote_precision(cast(sales_cnt#35962L as decimal(17,2)))), DecimalType(37,20)) < 0.90000000000000000000)
+         :- Sort [i_brand_id#35624 ASC NULLS FIRST, i_class_id#35626 ASC NULLS FIRST, i_category_id#35628 ASC NULLS FIRST, i_manufact_id#35630 ASC NULLS FIRST], false, 0
+         :  +- Exchange hashpartitioning(i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, 200), ENSURE_REQUIREMENTS, [plan_id=26855]
+         :     +- HashAggregate(keys=[d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630], functions=[sum(sales_cnt#35575), sum(UnscaledValue(sales_amt#35576))], output=[d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35581L, sales_amt#35582])
+         :        +- Exchange hashpartitioning(d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, 200), ENSURE_REQUIREMENTS, [plan_id=26797]
+         :           +- HashAggregate(keys=[d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630], functions=[partial_sum(sales_cnt#35575), partial_sum(UnscaledValue(sales_amt#35576))], output=[d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sum#36712L, sum#36713L])
+         :              +- HashAggregate(keys=[d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35575, sales_amt#35576], functions=[], output=[d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35575, sales_amt#35576])
+         :                 +- Exchange hashpartitioning(d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35575, sales_amt#35576, 200), ENSURE_REQUIREMENTS, [plan_id=26793]
+         :                    +- HashAggregate(keys=[d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35575, sales_amt#35576], functions=[], output=[d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, sales_cnt#35575, sales_amt#35576])
+         :                       +- Union
+         :                          :- Project [d_year#35645, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, (cs_quantity#35600 - coalesce(cr_return_quantity#35683, 0)) AS sales_cnt#35575, CheckOverflow((promote_precision(cast(cs_ext_sales_price#35605 as decimal(8,2))) - promote_precision(cast(coalesce(cr_return_amount#35684, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35576]
+         :                          :  +- SortMergeJoin [cs_order_number#35599L, cs_item_sk#35597], [cr_order_number#35682L, cr_item_sk#35668], LeftOuter
+         :                          :     :- Sort [cs_order_number#35599L ASC NULLS FIRST, cs_item_sk#35597 ASC NULLS FIRST], false, 0
+         :                          :     :  +- Exchange hashpartitioning(cs_order_number#35599L, cs_item_sk#35597, 200), ENSURE_REQUIREMENTS, [plan_id=26754]
+         :                          :     :     +- Project [cs_item_sk#35597, cs_order_number#35599L, cs_quantity#35600, cs_ext_sales_price#35605, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630, d_year#35645]
+         :                          :     :        +- BroadcastHashJoin [cs_sold_date_sk#35616], [d_date_sk#35639], Inner, BuildRight, false
+         :                          :     :           :- Project [cs_item_sk#35597, cs_order_number#35599L, cs_quantity#35600, cs_ext_sales_price#35605, cs_sold_date_sk#35616, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630]
+         :                          :     :           :  +- BroadcastHashJoin [cs_item_sk#35597], [i_item_sk#35617], Inner, BuildRight, false
+         :                          :     :           :     :- Filter (isnotnull(cs_item_sk#35597) AND isnotnull(cs_sold_date_sk#35616))
+         :                          :     :           :     :  +- BatchScan[cs_item_sk#35597, cs_order_number#35599L, cs_quantity#35600, cs_ext_sales_price#35605, cs_sold_date_sk#35616] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_item_sk IS NOT NULL, cs_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cs_sold_date_sk#35616 IN dynamicpruning#36704)]
+         :                          :     :           :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#36704, 0, true, Filter ((isnotnull(d_year#35645) AND (d_year#35645 = 2002)) AND isnotnull(d_date_sk#35639)), [d_date_sk#35639]
+         :                          :     :           :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :                          :     :           :     :              +- Filter ((isnotnull(d_year#35645) AND (d_year#35645 = 2002)) AND isnotnull(d_date_sk#35639))
+         :                          :     :           :     :                 +- BatchScan[d_date_sk#35639, d_year#35645] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                          :     :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=26745]
+         :                          :     :           :        +- Project [i_item_sk#35617, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_manufact_id#35630]
+         :                          :     :           :           +- Filter ((((((isnotnull(i_category#35629) AND (i_category#35629 = Sports)) AND isnotnull(i_item_sk#35617)) AND isnotnull(i_brand_id#35624)) AND isnotnull(i_class_id#35626)) AND isnotnull(i_category_id#35628)) AND isnotnull(i_manufact_id#35630))
+         :                          :     :           :              +- BatchScan[i_item_sk#35617, i_brand_id#35624, i_class_id#35626, i_category_id#35628, i_category#35629, i_manufact_id#35630] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IS NOT NULL, i_category = 'Sports', i_item_sk IS NOT NULL, i_brand_id IS NOT NULL, i_class_id IS NOT NULL, i_category_id IS NOT NULL, i_manufact_id IS NOT NULL] RuntimeFilters: []
+         :                          :     :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=26749]
+         :                          :     :              +- Filter ((isnotnull(d_year#35645) AND (d_year#35645 = 2002)) AND isnotnull(d_date_sk#35639))
+         :                          :     :                 +- BatchScan[d_date_sk#35639, d_year#35645] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                          :     +- Sort [cr_order_number#35682L ASC NULLS FIRST, cr_item_sk#35668 ASC NULLS FIRST], false, 0
+         :                          :        +- Exchange hashpartitioning(cr_order_number#35682L, cr_item_sk#35668, 200), ENSURE_REQUIREMENTS, [plan_id=26755]
+         :                          :           +- Filter (isnotnull(cr_order_number#35682L) AND isnotnull(cr_item_sk#35668))
+         :                          :              +- BatchScan[cr_item_sk#35668, cr_order_number#35682L, cr_return_quantity#35683, cr_return_amount#35684] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=cr_order_number IS NOT NULL, cr_item_sk IS NOT NULL] RuntimeFilters: []
+         :                          :- Project [d_year#35745, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_manufact_id#35730, (ss_quantity#35703 - coalesce(sr_return_quantity#35776, 0)) AS sales_cnt#35577, CheckOverflow((promote_precision(cast(ss_ext_sales_price#35708 as decimal(8,2))) - promote_precision(cast(coalesce(sr_return_amt#35777, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35578]
+         :                          :  +- SortMergeJoin [ss_ticket_number#35702L, ss_item_sk#35695], [sr_ticket_number#35775L, sr_item_sk#35768], LeftOuter
+         :                          :     :- Sort [ss_ticket_number#35702L ASC NULLS FIRST, ss_item_sk#35695 ASC NULLS FIRST], false, 0
+         :                          :     :  +- Exchange hashpartitioning(ss_ticket_number#35702L, ss_item_sk#35695, 200), ENSURE_REQUIREMENTS, [plan_id=26769]
+         :                          :     :     +- Project [ss_item_sk#35695, ss_ticket_number#35702L, ss_quantity#35703, ss_ext_sales_price#35708, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_manufact_id#35730, d_year#35745]
+         :                          :     :        +- BroadcastHashJoin [ss_sold_date_sk#35716], [d_date_sk#35739], Inner, BuildRight, false
+         :                          :     :           :- Project [ss_item_sk#35695, ss_ticket_number#35702L, ss_quantity#35703, ss_ext_sales_price#35708, ss_sold_date_sk#35716, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_manufact_id#35730]
+         :                          :     :           :  +- BroadcastHashJoin [ss_item_sk#35695], [i_item_sk#35717], Inner, BuildRight, false
+         :                          :     :           :     :- Filter (isnotnull(ss_item_sk#35695) AND isnotnull(ss_sold_date_sk#35716))
+         :                          :     :           :     :  +- BatchScan[ss_item_sk#35695, ss_ticket_number#35702L, ss_quantity#35703, ss_ext_sales_price#35708, ss_sold_date_sk#35716] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_item_sk IS NOT NULL, ss_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#35716 IN dynamicpruning#36705)]
+         :                          :     :           :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#36705, 0, true, Filter ((isnotnull(d_year#35745) AND (d_year#35745 = 2002)) AND isnotnull(d_date_sk#35739)), [d_date_sk#35739]
+         :                          :     :           :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :                          :     :           :     :              +- Filter ((isnotnull(d_year#35745) AND (d_year#35745 = 2002)) AND isnotnull(d_date_sk#35739))
+         :                          :     :           :     :                 +- BatchScan[d_date_sk#35739, d_year#35745] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                          :     :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=26760]
+         :                          :     :           :        +- Project [i_item_sk#35717, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_manufact_id#35730]
+         :                          :     :           :           +- Filter ((((((isnotnull(i_category#35729) AND (i_category#35729 = Sports)) AND isnotnull(i_item_sk#35717)) AND isnotnull(i_brand_id#35724)) AND isnotnull(i_class_id#35726)) AND isnotnull(i_category_id#35728)) AND isnotnull(i_manufact_id#35730))
+         :                          :     :           :              +- BatchScan[i_item_sk#35717, i_brand_id#35724, i_class_id#35726, i_category_id#35728, i_category#35729, i_manufact_id#35730] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IS NOT NULL, i_category = 'Sports', i_item_sk IS NOT NULL, i_brand_id IS NOT NULL, i_class_id IS NOT NULL, i_category_id IS NOT NULL, i_manufact_id IS NOT NULL] RuntimeFilters: []
+         :                          :     :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=26764]
+         :                          :     :              +- Filter ((isnotnull(d_year#35745) AND (d_year#35745 = 2002)) AND isnotnull(d_date_sk#35739))
+         :                          :     :                 +- BatchScan[d_date_sk#35739, d_year#35745] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                          :     +- Sort [sr_ticket_number#35775L ASC NULLS FIRST, sr_item_sk#35768 ASC NULLS FIRST], false, 0
+         :                          :        +- Exchange hashpartitioning(sr_ticket_number#35775L, sr_item_sk#35768, 200), ENSURE_REQUIREMENTS, [plan_id=26770]
+         :                          :           +- Filter (isnotnull(sr_ticket_number#35775L) AND isnotnull(sr_item_sk#35768))
+         :                          :              +- BatchScan[sr_item_sk#35768, sr_ticket_number#35775L, sr_return_quantity#35776, sr_return_amt#35777] spark_catalog.tpcds_iceberg_10g.store_returns [filters=sr_ticket_number IS NOT NULL, sr_item_sk IS NOT NULL] RuntimeFilters: []
+         :                          +- Project [d_year#35849, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_manufact_id#35834, (ws_quantity#35804 - coalesce(wr_return_quantity#35884, 0)) AS sales_cnt#35579, CheckOverflow((promote_precision(cast(ws_ext_sales_price#35809 as decimal(8,2))) - promote_precision(cast(coalesce(wr_return_amt#35885, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35580]
+         :                             +- SortMergeJoin [ws_order_number#35803L, ws_item_sk#35789], [wr_order_number#35883L, wr_item_sk#35872], LeftOuter
+         :                                :- Sort [ws_order_number#35803L ASC NULLS FIRST, ws_item_sk#35789 ASC NULLS FIRST], false, 0
+         :                                :  +- Exchange hashpartitioning(ws_order_number#35803L, ws_item_sk#35789, 200), ENSURE_REQUIREMENTS, [plan_id=26784]
+         :                                :     +- Project [ws_item_sk#35789, ws_order_number#35803L, ws_quantity#35804, ws_ext_sales_price#35809, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_manufact_id#35834, d_year#35849]
+         :                                :        +- BroadcastHashJoin [ws_sold_date_sk#35820], [d_date_sk#35843], Inner, BuildRight, false
+         :                                :           :- Project [ws_item_sk#35789, ws_order_number#35803L, ws_quantity#35804, ws_ext_sales_price#35809, ws_sold_date_sk#35820, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_manufact_id#35834]
+         :                                :           :  +- BroadcastHashJoin [ws_item_sk#35789], [i_item_sk#35821], Inner, BuildRight, false
+         :                                :           :     :- Filter (isnotnull(ws_item_sk#35789) AND isnotnull(ws_sold_date_sk#35820))
+         :                                :           :     :  +- BatchScan[ws_item_sk#35789, ws_order_number#35803L, ws_quantity#35804, ws_ext_sales_price#35809, ws_sold_date_sk#35820] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_item_sk IS NOT NULL, ws_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#35820 IN dynamicpruning#36706)]
+         :                                :           :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#36706, 0, true, Filter ((isnotnull(d_year#35849) AND (d_year#35849 = 2002)) AND isnotnull(d_date_sk#35843)), [d_date_sk#35843]
+         :                                :           :     :           +- AdaptiveSparkPlan isFinalPlan=false
+         :                                :           :     :              +- Filter ((isnotnull(d_year#35849) AND (d_year#35849 = 2002)) AND isnotnull(d_date_sk#35843))
+         :                                :           :     :                 +- BatchScan[d_date_sk#35843, d_year#35849] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                                :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=26775]
+         :                                :           :        +- Project [i_item_sk#35821, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_manufact_id#35834]
+         :                                :           :           +- Filter ((((((isnotnull(i_category#35833) AND (i_category#35833 = Sports)) AND isnotnull(i_item_sk#35821)) AND isnotnull(i_brand_id#35828)) AND isnotnull(i_class_id#35830)) AND isnotnull(i_category_id#35832)) AND isnotnull(i_manufact_id#35834))
+         :                                :           :              +- BatchScan[i_item_sk#35821, i_brand_id#35828, i_class_id#35830, i_category_id#35832, i_category#35833, i_manufact_id#35834] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IS NOT NULL, i_category = 'Sports', i_item_sk IS NOT NULL, i_brand_id IS NOT NULL, i_class_id IS NOT NULL, i_category_id IS NOT NULL, i_manufact_id IS NOT NULL] RuntimeFilters: []
+         :                                :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=26779]
+         :                                :              +- Filter ((isnotnull(d_year#35849) AND (d_year#35849 = 2002)) AND isnotnull(d_date_sk#35843))
+         :                                :                 +- BatchScan[d_date_sk#35843, d_year#35849] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2002, d_date_sk IS NOT NULL] RuntimeFilters: []
+         :                                +- Sort [wr_order_number#35883L ASC NULLS FIRST, wr_item_sk#35872 ASC NULLS FIRST], false, 0
+         :                                   +- Exchange hashpartitioning(wr_order_number#35883L, wr_item_sk#35872, 200), ENSURE_REQUIREMENTS, [plan_id=26785]
+         :                                      +- Filter (isnotnull(wr_order_number#35883L) AND isnotnull(wr_item_sk#35872))
+         :                                         +- BatchScan[wr_item_sk#35872, wr_order_number#35883L, wr_return_quantity#35884, wr_return_amt#35885] spark_catalog.tpcds_iceberg_10g.web_returns [filters=wr_order_number IS NOT NULL, wr_item_sk IS NOT NULL] RuntimeFilters: []
+         +- Sort [i_brand_id#36329 ASC NULLS FIRST, i_class_id#36331 ASC NULLS FIRST, i_category_id#36333 ASC NULLS FIRST, i_manufact_id#36335 ASC NULLS FIRST], false, 0
+            +- Exchange hashpartitioning(i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, 200), ENSURE_REQUIREMENTS, [plan_id=26856]
+               +- HashAggregate(keys=[d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335], functions=[sum(sales_cnt#35575), sum(UnscaledValue(sales_amt#35576))], output=[d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sales_cnt#35962L, sales_amt#35963])
+                  +- Exchange hashpartitioning(d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, 200), ENSURE_REQUIREMENTS, [plan_id=26851]
+                     +- HashAggregate(keys=[d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335], functions=[partial_sum(sales_cnt#35575), partial_sum(UnscaledValue(sales_amt#35576))], output=[d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sum#36712L, sum#36715L])
+                        +- HashAggregate(keys=[d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sales_cnt#35575, sales_amt#35576], functions=[], output=[d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sales_cnt#35575, sales_amt#35576])
+                           +- Exchange hashpartitioning(d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sales_cnt#35575, sales_amt#35576, 200), ENSURE_REQUIREMENTS, [plan_id=26847]
+                              +- HashAggregate(keys=[d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sales_cnt#35575, sales_amt#35576], functions=[], output=[d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, sales_cnt#35575, sales_amt#35576])
+                                 +- Union
+                                    :- Project [d_year#36350, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, (cs_quantity#36305 - coalesce(cr_return_quantity#36388, 0)) AS sales_cnt#35575, CheckOverflow((promote_precision(cast(cs_ext_sales_price#36310 as decimal(8,2))) - promote_precision(cast(coalesce(cr_return_amount#36389, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35576]
+                                    :  +- SortMergeJoin [cs_order_number#36304L, cs_item_sk#36302], [cr_order_number#36387L, cr_item_sk#36373], LeftOuter
+                                    :     :- Sort [cs_order_number#36304L ASC NULLS FIRST, cs_item_sk#36302 ASC NULLS FIRST], false, 0
+                                    :     :  +- Exchange hashpartitioning(cs_order_number#36304L, cs_item_sk#36302, 200), ENSURE_REQUIREMENTS, [plan_id=26808]
+                                    :     :     +- Project [cs_item_sk#36302, cs_order_number#36304L, cs_quantity#36305, cs_ext_sales_price#36310, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335, d_year#36350]
+                                    :     :        +- BroadcastHashJoin [cs_sold_date_sk#36321], [d_date_sk#36344], Inner, BuildRight, false
+                                    :     :           :- Project [cs_item_sk#36302, cs_order_number#36304L, cs_quantity#36305, cs_ext_sales_price#36310, cs_sold_date_sk#36321, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335]
+                                    :     :           :  +- BroadcastHashJoin [cs_item_sk#36302], [i_item_sk#36322], Inner, BuildRight, false
+                                    :     :           :     :- Filter (isnotnull(cs_item_sk#36302) AND isnotnull(cs_sold_date_sk#36321))
+                                    :     :           :     :  +- BatchScan[cs_item_sk#36302, cs_order_number#36304L, cs_quantity#36305, cs_ext_sales_price#36310, cs_sold_date_sk#36321] spark_catalog.tpcds_iceberg_10g.catalog_sales [filters=cs_item_sk IS NOT NULL, cs_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(cs_sold_date_sk#36321 IN dynamicpruning#36707)]
+                                    :     :           :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#36707, 0, true, Filter ((isnotnull(d_year#36350) AND (d_year#36350 = 2001)) AND isnotnull(d_date_sk#36344)), [d_date_sk#36344]
+                                    :     :           :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                                    :     :           :     :              +- Filter ((isnotnull(d_year#36350) AND (d_year#36350 = 2001)) AND isnotnull(d_date_sk#36344))
+                                    :     :           :     :                 +- BatchScan[d_date_sk#36344, d_year#36350] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                    :     :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=26799]
+                                    :     :           :        +- Project [i_item_sk#36322, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_manufact_id#36335]
+                                    :     :           :           +- Filter ((((((isnotnull(i_category#36334) AND (i_category#36334 = Sports)) AND isnotnull(i_item_sk#36322)) AND isnotnull(i_brand_id#36329)) AND isnotnull(i_class_id#36331)) AND isnotnull(i_category_id#36333)) AND isnotnull(i_manufact_id#36335))
+                                    :     :           :              +- BatchScan[i_item_sk#36322, i_brand_id#36329, i_class_id#36331, i_category_id#36333, i_category#36334, i_manufact_id#36335] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IS NOT NULL, i_category = 'Sports', i_item_sk IS NOT NULL, i_brand_id IS NOT NULL, i_class_id IS NOT NULL, i_category_id IS NOT NULL, i_manufact_id IS NOT NULL] RuntimeFilters: []
+                                    :     :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=26803]
+                                    :     :              +- Filter ((isnotnull(d_year#36350) AND (d_year#36350 = 2001)) AND isnotnull(d_date_sk#36344))
+                                    :     :                 +- BatchScan[d_date_sk#36344, d_year#36350] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                    :     +- Sort [cr_order_number#36387L ASC NULLS FIRST, cr_item_sk#36373 ASC NULLS FIRST], false, 0
+                                    :        +- Exchange hashpartitioning(cr_order_number#36387L, cr_item_sk#36373, 200), ENSURE_REQUIREMENTS, [plan_id=26809]
+                                    :           +- Filter (isnotnull(cr_order_number#36387L) AND isnotnull(cr_item_sk#36373))
+                                    :              +- BatchScan[cr_item_sk#36373, cr_order_number#36387L, cr_return_quantity#36388, cr_return_amount#36389] spark_catalog.tpcds_iceberg_10g.catalog_returns [filters=cr_order_number IS NOT NULL, cr_item_sk IS NOT NULL] RuntimeFilters: []
+                                    :- Project [d_year#36450, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_manufact_id#36435, (ss_quantity#36408 - coalesce(sr_return_quantity#36481, 0)) AS sales_cnt#35577, CheckOverflow((promote_precision(cast(ss_ext_sales_price#36413 as decimal(8,2))) - promote_precision(cast(coalesce(sr_return_amt#36482, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35578]
+                                    :  +- SortMergeJoin [ss_ticket_number#36407L, ss_item_sk#36400], [sr_ticket_number#36480L, sr_item_sk#36473], LeftOuter
+                                    :     :- Sort [ss_ticket_number#36407L ASC NULLS FIRST, ss_item_sk#36400 ASC NULLS FIRST], false, 0
+                                    :     :  +- Exchange hashpartitioning(ss_ticket_number#36407L, ss_item_sk#36400, 200), ENSURE_REQUIREMENTS, [plan_id=26823]
+                                    :     :     +- Project [ss_item_sk#36400, ss_ticket_number#36407L, ss_quantity#36408, ss_ext_sales_price#36413, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_manufact_id#36435, d_year#36450]
+                                    :     :        +- BroadcastHashJoin [ss_sold_date_sk#36421], [d_date_sk#36444], Inner, BuildRight, false
+                                    :     :           :- Project [ss_item_sk#36400, ss_ticket_number#36407L, ss_quantity#36408, ss_ext_sales_price#36413, ss_sold_date_sk#36421, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_manufact_id#36435]
+                                    :     :           :  +- BroadcastHashJoin [ss_item_sk#36400], [i_item_sk#36422], Inner, BuildRight, false
+                                    :     :           :     :- Filter (isnotnull(ss_item_sk#36400) AND isnotnull(ss_sold_date_sk#36421))
+                                    :     :           :     :  +- BatchScan[ss_item_sk#36400, ss_ticket_number#36407L, ss_quantity#36408, ss_ext_sales_price#36413, ss_sold_date_sk#36421] spark_catalog.tpcds_iceberg_10g.store_sales [filters=ss_item_sk IS NOT NULL, ss_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ss_sold_date_sk#36421 IN dynamicpruning#36708)]
+                                    :     :           :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#36708, 0, true, Filter ((isnotnull(d_year#36450) AND (d_year#36450 = 2001)) AND isnotnull(d_date_sk#36444)), [d_date_sk#36444]
+                                    :     :           :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                                    :     :           :     :              +- Filter ((isnotnull(d_year#36450) AND (d_year#36450 = 2001)) AND isnotnull(d_date_sk#36444))
+                                    :     :           :     :                 +- BatchScan[d_date_sk#36444, d_year#36450] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                    :     :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=26814]
+                                    :     :           :        +- Project [i_item_sk#36422, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_manufact_id#36435]
+                                    :     :           :           +- Filter ((((((isnotnull(i_category#36434) AND (i_category#36434 = Sports)) AND isnotnull(i_item_sk#36422)) AND isnotnull(i_brand_id#36429)) AND isnotnull(i_class_id#36431)) AND isnotnull(i_category_id#36433)) AND isnotnull(i_manufact_id#36435))
+                                    :     :           :              +- BatchScan[i_item_sk#36422, i_brand_id#36429, i_class_id#36431, i_category_id#36433, i_category#36434, i_manufact_id#36435] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IS NOT NULL, i_category = 'Sports', i_item_sk IS NOT NULL, i_brand_id IS NOT NULL, i_class_id IS NOT NULL, i_category_id IS NOT NULL, i_manufact_id IS NOT NULL] RuntimeFilters: []
+                                    :     :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=26818]
+                                    :     :              +- Filter ((isnotnull(d_year#36450) AND (d_year#36450 = 2001)) AND isnotnull(d_date_sk#36444))
+                                    :     :                 +- BatchScan[d_date_sk#36444, d_year#36450] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                    :     +- Sort [sr_ticket_number#36480L ASC NULLS FIRST, sr_item_sk#36473 ASC NULLS FIRST], false, 0
+                                    :        +- Exchange hashpartitioning(sr_ticket_number#36480L, sr_item_sk#36473, 200), ENSURE_REQUIREMENTS, [plan_id=26824]
+                                    :           +- Filter (isnotnull(sr_ticket_number#36480L) AND isnotnull(sr_item_sk#36473))
+                                    :              +- BatchScan[sr_item_sk#36473, sr_ticket_number#36480L, sr_return_quantity#36481, sr_return_amt#36482] spark_catalog.tpcds_iceberg_10g.store_returns [filters=sr_ticket_number IS NOT NULL, sr_item_sk IS NOT NULL] RuntimeFilters: []
+                                    +- Project [d_year#36554, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_manufact_id#36539, (ws_quantity#36509 - coalesce(wr_return_quantity#36589, 0)) AS sales_cnt#35579, CheckOverflow((promote_precision(cast(ws_ext_sales_price#36514 as decimal(8,2))) - promote_precision(cast(coalesce(wr_return_amt#36590, 0.00) as decimal(8,2)))), DecimalType(8,2)) AS sales_amt#35580]
+                                       +- SortMergeJoin [ws_order_number#36508L, ws_item_sk#36494], [wr_order_number#36588L, wr_item_sk#36577], LeftOuter
+                                          :- Sort [ws_order_number#36508L ASC NULLS FIRST, ws_item_sk#36494 ASC NULLS FIRST], false, 0
+                                          :  +- Exchange hashpartitioning(ws_order_number#36508L, ws_item_sk#36494, 200), ENSURE_REQUIREMENTS, [plan_id=26838]
+                                          :     +- Project [ws_item_sk#36494, ws_order_number#36508L, ws_quantity#36509, ws_ext_sales_price#36514, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_manufact_id#36539, d_year#36554]
+                                          :        +- BroadcastHashJoin [ws_sold_date_sk#36525], [d_date_sk#36548], Inner, BuildRight, false
+                                          :           :- Project [ws_item_sk#36494, ws_order_number#36508L, ws_quantity#36509, ws_ext_sales_price#36514, ws_sold_date_sk#36525, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_manufact_id#36539]
+                                          :           :  +- BroadcastHashJoin [ws_item_sk#36494], [i_item_sk#36526], Inner, BuildRight, false
+                                          :           :     :- Filter (isnotnull(ws_item_sk#36494) AND isnotnull(ws_sold_date_sk#36525))
+                                          :           :     :  +- BatchScan[ws_item_sk#36494, ws_order_number#36508L, ws_quantity#36509, ws_ext_sales_price#36514, ws_sold_date_sk#36525] spark_catalog.tpcds_iceberg_10g.web_sales [filters=ws_item_sk IS NOT NULL, ws_sold_date_sk IS NOT NULL] RuntimeFilters: [dynamicpruningexpression(ws_sold_date_sk#36525 IN dynamicpruning#36709)]
+                                          :           :     :        +- SubqueryAdaptiveBroadcast dynamicpruning#36709, 0, true, Filter ((isnotnull(d_year#36554) AND (d_year#36554 = 2001)) AND isnotnull(d_date_sk#36548)), [d_date_sk#36548]
+                                          :           :     :           +- AdaptiveSparkPlan isFinalPlan=false
+                                          :           :     :              +- Filter ((isnotnull(d_year#36554) AND (d_year#36554 = 2001)) AND isnotnull(d_date_sk#36548))
+                                          :           :     :                 +- BatchScan[d_date_sk#36548, d_year#36554] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                          :           :     +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, true] as bigint)),false), [plan_id=26829]
+                                          :           :        +- Project [i_item_sk#36526, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_manufact_id#36539]
+                                          :           :           +- Filter ((((((isnotnull(i_category#36538) AND (i_category#36538 = Sports)) AND isnotnull(i_item_sk#36526)) AND isnotnull(i_brand_id#36533)) AND isnotnull(i_class_id#36535)) AND isnotnull(i_category_id#36537)) AND isnotnull(i_manufact_id#36539))
+                                          :           :              +- BatchScan[i_item_sk#36526, i_brand_id#36533, i_class_id#36535, i_category_id#36537, i_category#36538, i_manufact_id#36539] spark_catalog.tpcds_iceberg_10g.item [filters=i_category IS NOT NULL, i_category = 'Sports', i_item_sk IS NOT NULL, i_brand_id IS NOT NULL, i_class_id IS NOT NULL, i_category_id IS NOT NULL, i_manufact_id IS NOT NULL] RuntimeFilters: []
+                                          :           +- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=26833]
+                                          :              +- Filter ((isnotnull(d_year#36554) AND (d_year#36554 = 2001)) AND isnotnull(d_date_sk#36548))
+                                          :                 +- BatchScan[d_date_sk#36548, d_year#36554] spark_catalog.tpcds_iceberg_10g.date_dim [filters=d_year IS NOT NULL, d_year = 2001, d_date_sk IS NOT NULL] RuntimeFilters: []
+                                          +- Sort [wr_order_number#36588L ASC NULLS FIRST, wr_item_sk#36577 ASC NULLS FIRST], false, 0
+                                             +- Exchange hashpartitioning(wr_order_number#36588L, wr_item_sk#36577, 200), ENSURE_REQUIREMENTS, [plan_id=26839]
+                                                +- Filter (isnotnull(wr_order_number#36588L) AND isnotnull(wr_item_sk#36577))
+                                                   +- BatchScan[wr_item_sk#36577, wr_order_number#36588L, wr_return_quantity#36589, wr_return_amt#36590] spark_catalog.tpcds_iceberg_10g.web_returns [filters=wr_order_number IS NOT NULL, wr_item_sk IS NOT NULL] RuntimeFilters: []
+

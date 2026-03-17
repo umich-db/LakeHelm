@@ -1,0 +1,45 @@
+== Parsed Logical Plan ==
+'UnresolvedHaving ('COUNT('lo.lo_orderkey) > 5)
++- 'Aggregate ['c.c_name], ['c.c_name, 'COUNT('lo.lo_orderkey) AS order_count#16419]
+   +- 'Join Inner, ('c.c_custkey = 'lo.lo_custkey)
+      :- 'SubqueryAlias c
+      :  +- 'UnresolvedRelation [customer], [], false
+      +- 'SubqueryAlias lo
+         +- 'UnresolvedRelation [lineorder], [], false
+
+== Analyzed Logical Plan ==
+c_name: string, order_count: bigint
+Filter (order_count#16419L > cast(5 as bigint))
++- Aggregate [c_name#16421], [c_name#16421, count(lo_orderkey#16428L) AS order_count#16419L]
+   +- Join Inner, (c_custkey#16420 = lo_custkey#16430)
+      :- SubqueryAlias c
+      :  +- SubqueryAlias spark_catalog.ssb_iceberg_10g.customer
+      :     +- RelationV2[c_custkey#16420, c_name#16421, c_address#16422, c_city#16423, c_nation#16424, c_region#16425, c_phone#16426, c_mktsegment#16427] spark_catalog.ssb_iceberg_10g.customer
+      +- SubqueryAlias lo
+         +- SubqueryAlias spark_catalog.ssb_iceberg_10g.lineorder
+            +- RelationV2[lo_orderkey#16428L, lo_linenumber#16429L, lo_custkey#16430, lo_partkey#16431, lo_suppkey#16432, lo_orderdate#16433, lo_orderpriotity#16434, lo_shippriotity#16435, lo_quantity#16436L, lo_extendedprice#16437L, lo_ordtotalprice#16438L, lo_discount#16439L, lo_revenue#16440L, lo_supplycost#16441L, lo_tax#16442L, lo_commitdate#16443, lo_shipmode#16444] spark_catalog.ssb_iceberg_10g.lineorder
+
+== Optimized Logical Plan ==
+Filter (order_count#16419L > 5)
++- Aggregate [c_name#16421], [c_name#16421, count(lo_orderkey#16428L) AS order_count#16419L]
+   +- Project [c_name#16421, lo_orderkey#16428L]
+      +- Join Inner, (c_custkey#16420 = lo_custkey#16430)
+         :- Filter isnotnull(c_custkey#16420)
+         :  +- RelationV2[c_custkey#16420, c_name#16421] spark_catalog.ssb_iceberg_10g.customer
+         +- Filter isnotnull(lo_custkey#16430)
+            +- RelationV2[lo_orderkey#16428L, lo_custkey#16430] spark_catalog.ssb_iceberg_10g.lineorder
+
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Filter (order_count#16419L > 5)
+   +- HashAggregate(keys=[c_name#16421], functions=[count(lo_orderkey#16428L)], output=[c_name#16421, order_count#16419L])
+      +- Exchange hashpartitioning(c_name#16421, 200), ENSURE_REQUIREMENTS, [plan_id=24978]
+         +- HashAggregate(keys=[c_name#16421], functions=[partial_count(lo_orderkey#16428L)], output=[c_name#16421, count#16464L])
+            +- Project [c_name#16421, lo_orderkey#16428L]
+               +- BroadcastHashJoin [c_custkey#16420], [lo_custkey#16430], Inner, BuildLeft, false
+                  :- BroadcastExchange HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=24973]
+                  :  +- Filter isnotnull(c_custkey#16420)
+                  :     +- BatchScan[c_custkey#16420, c_name#16421] spark_catalog.ssb_iceberg_10g.customer [filters=c_custkey IS NOT NULL] RuntimeFilters: []
+                  +- Filter isnotnull(lo_custkey#16430)
+                     +- BatchScan[lo_orderkey#16428L, lo_custkey#16430] spark_catalog.ssb_iceberg_10g.lineorder [filters=lo_custkey IS NOT NULL] RuntimeFilters: []
+
