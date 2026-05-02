@@ -575,7 +575,9 @@ def prepare_conf(raw_conf, max_dim):
 def train_model(test_benchmark, test_sf=None, use_supply=False,
                 big_epochs=40, seed=42,
                 eval_mode='per_query', test_min_q=3, test_max_q=15, test_seed=8, eval_noise=0.0,
-                target_ratio=None):
+                target_ratio=None,
+                synth_train_workloads=3000, synth_train_singleq_reps=15,
+                conf_jitter_std=0.02, lat_jitter_std=0.05, jitter_aug_per_rec=2):
     # Set seed for reproducibility
     random.seed(seed)
     np.random.seed(seed)
@@ -608,13 +610,27 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     test_workloads = generate_workloads(test_qnames, all_data, 50, min_q=test_min_q, max_q=test_max_q, seed=test_seed)
     print(f"  Generated {len(test_workloads)} test workloads")
 
-    # Generate expert workloads from test queries for semi-supervised expert training
-    # V2 eval is inherently hard (pool-based selection), so using actual data
-    # doesn't lead to ratio<1.1 cheating — the model still needs to identify
-    # the right record from a large pool using only mean embedding + config features
-    print("Generating test-expert workloads (semi-supervised)...")
-    test_expert_workloads = generate_workloads(test_qnames, all_data, 800, seed=99)
-    print(f"  Generated {len(test_expert_workloads)} test-expert workloads")
+    # Synthetic TRAIN augmentation (NO test data — no semi-supervision).
+    # (a) Extra multi-query workloads sampled from train queries (different seeds = new combos).
+    # (b) Single-query workloads from train queries to teach experts the eval-time
+    #     embedding shape (query_encoder([single_q])). These are still TRAIN queries,
+    #     so test answers are never exposed.
+    synth_train = []
+    if synth_train_workloads > 0:
+        synth_train = generate_workloads(
+            train_qnames, all_data, synth_train_workloads,
+            min_q=test_min_q, max_q=test_max_q, seed=4242,
+        )
+        print(f"  Generated {len(synth_train)} synthetic train workloads")
+    synth_train_singleq = []
+    if synth_train_singleq_reps > 0:
+        n_total = max(1, synth_train_singleq_reps) * max(1, len(train_qnames))
+        synth_train_singleq = generate_workloads(
+            train_qnames, all_data, n_total,
+            min_q=1, max_q=1, min_combo_coverage=1, seed=7777,
+        )
+        print(f"  Generated {len(synth_train_singleq)} synthetic train single-query workloads "
+              f"(reps={synth_train_singleq_reps})")
 
     if not train_workloads:
         print("ERROR: No training workloads generated!")
@@ -672,8 +688,41 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
             wl['_expert_combo_ids'] = expert_combo_ids
 
     print("Precomputing tensors...")
-    for wl_list in [train_workloads, valid_workloads, test_workloads, test_expert_workloads]:
+    for wl_list in [train_workloads, valid_workloads, test_workloads,
+                     synth_train, synth_train_singleq]:
         precompute_wl_tensors(wl_list, q2idx, max_dim)
+
+    # Inject jittered config/latency augmentation into synthetic train expert_data.
+    # Each existing record (conf, target=log(lat+1)) gets `jitter_aug_per_rec` extra
+    # synthetic copies with small Gaussian noise on the conf vector and the target.
+    # This synthesizes new TRAIN data points around observed ones without using test data.
+    if jitter_aug_per_rec > 0:
+        rng_jit = np.random.RandomState(seed + 9999)
+        n_added = 0
+        for wl in synth_train + synth_train_singleq:
+            ed = wl.get('_expert_data', [])
+            ec = wl.get('_expert_combos', [])
+            ei = wl.get('_expert_combo_ids', [])
+            if not ed:
+                continue
+            new_ed, new_ec, new_ei = [], [], []
+            for (conf, tgt), cc, cid in zip(ed, ec, ei):
+                new_ed.append((conf, tgt)); new_ec.append(cc); new_ei.append(cid)
+                for _ in range(jitter_aug_per_rec):
+                    noise = torch.tensor(
+                        rng_jit.normal(0, conf_jitter_std, size=conf.shape).astype(np.float32),
+                        device=conf.device,
+                    )
+                    j_conf = conf + noise
+                    j_tgt = tgt + float(rng_jit.normal(0, lat_jitter_std))
+                    new_ed.append((j_conf, j_tgt))
+                    new_ec.append(cc); new_ei.append(cid)
+                    n_added += 1
+            wl['_expert_data'] = new_ed
+            wl['_expert_combos'] = new_ec
+            wl['_expert_combo_ids'] = new_ei
+        print(f"  Injected {n_added} jittered synthetic records "
+              f"(conf_std={conf_jitter_std}, lat_std={lat_jitter_std})")
 
     # Tree-based embedding (always used)
     mapped_tree, feat_dim = load_all_plan_trees(num_augment=5, swap_prob=0.3)
@@ -730,7 +779,8 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     expert_opt = Adam(expert_params, lr=3e-4, weight_decay=1e-5)
     expert_scheduler = CosineAnnealingLR(expert_opt, T_max=BIG_EPOCHS, eta_min=1e-5)
 
-    combined_expert_workloads = train_workloads + test_expert_workloads  # semi-supervised: includes test queries
+    # NO test data in training set — strict leave-one-out.
+    combined_expert_workloads = train_workloads + synth_train + synth_train_singleq
 
     print(f"\n{'='*60}")
     print(f"Training: {BIG_EPOCHS} epochs (oracle-routed experts)")
@@ -1024,6 +1074,16 @@ def main():
                         help='Evaluation mode: v2 (pool), per_query (default)')
     parser.add_argument('--target-ratio', type=float, default=None,
                         help='Target ratio - save model closest to this ratio instead of lowest')
+    parser.add_argument('--synth-train-workloads', type=int, default=3000,
+                        help='Extra synthetic multi-query train workloads (0 disables)')
+    parser.add_argument('--synth-train-singleq-reps', type=int, default=15,
+                        help='Synthetic single-query TRAIN workloads per train query (0 disables)')
+    parser.add_argument('--conf-jitter-std', type=float, default=0.02,
+                        help='Gaussian std for synthetic config-vector jitter')
+    parser.add_argument('--lat-jitter-std', type=float, default=0.05,
+                        help='Gaussian std for synthetic log-latency jitter')
+    parser.add_argument('--jitter-aug-per-rec', type=int, default=2,
+                        help='Per real expert record, add N jittered synthetic copies (0 disables)')
     args = parser.parse_args()
 
     sf_str = f" sf={args.sf}" if args.sf else ""
@@ -1034,7 +1094,12 @@ def main():
     train_model(args.benchmark, test_sf=args.sf,
                 big_epochs=args.epochs, seed=args.seed,
                 eval_mode=args.eval_mode,
-                target_ratio=args.target_ratio)
+                target_ratio=args.target_ratio,
+                synth_train_workloads=args.synth_train_workloads,
+                synth_train_singleq_reps=args.synth_train_singleq_reps,
+                conf_jitter_std=args.conf_jitter_std,
+                lat_jitter_std=args.lat_jitter_std,
+                jitter_aug_per_rec=args.jitter_aug_per_rec)
 
 
 if __name__ == "__main__":

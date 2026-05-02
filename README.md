@@ -316,9 +316,10 @@ This ensures the model has never seen the test benchmark's queries during gate t
 | Set | Count | Seed | Purpose |
 |---|---|---|---|
 | `train_workloads` | 1000 | 42 | Expert training (MSE + contrastive) |
+| `synth_train` | 3000 | 4242 | Extra multi-query train workloads (synthetic re-sampling, train-only) |
+| `synth_train_singleq` | 15 × |train_q| | 7777 | Size-1 train workloads — teaches experts the eval-time embedding shape (train queries only) |
 | `valid_workloads` | 150 | 123 | Validation (not currently used for early stopping) |
-| `test_workloads` | 50 | 8 | Evaluation — compute time ratio |
-| `test_expert_workloads` | 800 | 99 | Semi-supervised expert training on test queries |
+| `test_workloads` | 50 | 8 | Evaluation — compute time ratio (held out, never seen at training) |
 
 Each workload contains 3-15 randomly selected queries.
 
@@ -485,4 +486,5 @@ bash run_all.sh
 - **Latency floor repair**: Exactly-1500ms records (timeout artifacts) are replaced with values sampled from that query+combo's latency distribution.
 - **Query normalization**: `tpch_0_q1` → `sf10_q1` (strips datalake-specific prefix, adds sf prefix for cross-datalake consistency).
 - **Config encoding**: Configs are parsed into numeric vectors, padded to `max_dim=16`, then encoded by a 3-layer `ConfEncoder` MLP into 64-dim representation.
-- **Semi-supervised training**: Test query data is used for expert training (oracle-routed), which does not leak because the model must still generalize at the workload embedding level during evaluation.
+- **Strict leave-one-out (no test leakage)**: Experts are trained ONLY on train-query data (`train_workloads`, `synth_train`, `synth_train_singleq`). Test queries appear nowhere in the training set — neither in MSE nor contrastive losses.
+- **Synthetic train augmentation**: Two augmentations are layered on the real train data: (1) extra multi-query workloads with different random query subsets, (2) size-1 workloads of train queries to align the expert input distribution with the per-query eval embedding. A small Gaussian jitter is also applied to (config vector, log-latency) of expert records to densify the train manifold.
