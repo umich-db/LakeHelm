@@ -646,7 +646,6 @@ def prepare_conf(raw_conf, max_dim):
 def train_model(test_benchmark, test_sf=None, use_supply=False,
                 big_epochs=40, seed=42,
                 eval_mode='per_query', test_min_q=3, test_max_q=15, test_seed=8, eval_noise=0.0,
-                target_ratio=None,
                 stage1_subepochs=1, stage2_subepochs=2, stage3_subepochs=2,
                 lambda_div=0.1, lambda_diversity=1.0,
                 lambda_emb_spread=2.0, tree_weight_decay=1e-3,
@@ -1119,15 +1118,8 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         ratio = evaluate(query_encoder, moe_model, valid_workloads, q2idx, max_dim,
                          eval_mode=eval_mode, eval_noise=eval_noise)
 
-        # Save model: either closest to target_ratio, or lowest ratio
-        if target_ratio is not None:
-            dist = abs(ratio - target_ratio)
-            best_dist = abs(best_valid_ratio - target_ratio) if best_valid_ratio < float('inf') else float('inf')
-            save_this = (dist < best_dist)
-        else:
-            save_this = (ratio < best_valid_ratio)
-
-        if save_this:
+        # Save the model that achieves the lowest validation ratio.
+        if ratio < best_valid_ratio:
             best_valid_ratio = ratio
             best_epoch = epoch
             torch.save({
@@ -1139,10 +1131,9 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 'num_kernels': NUM_KERNELS,
                 'idx_to_tree_key': idx_to_tree_key,
             }, model_path)
-        target_str = f" (target={target_ratio})" if target_ratio else ""
         print(f"  Epoch {epoch:3d}: s1={s1_total:.4f} (mse={s1_mse:.4f} ce={s1_ce:.4f} div={s1_div:.4f}) "
               f"s2={s2_loss:.4f} s3={s3_loss:.4f} "
-              f"valid_ratio={ratio:.4f}  best_valid={best_valid_ratio:.4f}@ep{best_epoch}{target_str}")
+              f"valid_ratio={ratio:.4f}  best_valid={best_valid_ratio:.4f}@ep{best_epoch}")
 
     # Final TEST evaluation using the best-validation checkpoint.
     print(f"\n{'='*60}")
@@ -1353,8 +1344,6 @@ def main():
     parser.add_argument('--eval-mode', type=str, default='per_query',
                         choices=['v2', 'per_query'],
                         help='Evaluation mode: v2 (pool), per_query (default)')
-    parser.add_argument('--target-ratio', type=float, default=None,
-                        help='Target ratio - save model closest to this ratio instead of lowest')
     parser.add_argument('--stage1-subepochs', type=int, default=1,
                         help='Sub-epochs for end-to-end Stage 1 per epoch (more = train tree-conv harder)')
     parser.add_argument('--stage2-subepochs', type=int, default=2,
@@ -1387,7 +1376,6 @@ def main():
     train_model(args.benchmark, test_sf=args.sf,
                 big_epochs=args.epochs, seed=args.seed,
                 eval_mode=args.eval_mode,
-                target_ratio=args.target_ratio,
                 stage1_subepochs=args.stage1_subepochs,
                 stage2_subepochs=args.stage2_subepochs,
                 stage3_subepochs=args.stage3_subepochs,
