@@ -16,7 +16,6 @@ LakeHelm/
 ├── train_local.py              # Main training script (paper-spec 3-stage MoE)
 ├── tree_embedding.py           # Tree convolution query embedding module
 ├── run_all.sh                  # One command to train across (benchmark, sf) pairs
-├── run_sf100_paper.sh          # Paper-spec training for sf=100 benchmarks
 ├── plot_loss.py                # Loss / ratio visualization for training logs
 ├── README.md                   # This file
 │
@@ -27,8 +26,6 @@ LakeHelm/
 ├── test_workloads/             # Pre-generated test workloads (NOT shipped via git)
 └── logs/                       # Training log output (auto-created)
 ```
-
-> **Note**: `data/`, `test_workloads/`, `gpt_results/`, and `best_fixed_results/` are excluded from git. Users must supply their own training CSVs and test workloads. Query plan files in `orig_train/` ARE shipped.
 
 ---
 
@@ -53,10 +50,10 @@ python3 train_local.py --benchmark tpcds --sf 100 --epochs 30 --eval-mode per_qu
                         --stage1-subepochs 5 --stage2-subepochs 10 --stage3-subepochs 10
 ```
 
-### 4.2 All sf=100 benchmarks (paper-spec)
+### 4.2 All (benchmark, sf) pairs
 
 ```bash
-bash run_sf100_paper.sh
+bash run_all.sh
 ```
 
 ### 4.3 Common command-line arguments

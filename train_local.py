@@ -3,8 +3,8 @@
 LKHelm Training Script - TwoGateMoE with Tree Embeddings.
 
 Trains a Mixture of Experts model to predict optimal (engine, datalake, config)
-combinations for database query workloads. Uses leave-one-out cross-validation
-across 5 benchmarks (tpcds, tpch, ssb, ssb_flat, job) at scale factors 1/10/100.
+combinations for database query workloads. Random query-level train/valid/test
+split across 5 benchmarks (tpcds, tpch, ssb, ssb_flat, job) at scale factors 1/10/100.
 
 Usage:
   python3 train_local.py --benchmark tpcds --sf 100
