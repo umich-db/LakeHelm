@@ -23,6 +23,8 @@ LakeHelm/
 ├── bao_server/                 # TreeConvolution dependency (from Bao)
 │
 ├── orig_train/                 # Query execution plans & column histograms (shipped)
+├── gpt_results/                # GPT-5 / GPT-4o per-workload baseline predictions (shipped)
+├── best_fixed_results/         # Best-Fixed baseline per-workload predictions (shipped)
 ├── data/                       # Training CSVs (NOT shipped via git)
 ├── test_workloads/             # Pre-generated test workloads (NOT shipped via git)
 └── logs/                       # Training log output (auto-created)
@@ -250,8 +252,13 @@ The following per-query Time Ratios (1.0 = optimal) were obtained on the origina
 - **Best-Fixed**: a single fixed engine/datalake/configuration applied to every query.
 - **GPT-5 / GPT-4o**: workload queries handed to the LLM, which selects a `(combo, config)` per query.
 
-> The underlying `(config, latency)` measurements that produced these ratios are
-> not shipped with this repo.
+Per-workload predictions for these baselines are in `gpt_results/` (GPT-5 and GPT-4o)
+and `best_fixed_results/` (Best-Fixed). Each subdirectory contains a `summary.json`
+plus one `workload_NNN.json` per workload, with per-query `(combo, latency, ratio)`
+assignments and a workload-level `actual_ratio`.
+
+> The raw `(config, latency)` measurements (i.e. the input training and test
+> workload data) are not shipped with this repo.
 
 ---
 
