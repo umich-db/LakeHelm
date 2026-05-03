@@ -67,33 +67,9 @@ Random query-level split is the default — there is **no leave-one-out** evalua
 
 ---
 
-## 4. Data Format
+## 4. Model Architecture
 
-Each CSV file in `data/output/` follows:
-
-```csv
-datalake,engine,query name,conf,latency,benchmark,sf
-iceberg,trino,query15,memory.heap-headroom-per-node=16; ...,3479.62,tpcds,1
-delta,spark,query15,1.0;0;4;4;0;0;300|1;1;...,12543.80,tpcds,1
-```
-
-| Column | Description | Example |
-|---|---|---|
-| `datalake` | Data lake system | `delta`, `iceberg`, `hudi` |
-| `engine` | Query engine | `spark`, `presto`, `trino` |
-| `query name` | Query identifier | `query15`, `q1`, `job_10a` |
-| `conf` | Configuration knob string | `key=val;key=val` or `val;val\|val;val` |
-| `latency` | Execution time in ms | `3479.62` |
-| `benchmark` | Benchmark name | `tpcds`, `tpch`, `ssb`, `ssb-flat`, `job` |
-| `sf` | Scale factor | `1`, `10`, `100` |
-
-> Records with `latency < 1500ms` are filtered out during training (timeout artifacts).
-
----
-
-## 5. Model Architecture
-
-### 5.1 Query Embedding — TreeQueryEncoder
+### 4.1 Query Embedding — TreeQueryEncoder
 
 Converts SQL execution plans into 288-dimensional query embeddings:
 
@@ -104,7 +80,7 @@ Converts SQL execution plans into 288-dimensional query embeddings:
 5. **LayerNorm**: per-query unit variance to prevent encoder collapse
 6. **Fallback**: queries without plan files get learnable `nn.Embedding` vectors
 
-### 5.2 Workload Aggregation — AttentionPool
+### 4.2 Workload Aggregation — AttentionPool
 
 Per-query embeddings → workload embedding via multi-head attention pool with concat(mean, max) residual:
 
@@ -114,7 +90,7 @@ output = concat(head_1, head_2, head_3, head_4, mean, max)   # → 6 × 288 = 17
 
 Each attention head learns a different scoring function over the per-query embeddings; this prevents the gate from receiving near-identical inputs across different workloads.
 
-### 5.3 TwoGateMoE
+### 4.3 TwoGateMoE
 
 ```
                     ┌────────────────────┐
@@ -150,7 +126,7 @@ Each attention head learns a different scoring function over the per-query embed
               └───────────────────┘
 ```
 
-### 5.4 Loss Function (paper §loss_function)
+### 4.4 Loss Function (paper §loss_function)
 
 ```
 L_total = L_MSE  +  L_CE  +  λ_div × L_div
@@ -166,7 +142,7 @@ Additional anti-collapse regularizers (configurable):
 - `lambda_diversity` × entropy-max term (push batch-mean prob away from 1-hot)
 - `lambda_emb_spread` × variance-of-workload-embeddings + InfoNCE-style cosine penalty
 
-### 5.5 Three-stage training (paper §moe-train)
+### 4.5 Three-stage training (paper §moe-train)
 
 Each outer epoch runs three sub-stages back to back:
 
@@ -174,7 +150,7 @@ Each outer epoch runs three sub-stages back to back:
 2. **Gate-focused (Stage 2)** — Only gates trained on `L_CE + L_div` (tree-conv frozen).
 3. **Expert-focused (Stage 3)** — Each expert trained on every (config, ratio) record routed via the actual (engine, lake) ID (tree-conv frozen).
 
-### 5.6 Optimizer
+### 4.6 Optimizer
 
 - **Adam** lr=3e-4
 - **Weight decay**: 1e-3 on tree-conv params (anti-collapse), 1e-5 elsewhere
@@ -183,9 +159,9 @@ Each outer epoch runs three sub-stages back to back:
 
 ---
 
-## 6. Evaluation
+## 5. Evaluation
 
-### 6.1 Per-Query Evaluation (default)
+### 5.1 Per-Query Evaluation (default)
 
 For each test query:
 1. Compute query embedding (single query → AttentionPool)
@@ -196,13 +172,13 @@ For each test query:
 
 Average ratio across all test queries. **Lower is better** (1.0 = always optimal).
 
-### 6.2 Train / Valid / Test split
+### 5.2 Train / Valid / Test split
 
 Random query-level split, default 70 / 15 / 15. Best checkpoint is selected on the **validation** set; the **test** set is evaluated only once at the end with the best-validation checkpoint.
 
 ---
 
-## 7. Implementation Notes
+## 6. Implementation Notes
 
 - **Tree cache**: First run processes plan files into tree tensors and saves `.tree_cache.pt`. Subsequent runs load instantly.
 - **Latency floor repair**: Exactly-1500ms records (timeout artifacts) are replaced with samples drawn from that query+combo's latency distribution.
