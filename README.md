@@ -226,7 +226,36 @@ Random query-level split, default 70 / 15 / 15. Best checkpoint is selected on t
 
 ---
 
-## 8. Implementation Notes
+## 8. Reference Results
+
+The following per-query Time Ratios (1.0 = optimal) were obtained on the original
+13 (benchmark, sf) splits and are kept here for reference / comparison.
+
+| Workload | TwoGateMoE | Best-Fixed | GPT-5 | GPT-4o |
+|---|---|---|---|---|
+| TPC-DS (sf=1) | 2.43 | 1.35 | 1.31 | 1.28 |
+| TPC-H (sf=1) | 1.10 | 1.23 | 1.24 | 1.45 |
+| SSB (sf=1) | 1.40 | 1.13 | 1.27 | 1.32 |
+| SSB-Flat (sf=1) | 1.29 | 1.24 | 1.83 | 1.38 |
+| TPC-DS (sf=10) | 1.90 | 2.14 | 2.05 | 1.98 |
+| TPC-H (sf=10) | 1.58 | 1.91 | 2.11 | 2.10 |
+| SSB (sf=10) | 1.42 | 1.87 | 2.08 | 2.41 |
+| SSB-Flat (sf=10) | 1.52 | 1.66 | 2.34 | 2.24 |
+| JOB (sf=10) | 1.49 | 2.26 | 2.88 | 3.24 |
+| TPC-DS (sf=100) | 1.87 | 2.84 | 2.84 | 3.74 |
+| TPC-H (sf=100) | 1.68 | 1.53 | 2.72 | 3.02 |
+| SSB (sf=100) | 1.80 | 1.73 | 2.41 | 3.14 |
+| SSB-Flat (sf=100) | 1.99 | 1.42 | 2.41 | 2.76 |
+
+- **Best-Fixed**: a single fixed engine/datalake/configuration applied to every query.
+- **GPT-5 / GPT-4o**: workload queries handed to the LLM, which selects a `(combo, config)` per query.
+
+> The underlying `(config, latency)` measurements that produced these ratios are
+> not shipped with this repo.
+
+---
+
+## 9. Implementation Notes
 
 - **Tree cache**: First run processes plan files into tree tensors and saves `.tree_cache.pt`. Subsequent runs load instantly.
 - **Latency floor repair**: Exactly-1500ms records (timeout artifacts) are replaced with samples drawn from that query+combo's latency distribution.
