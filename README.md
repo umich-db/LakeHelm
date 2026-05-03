@@ -23,8 +23,6 @@ LakeHelm/
 ├── bao_server/                 # TreeConvolution dependency (from Bao)
 │
 ├── orig_train/                 # Query execution plans & column histograms (shipped)
-├── gpt_results/                # GPT-5 / GPT-4o per-workload baseline predictions (shipped)
-├── best_fixed_results/         # Best-Fixed baseline per-workload predictions (shipped)
 ├── data/                       # Training CSVs (NOT shipped via git)
 ├── test_workloads/             # Pre-generated test workloads (NOT shipped via git)
 └── logs/                       # Training log output (auto-created)
