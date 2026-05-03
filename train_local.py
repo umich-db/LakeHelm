@@ -198,35 +198,57 @@ class TwoGateMoE(nn.Module):
         )
 
     def forward(self, w_emb, conf, use_gumbel=False, tau=1.0):
+        """Paper-style forward.
+
+        Returns: pred, eng_probs, lak_probs, eng_logits, lak_logits.
+        Routing is differentiable: experts' contributions are weighted by
+        Gumbel/softmax probabilities (no hard arg-max in the forward path).
+        The expert input from the *other* gate is its soft probabilities
+        (instead of one-hot) so gradients flow through both gates.
+        """
         conf_enc = self.conf_encoder(conf)
         eng_logits = self.engine_gate(w_emb)
         lak_logits = self.lake_gate(w_emb)
 
         if use_gumbel:
-            # Gumbel-softmax: differentiable through gate → expert routing
             eng_probs = F.gumbel_softmax(eng_logits, tau=tau, hard=False)
             lak_probs = F.gumbel_softmax(lak_logits, tau=tau, hard=False)
         else:
             eng_probs = F.softmax(eng_logits, dim=-1)
             lak_probs = F.softmax(lak_logits, dim=-1)
 
-        B = w_emb.size(0)
-
-        lak_onehot = torch.zeros(B, self.LAKE_CLASSES, device=w_emb.device)
-        lak_onehot.scatter_(1, lak_probs.argmax(-1, keepdim=True), 1.0)
-        eng_inp = torch.cat([w_emb, conf_enc, lak_onehot], dim=1)
+        # Engine experts conditioned on lake soft probs (lets gradients flow to lake gate too)
+        eng_inp = torch.cat([w_emb, conf_enc, lak_probs], dim=1)
         eng_vecs = torch.stack([exp(eng_inp) for exp in self.engine_experts], dim=1)
         eng_feat = (eng_probs.unsqueeze(-1) * eng_vecs).sum(1)
 
-        eng_onehot = torch.zeros(B, self.ENGINE_CLASSES, device=w_emb.device)
-        eng_onehot.scatter_(1, eng_probs.argmax(-1, keepdim=True), 1.0)
-        lak_inp = torch.cat([w_emb, conf_enc, eng_onehot], dim=1)
+        # Lake experts conditioned on engine soft probs
+        lak_inp = torch.cat([w_emb, conf_enc, eng_probs], dim=1)
         lak_vecs = torch.stack([exp(lak_inp) for exp in self.lake_experts], dim=1)
         lak_feat = (lak_probs.unsqueeze(-1) * lak_vecs).sum(1)
 
         fused = torch.cat([eng_feat, lak_feat], dim=1)
         pred = self.post_mlp(fused)
-        return pred, eng_probs, lak_probs
+        return pred, eng_probs, lak_probs, eng_logits, lak_logits
+
+    def forward_for_eng_lak(self, w_emb, conf, eng_id, lak_id):
+        """Inference helper: score given (engine, lake) combo + config.
+
+        Used at inference time after gates have selected eng_id, lak_id.
+        Routes to that specific engine/lake expert pair.
+        """
+        conf_enc = self.conf_encoder(conf)
+        B = w_emb.size(0)
+        eng_onehot = F.one_hot(torch.full((B,), eng_id, device=w_emb.device, dtype=torch.long),
+                                self.ENGINE_CLASSES).float()
+        lak_onehot = F.one_hot(torch.full((B,), lak_id, device=w_emb.device, dtype=torch.long),
+                                self.LAKE_CLASSES).float()
+        eng_inp = torch.cat([w_emb, conf_enc, lak_onehot], dim=1)
+        eng_feat = self.engine_experts[eng_id](eng_inp)
+        lak_inp = torch.cat([w_emb, conf_enc, eng_onehot], dim=1)
+        lak_feat = self.lake_experts[lak_id](lak_inp)
+        fused = torch.cat([eng_feat, lak_feat], dim=1)
+        return self.post_mlp(fused)
 
     def forward_oracle(self, w_emb, conf, combo_ids):
         """Forward with oracle routing: use actual combo to route to correct expert.
@@ -392,34 +414,30 @@ def fix_floor_latencies(all_data, floor_val=1500.0):
     return all_data
 
 
-def get_all_data(test_benchmark, test_sf=None, use_supply=False):
-    """Load data with per-(benchmark, sf) leave-one-out splitting.
+def get_all_data(test_benchmark=None, test_sf=None, use_supply=False,
+                 train_frac=0.70, valid_frac=0.15, test_frac=0.15, split_seed=42):
+    """Load benchmark CSVs and split queries RANDOMLY into train/valid/test.
 
-    If test_sf is set: only queries matching (test_benchmark, test_sf) are test.
-    Other SFs of test_benchmark go into training.
-    If test_sf is None: all queries from test_benchmark are test (original behavior).
+    No leave-one-out splitting. If `test_benchmark` is set, only that benchmark's
+    data is loaded; otherwise all benchmarks are pooled. The split is then a
+    purely random query-level partition (default 70/15/15). When `test_sf` is
+    given, only queries with sf prefix matching `sf{test_sf}_` are kept.
+
+    Returns (all_data, max_dim, train_qnames, valid_qnames, test_qnames).
     """
     all_benchmarks = ['tpcds', 'ssb', 'ssb_flat', 'job', 'tpch']
-
+    benchmarks_to_load = [test_benchmark] if test_benchmark else all_benchmarks
+    print(f"\nLoading benchmarks: {benchmarks_to_load}")
     if test_sf is not None:
-        print(f"\nTest: {test_benchmark} sf={test_sf}")
-        print(f"Train: all other data (including {test_benchmark} other SFs)")
-    else:
-        print(f"\nTest benchmark: {test_benchmark}")
+        print(f"Filter: only queries at sf={test_sf}")
+    print(f"Random split: train={train_frac:.0%} valid={valid_frac:.0%} test={test_frac:.0%} (seed={split_seed})")
 
-    # Load ALL benchmarks
     all_data = {}
     max_dim = 0
-    test_qnames = []
-    train_qnames = []
-
-    for bm in all_benchmarks:
-        is_test_bm = (bm == test_benchmark)
-        label = "test" if (is_test_bm and test_sf is None) else "data"
-        print(f"\nLoading {label} ({bm}):")
+    for bm in benchmarks_to_load:
+        print(f"\nLoading ({bm}):")
         bm_data, bm_max_dim = load_csv_data(bm)
         max_dim = max(max_dim, bm_max_dim)
-
         for qid, qdata in bm_data.items():
             if qid in all_data:
                 for cc, recs in qdata.items():
@@ -429,23 +447,6 @@ def get_all_data(test_benchmark, test_sf=None, use_supply=False):
                         all_data[qid][cc].extend(recs)
             else:
                 all_data[qid] = qdata
-
-            if is_test_bm:
-                if test_sf is not None:
-                    sf_prefix = f"sf{test_sf}_"
-                    if qid.startswith(sf_prefix):
-                        if qid not in test_qnames:
-                            test_qnames.append(qid)
-                    else:
-                        if qid not in train_qnames:
-                            train_qnames.append(qid)
-                else:
-                    if qid not in test_qnames:
-                        test_qnames.append(qid)
-            else:
-                if qid not in train_qnames:
-                    train_qnames.append(qid)
-
         if use_supply:
             print(f"  Loading supply ({bm}):")
             supply_data, s_max_dim = load_csv_data(bm, supply=True)
@@ -459,14 +460,22 @@ def get_all_data(test_benchmark, test_sf=None, use_supply=False):
                             all_data[qid][cc].extend(recs)
                 else:
                     all_data[qid] = qdata
-                if qid not in train_qnames and qid not in test_qnames:
-                    train_qnames.append(qid)
 
-    # Split train into train/valid
-    random.shuffle(train_qnames)
-    valid_size = max(1, int(len(train_qnames) * 0.15))
-    valid_qnames = train_qnames[:valid_size]
-    train_qnames = train_qnames[valid_size:]
+    # Optional sf filter.
+    if test_sf is not None:
+        sf_prefix = f"sf{test_sf}_"
+        all_data = {q: v for q, v in all_data.items() if q.startswith(sf_prefix)}
+
+    # Random query-level split.
+    qnames = sorted(all_data.keys())
+    rng = random.Random(split_seed)
+    rng.shuffle(qnames)
+    n = len(qnames)
+    n_train = int(n * train_frac)
+    n_valid = int(n * valid_frac)
+    train_qnames = qnames[:n_train]
+    valid_qnames = qnames[n_train:n_train + n_valid]
+    test_qnames = qnames[n_train + n_valid:]
 
     # Repair floor-latency records (1500ms artifacts)
     print("\nFixing floor-latency artifacts...")
@@ -563,6 +572,68 @@ def generate_workloads(query_ids, grouped_data, num_workloads, min_q=3, max_q=15
     return workloads
 
 
+# ===================== Workload aggregation =====================
+
+class AttentionPool(nn.Module):
+    """Multi-head attention pool over per-query embeddings.
+
+    Each head learns a different "what to look at" projection of input → scalar score.
+    Pool = sum_q (softmax_q(score_q) * qembs_q). Concat across heads.
+    Result: (1, num_heads * D). Adds (mean, max) raw stats too as residual.
+    """
+    def __init__(self, dim, num_heads=4):
+        super().__init__()
+        self.num_heads = num_heads
+        self.dim = dim
+        # One linear per head: D -> 1 score
+        self.score_heads = nn.ModuleList([
+            nn.Linear(dim, 1, bias=True) for _ in range(num_heads)
+        ])
+        for h in self.score_heads:
+            nn.init.orthogonal_(h.weight, gain=1.0)
+            nn.init.zeros_(h.bias)
+        self.out_dim = num_heads * dim + 2 * dim   # heads ⊕ mean ⊕ max
+
+    def forward(self, qembs):  # (Q, D) → (1, out_dim)
+        Q = qembs.size(0)
+        head_outs = []
+        for head in self.score_heads:
+            scores = head(qembs).squeeze(-1)            # (Q,)
+            attn = torch.softmax(scores, dim=0)         # (Q,)
+            pooled = (attn.unsqueeze(-1) * qembs).sum(0, keepdim=True)  # (1, D)
+            head_outs.append(pooled)
+        # Residual stats — keep mean and max as anchors
+        m = qembs.mean(0, keepdim=True)
+        mx = qembs.max(0, keepdim=True).values if Q > 1 else qembs.clone()
+        return torch.cat(head_outs + [m, mx], dim=-1)   # (1, num_heads*D + 2D)
+
+
+# Module-level pool instance is created in train_model and rebound here at call time.
+_POOL = None
+
+def aggregate_workload_emb(qembs):
+    """Aggregate per-query embeddings → workload embedding.
+    Uses module-level _POOL (an AttentionPool) when set; falls back to
+    concat(mean, max, std) before pool initialization (e.g., during cache writes
+    in TreeQueryEncoder.recompute_tree_embeddings)."""
+    if _POOL is not None:
+        return _POOL(qembs)
+    # Fallback: concat(mean, max, std)
+    m = qembs.mean(0, keepdim=True)
+    if qembs.size(0) > 1:
+        mx = qembs.max(0, keepdim=True).values
+        sd = qembs.std(0, keepdim=True, unbiased=False)
+    else:
+        mx = qembs.clone()
+        sd = torch.zeros_like(qembs)
+    return torch.cat([m, mx, sd], dim=-1)
+
+
+def set_pool(pool):
+    global _POOL
+    _POOL = pool
+
+
 # ===================== Pad configs =====================
 
 def prepare_conf(raw_conf, max_dim):
@@ -576,8 +647,11 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 big_epochs=40, seed=42,
                 eval_mode='per_query', test_min_q=3, test_max_q=15, test_seed=8, eval_noise=0.0,
                 target_ratio=None,
-                synth_train_workloads=3000, synth_train_singleq_reps=15,
-                conf_jitter_std=0.02, lat_jitter_std=0.05, jitter_aug_per_rec=2):
+                stage1_subepochs=1, stage2_subepochs=2, stage3_subepochs=2,
+                lambda_div=0.1, lambda_diversity=1.0,
+                lambda_emb_spread=2.0, tree_weight_decay=1e-3,
+                gumbel_tau=1.0, batch_size=32,
+                ratio_cap=20.0):
     # Set seed for reproducibility
     random.seed(seed)
     np.random.seed(seed)
@@ -610,119 +684,99 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     test_workloads = generate_workloads(test_qnames, all_data, 50, min_q=test_min_q, max_q=test_max_q, seed=test_seed)
     print(f"  Generated {len(test_workloads)} test workloads")
 
-    # Synthetic TRAIN augmentation (NO test data — no semi-supervision).
-    # (a) Extra multi-query workloads sampled from train queries (different seeds = new combos).
-    # (b) Single-query workloads from train queries to teach experts the eval-time
-    #     embedding shape (query_encoder([single_q])). These are still TRAIN queries,
-    #     so test answers are never exposed.
-    synth_train = []
-    if synth_train_workloads > 0:
-        synth_train = generate_workloads(
-            train_qnames, all_data, synth_train_workloads,
-            min_q=test_min_q, max_q=test_max_q, seed=4242,
-        )
-        print(f"  Generated {len(synth_train)} synthetic train workloads")
-    synth_train_singleq = []
-    if synth_train_singleq_reps > 0:
-        n_total = max(1, synth_train_singleq_reps) * max(1, len(train_qnames))
-        synth_train_singleq = generate_workloads(
-            train_qnames, all_data, n_total,
-            min_q=1, max_q=1, min_combo_coverage=1, seed=7777,
-        )
-        print(f"  Generated {len(synth_train_singleq)} synthetic train single-query workloads "
-              f"(reps={synth_train_singleq_reps})")
-
     if not train_workloads:
         print("ERROR: No training workloads generated!")
         return
 
-    # Precompute q_indices and conf/target tensors for all workloads
-    def precompute_wl_tensors(workloads, q2idx_map, max_d):
+    # ===== Paper-style precompute =====
+    # Per workload we cache:
+    #   _q_indices          : tensor of query indices (for tree-conv embedding)
+    #   _best_combo, _best_eng, _best_lak : workload best (e*, l*) from combo_totals
+    #   _q_best_lat[qid]    : per-query global min latency across all combos/configs
+    #   _stage1             : list of (conf, target_r=1, eng_id, lak_id) — N samples,
+    #                         one per query: each query's globally best (combo, conf).
+    #                         These supervise gates (CE) and overall MSE on r=1.
+    #   _stage3             : list of (conf, target_r, eng_id, lak_id) — every (q, combo, conf)
+    #                         record sampled (≤16/combo), used for expert-focused training.
+    def precompute_paper_tensors(workloads, q2idx_map, max_d):
         for wl in workloads:
             qids = wl['query_ids']
             q_idx = [q2idx_map[q] for q in qids if q in q2idx_map]
             wl['_q_indices'] = torch.tensor(q_idx, device=device) if q_idx else None
-            # Precompute best combo using combo_totals (sum of best-per-query latencies)
-            best_c = None
-            best_l = float('inf')
-            ctotals = wl.get('combo_totals', {})
-            if ctotals:
-                for cc, total in ctotals.items():
-                    if total < best_l:
-                        best_l = total
-                        best_c = cc
-            else:
-                # Fallback: use min individual record
+
+            # workload-level best combo from combo_totals
+            best_c = None; best_l = float('inf')
+            for cc, total in wl.get('combo_totals', {}).items():
+                if total < best_l:
+                    best_l = total; best_c = cc
+            if best_c is None:
                 for cc, recs in wl['aggregated_data'].items():
                     ml = min(lat for _, lat in recs)
                     if ml < best_l:
-                        best_l = ml
-                        best_c = cc
+                        best_l = ml; best_c = cc
             wl['_best_combo'] = best_c
-            # Precompute expert data: sample up to 16 records per combo
-            expert_data = []
-            expert_combos = []  # track which combo each record belongs to
-            expert_combo_ids = []  # (engine_id, lake_id) for oracle routing
-            for cc, recs in wl['aggregated_data'].items():
-                if len(recs) <= 16:
-                    sampled_recs = recs
-                else:
-                    # Include best, worst, and 14 evenly spaced
-                    sorted_recs = sorted(recs, key=lambda x: x[1])
-                    n = len(sorted_recs)
-                    indices = [0, n - 1]  # best and worst
-                    step = max(1, n // 15)
-                    for i in range(1, 15):
-                        idx = min(i * step, n - 1)
-                        if idx not in indices:
-                            indices.append(idx)
-                    sampled_recs = [sorted_recs[i] for i in sorted(set(indices))]
-                for conf_tensor, lat in sampled_recs:
-                    conf_padded = prepare_conf(conf_tensor.tolist(), max_d).to(device)
-                    target = math.log(lat + 1)
-                    expert_data.append((conf_padded, target))
-                    expert_combos.append(cc)
-                    expert_combo_ids.append([float(cc[0]), float(cc[1])])
-            wl['_expert_data'] = expert_data
-            wl['_expert_combos'] = expert_combos
-            wl['_expert_combo_ids'] = expert_combo_ids
+            wl['_best_eng'] = int(best_c[0]) if best_c else 0
+            wl['_best_lak'] = int(best_c[1]) if best_c else 0
 
-    print("Precomputing tensors...")
-    for wl_list in [train_workloads, valid_workloads, test_workloads,
-                     synth_train, synth_train_singleq]:
-        precompute_wl_tensors(wl_list, q2idx, max_dim)
+            stats = wl.get('per_query_data', {})
 
-    # Inject jittered config/latency augmentation into synthetic train expert_data.
-    # Each existing record (conf, target=log(lat+1)) gets `jitter_aug_per_rec` extra
-    # synthetic copies with small Gaussian noise on the conf vector and the target.
-    # This synthesizes new TRAIN data points around observed ones without using test data.
-    if jitter_aug_per_rec > 0:
-        rng_jit = np.random.RandomState(seed + 9999)
-        n_added = 0
-        for wl in synth_train + synth_train_singleq:
-            ed = wl.get('_expert_data', [])
-            ec = wl.get('_expert_combos', [])
-            ei = wl.get('_expert_combo_ids', [])
-            if not ed:
-                continue
-            new_ed, new_ec, new_ei = [], [], []
-            for (conf, tgt), cc, cid in zip(ed, ec, ei):
-                new_ed.append((conf, tgt)); new_ec.append(cc); new_ei.append(cid)
-                for _ in range(jitter_aug_per_rec):
-                    noise = torch.tensor(
-                        rng_jit.normal(0, conf_jitter_std, size=conf.shape).astype(np.float32),
-                        device=conf.device,
-                    )
-                    j_conf = conf + noise
-                    j_tgt = tgt + float(rng_jit.normal(0, lat_jitter_std))
-                    new_ed.append((j_conf, j_tgt))
-                    new_ec.append(cc); new_ei.append(cid)
-                    n_added += 1
-            wl['_expert_data'] = new_ed
-            wl['_expert_combos'] = new_ec
-            wl['_expert_combo_ids'] = new_ei
-        print(f"  Injected {n_added} jittered synthetic records "
-              f"(conf_std={conf_jitter_std}, lat_std={lat_jitter_std})")
+            # per-query best latency across all combos/confs
+            q_best_lat = {}
+            for qid in qids:
+                if qid not in stats:
+                    continue
+                ml = float('inf')
+                for cc, recs in stats[qid].items():
+                    for _, lat in recs:
+                        if lat < ml:
+                            ml = lat
+                if ml > 0 and ml < float('inf'):
+                    q_best_lat[qid] = ml
+            wl['_q_best_lat'] = q_best_lat
+
+            # Stage 1 records: per query, the globally best (combo, conf), target r = 1.0
+            stage1 = []
+            for qid in qids:
+                if qid not in stats or qid not in q_best_lat:
+                    continue
+                best_q_lat = float('inf'); best_q_cc = None; best_q_conf = None
+                for cc, recs in stats[qid].items():
+                    for conf, lat in recs:
+                        if lat < best_q_lat:
+                            best_q_lat = lat; best_q_cc = cc; best_q_conf = conf
+                if best_q_conf is None:
+                    continue
+                conf_padded = prepare_conf(best_q_conf.tolist(), max_d).to(device)
+                stage1.append((conf_padded, 1.0, int(best_q_cc[0]), int(best_q_cc[1])))
+            wl['_stage1'] = stage1
+
+            # Stage 3 records: all (q, combo, conf) sampled, target_r = lat / q_best_lat
+            stage3 = []
+            for qid in qids:
+                if qid not in stats or qid not in q_best_lat:
+                    continue
+                qbest = q_best_lat[qid]
+                for cc, recs in stats[qid].items():
+                    if len(recs) <= 16:
+                        sampled = list(recs)
+                    else:
+                        sorted_recs = sorted(recs, key=lambda x: x[1])
+                        n = len(sorted_recs)
+                        idxs = {0, n - 1}
+                        step = max(1, n // 15)
+                        for i in range(1, 15):
+                            idxs.add(min(i * step, n - 1))
+                        sampled = [sorted_recs[i] for i in sorted(idxs)]
+                    for conf, lat in sampled:
+                        conf_padded = prepare_conf(conf.tolist(), max_d).to(device)
+                        r = lat / qbest if qbest > 0 else 1.0
+                        r = min(r, ratio_cap)
+                        stage3.append((conf_padded, r, int(cc[0]), int(cc[1])))
+            wl['_stage3'] = stage3
+
+    print("Precomputing paper tensors...")
+    for wl_list in [train_workloads, valid_workloads, test_workloads]:
+        precompute_paper_tensors(wl_list, q2idx, max_dim)
 
     # Tree-based embedding (always used)
     mapped_tree, feat_dim = load_all_plan_trees(num_augment=5, swap_prob=0.3)
@@ -735,7 +789,10 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     idx_to_tree_key = build_query_to_plan_mapping(q2idx, base_tree_keys)
 
     NUM_KERNELS = 4
-    EMB_DIM = feat_dim * NUM_KERNELS  # 288
+    QENC_DIM = feat_dim * NUM_KERNELS  # 288 — per-query embedding dim
+    NUM_ATTN_HEADS = 4
+    # Workload aggregation = AttentionPool(num_heads=4) → (4 + 2) × QENC_DIM
+    EMB_DIM = (NUM_ATTN_HEADS + 2) * QENC_DIM
     query_encoder = TreeQueryEncoder(
         mapped_tree=mapped_tree,
         idx_to_tree_key=idx_to_tree_key,
@@ -746,7 +803,14 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         dropout_prob=0.5,
         device=str(device),
         proj_dim=0,  # no projection
+        use_layer_norm=True,
+        init_gain=2.0,
     ).to(device)
+
+    # Attention pool for workload aggregation (replaces mean/max/std).
+    pool = AttentionPool(dim=QENC_DIM, num_heads=NUM_ATTN_HEADS).to(device)
+    set_pool(pool)
+    print(f"  AttentionPool: dim={QENC_DIM} heads={NUM_ATTN_HEADS} → out_dim={pool.out_dim}")
 
     gate_hidden = [128, 256]
     expert_hidden = [128, 256, 256]
@@ -767,100 +831,293 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     model_path = os.path.join(os.path.dirname(__file__), "models", f"best_model_{test_benchmark}{sf_tag}.pth")
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
-    # Expert params for oracle-routed training
+    # ===== Optimizers (per-stage parameter groups) =====
+    pool_params = list(pool.parameters())
+    all_params = list(query_encoder.parameters()) + pool_params + list(moe_model.parameters())
+    # Stage 2 freezes tree-conv but lets attention pool update (pool reads cached qembs).
+    gate_params = (
+        pool_params +
+        list(moe_model.engine_gate.parameters()) +
+        list(moe_model.lake_gate.parameters())
+    )
     expert_params = (
         list(moe_model.conf_encoder.parameters()) +
         list(moe_model.engine_experts.parameters()) +
         list(moe_model.lake_experts.parameters()) +
         list(moe_model.post_mlp.parameters())
     )
-
-    # Expert optimizer
-    expert_opt = Adam(expert_params, lr=3e-4, weight_decay=1e-5)
-    expert_scheduler = CosineAnnealingLR(expert_opt, T_max=BIG_EPOCHS, eta_min=1e-5)
-
-    # NO test data in training set — strict leave-one-out.
-    combined_expert_workloads = train_workloads + synth_train + synth_train_singleq
+    # Higher weight_decay on tree-conv to combat embedding collapse / overfit.
+    tree_params = list(query_encoder.parameters())
+    moe_only_params = [p for p in moe_model.parameters()]
+    opt_full = Adam([
+        {'params': tree_params, 'weight_decay': tree_weight_decay},
+        {'params': pool_params, 'weight_decay': 1e-5},
+        {'params': moe_only_params, 'weight_decay': 1e-5},
+    ], lr=3e-4)
+    opt_gate = Adam(gate_params, lr=3e-4, weight_decay=1e-5)
+    opt_expert = Adam(expert_params, lr=3e-4, weight_decay=1e-5)
+    sched_full = CosineAnnealingLR(opt_full, T_max=BIG_EPOCHS, eta_min=1e-5)
+    sched_gate = CosineAnnealingLR(opt_gate, T_max=BIG_EPOCHS, eta_min=1e-5)
+    sched_expert = CosineAnnealingLR(opt_expert, T_max=BIG_EPOCHS, eta_min=1e-5)
 
     print(f"\n{'='*60}")
-    print(f"Training: {BIG_EPOCHS} epochs (oracle-routed experts)")
+    print(f"Training: {BIG_EPOCHS} epochs — paper-spec 3-stage MoE")
+    print(f"  Stage 2 sub-epochs: {stage2_subepochs} | Stage 3 sub-epochs: {stage3_subepochs}")
+    print(f"  λ_div={lambda_div} | gumbel τ={gumbel_tau} | batch_size={batch_size} | ratio_cap={ratio_cap}")
     print(f"{'='*60}")
 
-    # Helper: workload embedding (detached tree embeddings)
     def _get_w_emb(q_indices):
-        return query_encoder(q_indices).mean(0, keepdim=True)
+        return aggregate_workload_emb(query_encoder(q_indices))
 
-    for epoch in range(1, BIG_EPOCHS + 1):
-        query_encoder.train()
-        moe_model.train()
+    def _get_w_emb_train(q_indices):
+        # Differentiable lookup — must call precompute_training_table() before this
+        return aggregate_workload_emb(query_encoder.forward_train(q_indices))
 
-        # Precompute tree embeddings (tree conv frozen, raw embeddings cached)
+    def _run_stage1_endtoend(workloads):
+        """End-to-end: tree-conv + gates + experts + post-mlp ALL trained.
+        For each batch of `batch_size` workloads:
+          1. Rebuild differentiable training table (one tree-conv forward per batch).
+          2. Per workload: index lookup → mean → forward (Gumbel) → MSE+CE.
+          3. Accumulate batch losses + L_div on batch-mean probs → backward → step.
+        """
+        query_encoder.train(); moe_model.train()
+        random.shuffle(workloads)
+
+        total = 0.0; mse_acc = 0.0; ce_acc = 0.0; div_acc = 0.0; n_steps = 0
+        i = 0
+        while i < len(workloads):
+            chunk = workloads[i:i + batch_size]
+            i += batch_size
+            # One tree-conv forward (with grad) for the whole batch.
+            query_encoder.precompute_training_table(device)
+
+            bmse_terms = []; bce_terms = []
+            b_eng_p = []; b_lak_p = []
+            b_w_emb = []   # collect workload embeddings for spread regularizer
+            for wl in chunk:
+                q_indices = wl['_q_indices']
+                if q_indices is None or len(q_indices) == 0:
+                    continue
+                stage1 = wl['_stage1']
+                if not stage1:
+                    continue
+                w_emb = _get_w_emb_train(q_indices)  # grad through tree-conv
+                b_w_emb.append(w_emb.squeeze(0))  # (D,)
+                confs = torch.stack([rec[0] for rec in stage1])
+                t_r = torch.tensor([rec[1] for rec in stage1], device=device, dtype=torch.float)
+                t_eng = torch.tensor([rec[2] for rec in stage1], device=device, dtype=torch.long)
+                t_lak = torch.tensor([rec[3] for rec in stage1], device=device, dtype=torch.long)
+                w_emb_e = w_emb.expand(len(stage1), -1)
+                pred, eng_p, lak_p, eng_lg, lak_lg = moe_model.forward(
+                    w_emb_e, confs, use_gumbel=True, tau=gumbel_tau,
+                )
+                pe = eng_p.gather(1, t_eng.unsqueeze(1)).squeeze(1)
+                pl = lak_p.gather(1, t_lak.unsqueeze(1)).squeeze(1)
+                mse_per = (pred.squeeze(-1) - t_r) ** 2 * pe * pl
+                bmse_terms.append(mse_per.mean())
+                bce_terms.append(F.cross_entropy(eng_lg, t_eng) + F.cross_entropy(lak_lg, t_lak))
+                b_eng_p.append(F.softmax(eng_lg, dim=-1))
+                b_lak_p.append(F.softmax(lak_lg, dim=-1))
+
+            if not bmse_terms:
+                continue
+            mse_m = torch.stack(bmse_terms).mean()
+            ce_m = torch.stack(bce_terms).mean()
+            all_eng_p = torch.cat(b_eng_p, dim=0)  # (B_total, ENG)
+            all_lak_p = torch.cat(b_lak_p, dim=0)  # (B_total, LAK)
+            avg_eng = all_eng_p.mean(0); avg_lak = all_lak_p.mean(0)
+            inv_e = 1.0 / TwoGateMoE.ENGINE_CLASSES
+            inv_l = 1.0 / TwoGateMoE.LAKE_CLASSES
+            div = ((avg_eng - inv_e) ** 2).sum() + ((avg_lak - inv_l) ** 2).sum()
+            # NEW anti-collapse: maximize entropy of batch-mean prob distribution.
+            # Loss = max_entropy - actual_entropy (>=0, =0 at uniform).
+            # Pushes batch-mean prob toward uniform with strong gradient even at collapse.
+            log_e = math.log(TwoGateMoE.ENGINE_CLASSES)
+            log_l = math.log(TwoGateMoE.LAKE_CLASSES)
+            ent_eng = -(avg_eng * (avg_eng + 1e-12).log()).sum()
+            ent_lak = -(avg_lak * (avg_lak + 1e-12).log()).sum()
+            diversity_loss = (log_e - ent_eng) + (log_l - ent_lak)
+            # NEW: workload-embedding spread regularizer — variance + InfoNCE contrastive.
+            # Variance: maximize per-dim cross-sample variance.
+            # InfoNCE: each workload's embedding should be more similar to itself
+            #          (perturbed via dropout-augmented re-aggregation) than to others.
+            #          Approximation: use cosine similarity matrix; minimize average
+            #          off-diagonal cosine similarity (push embeddings apart).
+            emb_spread_loss = torch.tensor(0.0, device=device)
+            if len(b_w_emb) >= 2 and lambda_emb_spread > 0:
+                emb_stack = torch.stack(b_w_emb, dim=0)  # (B, D)
+                emb_var = emb_stack.var(dim=0, unbiased=False).mean()
+                # Cosine similarity off-diagonal — anti-collapse contrastive
+                norm_E = emb_stack / (emb_stack.norm(dim=-1, keepdim=True) + 1e-12)
+                cos_M = norm_E @ norm_E.T  # (B, B)
+                Bn = cos_M.size(0)
+                eye = torch.eye(Bn, device=device, dtype=torch.bool)
+                off_cos = cos_M[~eye]
+                # Combine: variance term + cosine concentration penalty
+                emb_spread_loss = -emb_var + off_cos.mean()
+            loss = (mse_m + ce_m + lambda_div * div +
+                    lambda_diversity * diversity_loss +
+                    lambda_emb_spread * emb_spread_loss)
+            opt_full.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(all_params, 1.0)
+            opt_full.step()
+            total += loss.item(); mse_acc += mse_m.item(); ce_acc += ce_m.item(); div_acc += div.item()
+            n_steps += 1
+        return total / max(n_steps, 1), mse_acc / max(n_steps, 1), ce_acc / max(n_steps, 1), div_acc / max(n_steps, 1)
+
+    def _gate_diagnostic(workloads, label=""):
+        """Per-workload gate argmax → check vs ground-truth (_best_eng/lak).
+        Returns (eng_acc, lak_acc, combo_acc, eng_hist, lak_hist) for diagnostic."""
+        moe_model.eval()
         if hasattr(query_encoder, 'recompute_tree_embeddings'):
             query_encoder.recompute_tree_embeddings(device)
-
-        # ---- Phase A: Oracle-routed expert training (MSE + contrastive) ----
-        main_loss_total = 0.0
-        n_main = 0
-        random.shuffle(combined_expert_workloads)
-        for wl in combined_expert_workloads:
-            q_indices = wl['_q_indices']
-            if q_indices is None or len(q_indices) == 0:
-                continue
-            w_emb = _get_w_emb(q_indices)
-            expert_data = wl['_expert_data']
-            expert_combo_ids = wl.get('_expert_combo_ids', [])
-            if not expert_data or not expert_combo_ids:
-                continue
-
-            conf_batch = torch.stack([c for c, _ in expert_data])
-            target_batch = torch.tensor([[t] for _, t in expert_data], device=device, dtype=torch.float)
-            combo_ids_batch = torch.tensor(expert_combo_ids, device=device, dtype=torch.float)
-            w_emb_expand = w_emb.expand(len(expert_data), -1)
-            preds = moe_model.forward_oracle(w_emb_expand, conf_batch, combo_ids_batch)
-
-            # MSE loss
-            mse_loss = F.mse_loss(preds, target_batch)
-
-            # Global contrastive: record with lowest actual latency → lowest predicted
-            targets_flat = target_batch.squeeze(-1)
-            preds_flat = preds.squeeze(-1)
-            min_target_idx = targets_flat.argmin()
-            contrastive_logits = -preds_flat.unsqueeze(0)
-            contrastive_target = min_target_idx.unsqueeze(0)
-            contrastive_loss = F.cross_entropy(contrastive_logits, contrastive_target)
-
-            # Per-combo contrastive: within each combo, best config should have lowest prediction
-            combo_contrastive = torch.tensor(0.0, device=device)
-            n_cc = 0
-            expert_combos = wl['_expert_combos']
-            for cc in set(expert_combos):
-                cc_mask = [i for i, c in enumerate(expert_combos) if c == cc]
-                if len(cc_mask) < 2:
+        eng_correct = lak_correct = combo_correct = total = 0
+        from collections import Counter
+        eng_hist = Counter(); lak_hist = Counter()
+        with torch.no_grad():
+            for wl in workloads:
+                q_indices = wl['_q_indices']
+                if q_indices is None or len(q_indices) == 0:
                     continue
-                cc_targets = targets_flat[cc_mask]
-                cc_preds = preds_flat[cc_mask]
-                cc_min_idx = cc_targets.argmin()
-                cc_logits = -cc_preds.unsqueeze(0)
-                cc_target = cc_min_idx.unsqueeze(0)
-                combo_contrastive = combo_contrastive + F.cross_entropy(cc_logits, cc_target)
-                n_cc += 1
-            if n_cc > 0:
-                combo_contrastive = combo_contrastive / n_cc
+                w_emb = _get_w_emb(q_indices)
+                eng_lg = moe_model.engine_gate(w_emb)
+                lak_lg = moe_model.lake_gate(w_emb)
+                pe = int(eng_lg.argmax(-1).item())
+                pl = int(lak_lg.argmax(-1).item())
+                eng_hist[pe] += 1; lak_hist[pl] += 1
+                if pe == wl['_best_eng']: eng_correct += 1
+                if pl == wl['_best_lak']: lak_correct += 1
+                if pe == wl['_best_eng'] and pl == wl['_best_lak']: combo_correct += 1
+                total += 1
+        moe_model.train()
+        if total == 0:
+            return 0.0, 0.0, 0.0, eng_hist, lak_hist
+        return (eng_correct / total, lak_correct / total, combo_correct / total,
+                eng_hist, lak_hist)
 
-            loss = mse_loss + 0.5 * contrastive_loss + 0.3 * combo_contrastive
+    def _run_stage2_gate(workloads, sub_epochs, valid_workloads_for_diag=None):
+        """Gate-focused: L_CE + L_div on gate predictions vs (best_eng, best_lak).
+        Tree-conv FROZEN (only Stage 1 backprops there). Use detached cached embeddings.
+        Diagnostic: print sub-epoch acc + gate prediction histogram on valid."""
+        if sub_epochs <= 0:
+            return 0.0
+        moe_model.train()
+        if hasattr(query_encoder, 'recompute_tree_embeddings'):
+            query_encoder.recompute_tree_embeddings(device)
+        total = 0.0; n_steps = 0
+        for se in range(sub_epochs):
+            random.shuffle(workloads)
+            i = 0
+            while i < len(workloads):
+                chunk = workloads[i:i + batch_size]
+                i += batch_size
+                bce_terms = []; b_eng_p = []; b_lak_p = []
+                for wl in chunk:
+                    q_indices = wl['_q_indices']
+                    if q_indices is None or len(q_indices) == 0:
+                        continue
+                    w_emb = _get_w_emb(q_indices)
+                    eng_lg = moe_model.engine_gate(w_emb)
+                    lak_lg = moe_model.lake_gate(w_emb)
+                    te = torch.tensor([wl['_best_eng']], device=device, dtype=torch.long)
+                    tl = torch.tensor([wl['_best_lak']], device=device, dtype=torch.long)
+                    bce_terms.append(F.cross_entropy(eng_lg, te) + F.cross_entropy(lak_lg, tl))
+                    b_eng_p.append(F.softmax(eng_lg, dim=-1))
+                    b_lak_p.append(F.softmax(lak_lg, dim=-1))
+                if not bce_terms:
+                    continue
+                ce_m = torch.stack(bce_terms).mean()
+                all_eng_p = torch.cat(b_eng_p, dim=0)
+                all_lak_p = torch.cat(b_lak_p, dim=0)
+                avg_eng = all_eng_p.mean(0); avg_lak = all_lak_p.mean(0)
+                inv_e = 1.0 / TwoGateMoE.ENGINE_CLASSES
+                inv_l = 1.0 / TwoGateMoE.LAKE_CLASSES
+                div = ((avg_eng - inv_e) ** 2).sum() + ((avg_lak - inv_l) ** 2).sum()
+                log_e = math.log(TwoGateMoE.ENGINE_CLASSES)
+                log_l = math.log(TwoGateMoE.LAKE_CLASSES)
+                ent_eng = -(avg_eng * (avg_eng + 1e-12).log()).sum()
+                ent_lak = -(avg_lak * (avg_lak + 1e-12).log()).sum()
+                diversity_loss = (log_e - ent_eng) + (log_l - ent_lak)
+                loss = ce_m + lambda_div * div + lambda_diversity * diversity_loss
+                opt_gate.zero_grad()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(gate_params, 1.0)
+                opt_gate.step()
+                total += loss.item(); n_steps += 1
+            if valid_workloads_for_diag is not None:
+                ea, la, ca, eh, lh = _gate_diagnostic(valid_workloads_for_diag)
+                eh_str = ",".join(f"{k}={v}" for k, v in sorted(eh.items()))
+                lh_str = ",".join(f"{k}={v}" for k, v in sorted(lh.items()))
+                print(f"      [s2 sub-ep {se+1:2d}/{sub_epochs}] valid: eng_acc={ea:.3f} "
+                      f"lak_acc={la:.3f} combo_acc={ca:.3f}  eng_pred_hist={{{eh_str}}} "
+                      f"lak_pred_hist={{{lh_str}}}")
+        return total / max(n_steps, 1)
 
-            expert_opt.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(expert_params, 1.0)
-            expert_opt.step()
-            main_loss_total += loss.item()
-            n_main += 1
+    def _run_stage3_expert(workloads, sub_epochs):
+        """Expert-focused: hard routing to (e, l) per record, only expert+post-mlp updated.
+        Records: every (q, combo, conf) sampled, target_r = lat / q_best_lat."""
+        if sub_epochs <= 0:
+            return 0.0
+        moe_model.train()
+        # Tree-conv frozen during expert phase (paper note: ~90% of cost). Reuse cached embs.
+        if hasattr(query_encoder, 'recompute_tree_embeddings'):
+            query_encoder.recompute_tree_embeddings(device)
+        total = 0.0; n_steps = 0
+        for _ in range(sub_epochs):
+            random.shuffle(workloads)
+            for wl in workloads:
+                q_indices = wl['_q_indices']
+                if q_indices is None or len(q_indices) == 0:
+                    continue
+                stage3 = wl['_stage3']
+                if not stage3:
+                    continue
+                with torch.no_grad():
+                    w_emb = _get_w_emb(q_indices)  # detach tree-conv
 
-        expert_scheduler.step()
-        avg_main_loss = main_loss_total / max(n_main, 1)
+                # Group records by (eng_id, lak_id) so we can call forward_for_eng_lak per combo
+                from collections import defaultdict
+                groups = defaultdict(list)
+                for idx, rec in enumerate(stage3):
+                    groups[(rec[2], rec[3])].append(idx)
 
-        # Evaluate every epoch (detached cache already computed above for gate sub-training)
-        ratio = evaluate(query_encoder, moe_model, test_workloads, q2idx, max_dim, eval_mode=eval_mode, eval_noise=eval_noise)
+                opt_expert.zero_grad()
+                total_mse = 0.0; ngrp = 0
+                for (e_id, l_id), idxs in groups.items():
+                    confs = torch.stack([stage3[i][0] for i in idxs])
+                    t_r = torch.tensor([stage3[i][1] for i in idxs], device=device, dtype=torch.float)
+                    w_emb_e = w_emb.expand(len(idxs), -1)
+                    pred = moe_model.forward_for_eng_lak(w_emb_e, confs, e_id, l_id)
+                    mse = F.mse_loss(pred.squeeze(-1), t_r)
+                    total_mse = total_mse + mse
+                    ngrp += 1
+                if ngrp == 0:
+                    continue
+                loss = total_mse / ngrp
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(expert_params, 1.0)
+                opt_expert.step()
+                total += loss.item(); n_steps += 1
+        return total / max(n_steps, 1)
+
+    for epoch in range(1, BIG_EPOCHS + 1):
+        s1_total = s1_mse = s1_ce = s1_div = 0.0
+        for _ in range(max(1, stage1_subepochs)):
+            a, b, c, d = _run_stage1_endtoend(train_workloads)
+            s1_total += a; s1_mse += b; s1_ce += c; s1_div += d
+        s1_total /= max(1, stage1_subepochs)
+        s1_mse   /= max(1, stage1_subepochs)
+        s1_ce    /= max(1, stage1_subepochs)
+        s1_div   /= max(1, stage1_subepochs)
+        s2_loss = _run_stage2_gate(train_workloads, stage2_subepochs,
+                                    valid_workloads_for_diag=valid_workloads)
+        s3_loss = _run_stage3_expert(train_workloads, stage3_subepochs)
+        sched_full.step(); sched_gate.step(); sched_expert.step()
+
+        # MODEL SELECTION on VALIDATION set (test never used during training).
+        ratio = evaluate(query_encoder, moe_model, valid_workloads, q2idx, max_dim,
+                         eval_mode=eval_mode, eval_noise=eval_noise)
 
         # Save model: either closest to target_ratio, or lowest ratio
         if target_ratio is not None:
@@ -883,99 +1140,123 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 'idx_to_tree_key': idx_to_tree_key,
             }, model_path)
         target_str = f" (target={target_ratio})" if target_ratio else ""
-        print(f"  Epoch {epoch:3d}: expert={avg_main_loss:.4f} "
-              f"test_ratio={ratio:.4f}  "
-              f"best={best_valid_ratio:.4f}@ep{best_epoch}{target_str}")
+        print(f"  Epoch {epoch:3d}: s1={s1_total:.4f} (mse={s1_mse:.4f} ce={s1_ce:.4f} div={s1_div:.4f}) "
+              f"s2={s2_loss:.4f} s3={s3_loss:.4f} "
+              f"valid_ratio={ratio:.4f}  best_valid={best_valid_ratio:.4f}@ep{best_epoch}{target_str}")
 
+    # Final TEST evaluation using the best-validation checkpoint.
     print(f"\n{'='*60}")
-    print(f"Training complete. Best test ratio: {best_valid_ratio:.4f} at epoch {best_epoch}")
+    print(f"Training complete. Best valid ratio: {best_valid_ratio:.4f} at epoch {best_epoch}")
+    print(f"Reloading best checkpoint and evaluating on TEST set...")
+    ckpt = torch.load(model_path, map_location=device)
+    query_encoder.load_state_dict(ckpt['query_encoder'])
+    moe_model.load_state_dict(ckpt['moe_model'])
+    test_ratio = evaluate(query_encoder, moe_model, test_workloads, q2idx, max_dim,
+                          eval_mode=eval_mode, eval_noise=eval_noise)
+    print(f"Final test ratio (best-valid checkpoint, ep{best_epoch}): {test_ratio:.4f}")
     print(f"Time: {time.time() - t0:.1f}s")
     print(f"Model saved to: {model_path}")
 
-    return best_valid_ratio
+    return test_ratio
 
 
 def evaluate_per_query(query_encoder, moe_model, workloads, q2idx, max_dim):
-    """Per-query evaluation: each query gets its own embedding for prediction.
-    For each query in workload, use that query's embedding to predict latency
-    for that query's records, pick best (combo, conf) per query.
-    ratio per query = chosen_actual / min_actual_for_that_query
-    Return average ratio across all queries in all workloads.
+    """Paper-style per-query inference (no oracle routing):
+       1. q_emb = query_encoder([q])
+       2. Run gates → eng* = argmax engine_gate, lak* = argmax lake_gate
+       3. Among the records for this query restricted to combo (eng*, lak*),
+          score every conf via forward_for_eng_lak and pick argmin pred.
+       4. ratio = chosen_actual_lat / query_min_lat (across ALL combos).
     """
     query_encoder.eval()
     moe_model.eval()
 
     ratios = []
     eng_correct = lak_correct = combo_correct = total = 0
+    fallback_used = 0
 
     with torch.no_grad():
         for wl in workloads:
             pq_data = wl.get('per_query_data')
             if not pq_data:
                 continue
-
             for qid in wl['query_ids']:
                 if qid not in pq_data or qid not in q2idx:
                     continue
-
-                # Per-query embedding (single query, not mean of workload)
                 q_idx = torch.tensor([q2idx[qid]], device=device)
-                q_emb = query_encoder(q_idx)  # (1, emb_dim)
+                q_emb = aggregate_workload_emb(query_encoder(q_idx))
 
-                # Collect all records for this query
-                conf_list = []
-                lat_list = []
-                combo_list = []
-                for cc, recs in pq_data[qid].items():
-                    for conf_tensor, lat in recs:
-                        if conf_tensor is not None:
-                            conf_list.append(prepare_conf(conf_tensor.tolist(), max_dim))
-                            lat_list.append(lat)
-                            combo_list.append(cc)
+                # Step 2: gate selection
+                eng_lg = moe_model.engine_gate(q_emb)
+                lak_lg = moe_model.lake_gate(q_emb)
+                e_star = int(eng_lg.argmax(-1).item())
+                l_star = int(lak_lg.argmax(-1).item())
 
-                if not conf_list:
-                    continue
-
-                query_min_lat = min(lat_list)
-                if query_min_lat <= 0:
-                    continue
-
-                # Predict latency for all records of this query (oracle-routed)
-                conf_batch = torch.stack(conf_list).to(device)
-                q_emb_expand = q_emb.expand(len(conf_list), -1)
-                combo_ids_batch = torch.tensor([[float(cc[0]), float(cc[1])] for cc in combo_list],
-                                                device=device, dtype=torch.float)
-                preds = moe_model.forward_oracle(q_emb_expand, conf_batch, combo_ids_batch)
-
-                # Pick min predicted
-                min_idx = preds.squeeze(-1).argmin().item()
-                chosen_actual_lat = lat_list[min_idx]
-                chosen_combo = combo_list[min_idx]
-
-                ratio = chosen_actual_lat / query_min_lat
-                ratios.append(ratio)
-
-                # Track combo accuracy (best combo = one with min latency for this query)
-                best_combo_lat = float('inf')
-                best_combo = None
+                # Per-query global min (across all combos) — denominator
+                all_lats = []; best_combo_overall = None; best_lat_overall = float('inf')
                 for cc, recs in pq_data[qid].items():
                     for _, lat in recs:
-                        if lat < best_combo_lat:
-                            best_combo_lat = lat
-                            best_combo = cc
-                if best_combo is not None:
-                    if chosen_combo[0] == best_combo[0]: eng_correct += 1
-                    if chosen_combo[1] == best_combo[1]: lak_correct += 1
-                    if chosen_combo == best_combo: combo_correct += 1
+                        all_lats.append(lat)
+                        if lat < best_lat_overall:
+                            best_lat_overall = lat; best_combo_overall = cc
+                if not all_lats:
+                    continue
+                query_min_lat = best_lat_overall
+
+                # Step 3: candidate confs restricted to (e*, l*).
+                chosen_combo = (e_star, l_star)
+                cand = pq_data[qid].get(chosen_combo)
+                if not cand:
+                    # Fallback: combo not present for this query → score all combos
+                    fallback_used += 1
+                    cand_combos = list(pq_data[qid].items())
+                    confs = []; lats = []; combos = []
+                    for cc, recs in cand_combos:
+                        for conf, lat in recs:
+                            if conf is None:
+                                continue
+                            confs.append(prepare_conf(conf.tolist(), max_dim))
+                            lats.append(lat); combos.append(cc)
+                    if not confs:
+                        continue
+                    conf_b = torch.stack(confs).to(device)
+                    q_emb_e = q_emb.expand(len(confs), -1)
+                    combo_ids = torch.tensor([[float(c[0]), float(c[1])] for c in combos],
+                                              device=device, dtype=torch.float)
+                    preds = moe_model.forward_oracle(q_emb_e, conf_b, combo_ids)
+                    pick = preds.squeeze(-1).argmin().item()
+                    chosen_actual = lats[pick]; chosen_combo = combos[pick]
+                else:
+                    confs = []; lats = []
+                    for conf, lat in cand:
+                        if conf is None:
+                            continue
+                        confs.append(prepare_conf(conf.tolist(), max_dim))
+                        lats.append(lat)
+                    if not confs:
+                        continue
+                    conf_b = torch.stack(confs).to(device)
+                    q_emb_e = q_emb.expand(len(confs), -1)
+                    preds = moe_model.forward_for_eng_lak(q_emb_e, conf_b, e_star, l_star)
+                    pick = preds.squeeze(-1).argmin().item()
+                    chosen_actual = lats[pick]
+
+                if query_min_lat <= 0:
+                    continue
+                ratio = chosen_actual / query_min_lat
+                ratios.append(ratio)
+
+                if best_combo_overall is not None:
+                    if chosen_combo[0] == best_combo_overall[0]: eng_correct += 1
+                    if chosen_combo[1] == best_combo_overall[1]: lak_correct += 1
+                    if chosen_combo == best_combo_overall: combo_correct += 1
                 total += 1
 
-    avg_ratio = np.mean(ratios) if ratios else float('inf')
+    avg_ratio = float(np.mean(ratios)) if ratios else float('inf')
     if total > 0:
-        ea = eng_correct / total
-        la = lak_correct / total
-        ca = combo_correct / total
+        ea = eng_correct / total; la = lak_correct / total; ca = combo_correct / total
         print(f"    Eval[per_query]: eng_acc={ea:.3f} lake_acc={la:.3f} combo_acc={ca:.3f} "
-              f"avg_ratio={avg_ratio:.4f} ({len(ratios)} queries)")
+              f"avg_ratio={avg_ratio:.4f} ({len(ratios)} q, fallback={fallback_used})")
     return avg_ratio
 
 
@@ -1000,7 +1281,7 @@ def evaluate(query_encoder, moe_model, workloads, q2idx, max_dim, eval_mode='v2'
             q_indices = torch.tensor([q2idx[q] for q in wl['query_ids'] if q in q2idx], device=device)
             if len(q_indices) == 0:
                 continue
-            w_emb = query_encoder(q_indices).mean(0, keepdim=True)
+            w_emb = aggregate_workload_emb(query_encoder(q_indices))
 
             # Pool ALL records from all queries
             conf_list = []
@@ -1074,16 +1355,28 @@ def main():
                         help='Evaluation mode: v2 (pool), per_query (default)')
     parser.add_argument('--target-ratio', type=float, default=None,
                         help='Target ratio - save model closest to this ratio instead of lowest')
-    parser.add_argument('--synth-train-workloads', type=int, default=3000,
-                        help='Extra synthetic multi-query train workloads (0 disables)')
-    parser.add_argument('--synth-train-singleq-reps', type=int, default=15,
-                        help='Synthetic single-query TRAIN workloads per train query (0 disables)')
-    parser.add_argument('--conf-jitter-std', type=float, default=0.02,
-                        help='Gaussian std for synthetic config-vector jitter')
-    parser.add_argument('--lat-jitter-std', type=float, default=0.05,
-                        help='Gaussian std for synthetic log-latency jitter')
-    parser.add_argument('--jitter-aug-per-rec', type=int, default=2,
-                        help='Per real expert record, add N jittered synthetic copies (0 disables)')
+    parser.add_argument('--stage1-subepochs', type=int, default=1,
+                        help='Sub-epochs for end-to-end Stage 1 per epoch (more = train tree-conv harder)')
+    parser.add_argument('--stage2-subepochs', type=int, default=2,
+                        help='Sub-epochs for gate-focused stage per epoch')
+    parser.add_argument('--stage3-subepochs', type=int, default=2,
+                        help='Sub-epochs for expert-focused stage per epoch')
+    parser.add_argument('--lambda-div', type=float, default=0.1,
+                        help='Diversity regularization weight (paper L_div on batch-mean prob)')
+    parser.add_argument('--lambda-diversity', type=float, default=5.0,
+                        help='Anti-collapse entropy-max loss weight on batch-mean prob '
+                             '(=0 disables). Strong by default.')
+    parser.add_argument('--lambda-emb-spread', type=float, default=2.0,
+                        help='Workload-embedding cross-sample variance regularizer '
+                             '(pushes tree-conv to differentiate workloads)')
+    parser.add_argument('--tree-weight-decay', type=float, default=1e-3,
+                        help='Weight decay specifically for tree-conv encoder params')
+    parser.add_argument('--gumbel-tau', type=float, default=1.0,
+                        help='Temperature for Gumbel-softmax routing')
+    parser.add_argument('--batch-size', type=int, default=32,
+                        help='Workload-batch size for gradient accumulation')
+    parser.add_argument('--ratio-cap', type=float, default=20.0,
+                        help='Cap on Stage-3 ratio target to stabilize MSE')
     args = parser.parse_args()
 
     sf_str = f" sf={args.sf}" if args.sf else ""
@@ -1095,11 +1388,16 @@ def main():
                 big_epochs=args.epochs, seed=args.seed,
                 eval_mode=args.eval_mode,
                 target_ratio=args.target_ratio,
-                synth_train_workloads=args.synth_train_workloads,
-                synth_train_singleq_reps=args.synth_train_singleq_reps,
-                conf_jitter_std=args.conf_jitter_std,
-                lat_jitter_std=args.lat_jitter_std,
-                jitter_aug_per_rec=args.jitter_aug_per_rec)
+                stage1_subepochs=args.stage1_subepochs,
+                stage2_subepochs=args.stage2_subepochs,
+                stage3_subepochs=args.stage3_subepochs,
+                lambda_div=args.lambda_div,
+                lambda_diversity=args.lambda_diversity,
+                lambda_emb_spread=args.lambda_emb_spread,
+                tree_weight_decay=args.tree_weight_decay,
+                gumbel_tau=args.gumbel_tau,
+                batch_size=args.batch_size,
+                ratio_cap=args.ratio_cap)
 
 
 if __name__ == "__main__":

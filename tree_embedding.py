@@ -583,7 +583,7 @@ class TreeQueryEncoder(nn.Module):
 
     def __init__(self, mapped_tree, idx_to_tree_key, num_queries, feat_dim,
                  hidden_dims=None, num_kernels=4, dropout_prob=0.5, device='cpu',
-                 proj_dim=0):
+                 proj_dim=0, use_layer_norm=True, init_gain=2.0):
         super().__init__()
         self.num_queries = num_queries
         self.feat_dim = feat_dim
@@ -592,6 +592,7 @@ class TreeQueryEncoder(nn.Module):
         self.use_projection = (proj_dim > 0)
         self.emb_dim = proj_dim if self.use_projection else self.raw_emb_dim
         self._device = device
+        self.use_layer_norm = use_layer_norm
 
         # Tree convolution model
         self.tree_model = BatchTreeConvCBAM(
@@ -610,9 +611,23 @@ class TreeQueryEncoder(nn.Module):
                 nn.GELU(),
             )
 
+        # Per-query LayerNorm — forces unit-variance, zero-mean embeddings.
+        # Without this, tree-conv collapses to nearly-constant outputs (cos sim ~ 1).
+        if self.use_layer_norm:
+            self.output_layer_norm = nn.LayerNorm(self.emb_dim)
+        else:
+            self.output_layer_norm = nn.Identity()
+
         # Fallback embedding for queries without plans
         self.fallback_embedding = nn.Embedding(num_queries, self.emb_dim)
-        nn.init.xavier_uniform_(self.fallback_embedding.weight)
+        # Wider init: orthogonal with gain > 1 to spread initial embeddings further apart
+        nn.init.orthogonal_(self.fallback_embedding.weight, gain=init_gain)
+        # Re-init tree-conv kernel MLP with larger gain for the same reason
+        for m in self.tree_model.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight, gain=init_gain)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
 
         # Build a minimal mapped_tree containing only the trees actually used
         needed_keys = set(idx_to_tree_key.values())
@@ -635,7 +650,10 @@ class TreeQueryEncoder(nn.Module):
     def recompute_tree_embeddings(self, device):
         """Precompute tree embeddings into a detached lookup table."""
         if not self.needed_tree:
-            self._emb_table = self.fallback_embedding.weight.detach().clone()
+            tab = self.fallback_embedding.weight.detach().clone()
+            with torch.no_grad():
+                tab = self.output_layer_norm(tab)
+            self._emb_table = tab
             return
 
         with torch.no_grad():
@@ -652,6 +670,9 @@ class TreeQueryEncoder(nn.Module):
         for idx, tree_key in self.idx_to_tree_key.items():
             if tree_key in tree_emb_dict:
                 table[idx] = tree_emb_dict[tree_key]
+        # Apply LayerNorm so each query embedding has unit variance / zero mean
+        with torch.no_grad():
+            table = self.output_layer_norm(table)
         self._emb_table = table
 
     def precompute_training_table(self, device):
@@ -682,7 +703,9 @@ class TreeQueryEncoder(nn.Module):
                 rows.append(tree_emb_dict[tree_key])
             else:
                 rows.append(self.fallback_embedding.weight[idx])
-        self._train_table = torch.stack(rows)
+        stacked = torch.stack(rows)
+        # LayerNorm forces per-query unit variance — anti-collapse on tree-conv outputs
+        self._train_table = self.output_layer_norm(stacked)
 
     def forward_train(self, query_ids):
         """Fast lookup from precomputed training table (WITH gradients).
