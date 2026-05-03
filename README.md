@@ -8,28 +8,7 @@ LKHelm trains a **TwoGateMoE (Mixture of Experts)** model that learns to select 
 
 ---
 
-## 2. Directory Structure
-
-```
-LakeHelm/
-│
-├── train_local.py              # Main training script (paper-spec 3-stage MoE)
-├── tree_embedding.py           # Tree convolution query embedding module
-├── run_all.sh                  # One command to train across (benchmark, sf) pairs
-├── plot_loss.py                # Loss / ratio visualization for training logs
-├── README.md                   # This file
-│
-├── bao_server/                 # TreeConvolution dependency (from Bao)
-│
-├── orig_train/                 # Query execution plans & column histograms (shipped)
-├── data/                       # Training CSVs (NOT shipped via git)
-├── test_workloads/             # Pre-generated test workloads (NOT shipped via git)
-└── logs/                       # Training log output (auto-created)
-```
-
----
-
-## 3. Environment Setup
+## 2. Environment Setup
 
 **Requirements**: Python 3.8+, PyTorch, NumPy.
 
@@ -41,22 +20,22 @@ pip install torch --index-url https://download.pytorch.org/whl/cu124
 
 ---
 
-## 4. How to Train
+## 3. How to Train
 
-### 4.1 Single benchmark / scale factor
+### 3.1 Single benchmark / scale factor
 
 ```bash
 python3 train_local.py --benchmark tpcds --sf 100 --epochs 30 --eval-mode per_query \
                         --stage1-subepochs 5 --stage2-subepochs 10 --stage3-subepochs 10
 ```
 
-### 4.2 All (benchmark, sf) pairs
+### 3.2 All (benchmark, sf) pairs
 
 ```bash
 bash run_all.sh
 ```
 
-### 4.3 Common command-line arguments
+### 3.3 Common command-line arguments
 
 | Argument | Default | Description |
 |---|---|---|
@@ -73,7 +52,7 @@ bash run_all.sh
 | `--tree-weight-decay` | `1e-3` | Weight decay specifically for tree-conv encoder |
 | `--gumbel-tau` | `1.0` | Temperature for Gumbel-softmax routing |
 
-### 4.4 What happens during training
+### 3.4 What happens during training
 
 ```
 Step 1: Load CSV data from the chosen benchmark(s)
@@ -88,7 +67,7 @@ Random query-level split is the default — there is **no leave-one-out** evalua
 
 ---
 
-## 5. Data Format
+## 4. Data Format
 
 Each CSV file in `data/output/` follows:
 
@@ -112,9 +91,9 @@ delta,spark,query15,1.0;0;4;4;0;0;300|1;1;...,12543.80,tpcds,1
 
 ---
 
-## 6. Model Architecture
+## 5. Model Architecture
 
-### 6.1 Query Embedding — TreeQueryEncoder
+### 5.1 Query Embedding — TreeQueryEncoder
 
 Converts SQL execution plans into 288-dimensional query embeddings:
 
@@ -125,7 +104,7 @@ Converts SQL execution plans into 288-dimensional query embeddings:
 5. **LayerNorm**: per-query unit variance to prevent encoder collapse
 6. **Fallback**: queries without plan files get learnable `nn.Embedding` vectors
 
-### 6.2 Workload Aggregation — AttentionPool
+### 5.2 Workload Aggregation — AttentionPool
 
 Per-query embeddings → workload embedding via multi-head attention pool with concat(mean, max) residual:
 
@@ -135,7 +114,7 @@ output = concat(head_1, head_2, head_3, head_4, mean, max)   # → 6 × 288 = 17
 
 Each attention head learns a different scoring function over the per-query embeddings; this prevents the gate from receiving near-identical inputs across different workloads.
 
-### 6.3 TwoGateMoE
+### 5.3 TwoGateMoE
 
 ```
                     ┌────────────────────┐
@@ -171,7 +150,7 @@ Each attention head learns a different scoring function over the per-query embed
               └───────────────────┘
 ```
 
-### 6.4 Loss Function (paper §loss_function)
+### 5.4 Loss Function (paper §loss_function)
 
 ```
 L_total = L_MSE  +  L_CE  +  λ_div × L_div
@@ -187,7 +166,7 @@ Additional anti-collapse regularizers (configurable):
 - `lambda_diversity` × entropy-max term (push batch-mean prob away from 1-hot)
 - `lambda_emb_spread` × variance-of-workload-embeddings + InfoNCE-style cosine penalty
 
-### 6.5 Three-stage training (paper §moe-train)
+### 5.5 Three-stage training (paper §moe-train)
 
 Each outer epoch runs three sub-stages back to back:
 
@@ -195,7 +174,7 @@ Each outer epoch runs three sub-stages back to back:
 2. **Gate-focused (Stage 2)** — Only gates trained on `L_CE + L_div` (tree-conv frozen).
 3. **Expert-focused (Stage 3)** — Each expert trained on every (config, ratio) record routed via the actual (engine, lake) ID (tree-conv frozen).
 
-### 6.6 Optimizer
+### 5.6 Optimizer
 
 - **Adam** lr=3e-4
 - **Weight decay**: 1e-3 on tree-conv params (anti-collapse), 1e-5 elsewhere
@@ -204,9 +183,9 @@ Each outer epoch runs three sub-stages back to back:
 
 ---
 
-## 7. Evaluation
+## 6. Evaluation
 
-### 7.1 Per-Query Evaluation (default)
+### 6.1 Per-Query Evaluation (default)
 
 For each test query:
 1. Compute query embedding (single query → AttentionPool)
@@ -217,13 +196,13 @@ For each test query:
 
 Average ratio across all test queries. **Lower is better** (1.0 = always optimal).
 
-### 7.2 Train / Valid / Test split
+### 6.2 Train / Valid / Test split
 
 Random query-level split, default 70 / 15 / 15. Best checkpoint is selected on the **validation** set; the **test** set is evaluated only once at the end with the best-validation checkpoint.
 
 ---
 
-## 8. Implementation Notes
+## 7. Implementation Notes
 
 - **Tree cache**: First run processes plan files into tree tensors and saves `.tree_cache.pt`. Subsequent runs load instantly.
 - **Latency floor repair**: Exactly-1500ms records (timeout artifacts) are replaced with samples drawn from that query+combo's latency distribution.
