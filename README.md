@@ -25,7 +25,6 @@ LakeHelm/
 ├── orig_train/                 # Query execution plans & column histograms (shipped)
 ├── data/                       # Training CSVs (NOT shipped via git)
 ├── test_workloads/             # Pre-generated test workloads (NOT shipped via git)
-├── models/                     # Trained model checkpoints (auto-created)
 └── logs/                       # Training log output (auto-created)
 ```
 
@@ -256,25 +255,7 @@ The following per-query Time Ratios (1.0 = optimal) were obtained on the origina
 
 ---
 
-## 9. Model Checkpoints
-
-Saved to `models/best_model_{benchmark}_sf{N}.pth`. Each `.pth` file contains:
-
-```python
-{
-    'query_encoder': ...,    # TreeQueryEncoder state_dict
-    'moe_model': ...,        # TwoGateMoE state_dict
-    'q2idx': {...},
-    'max_dim': 16,
-    'feat_dim': 72,
-    'num_kernels': 4,
-    'idx_to_tree_key': {...},
-}
-```
-
----
-
-## 10. Implementation Notes
+## 9. Implementation Notes
 
 - **Tree cache**: First run processes plan files into tree tensors and saves `.tree_cache.pt`. Subsequent runs load instantly.
 - **Latency floor repair**: Exactly-1500ms records (timeout artifacts) are replaced with samples drawn from that query+combo's latency distribution.

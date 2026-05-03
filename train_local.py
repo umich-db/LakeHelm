@@ -826,9 +826,10 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
 
     best_valid_ratio = float('inf')
     best_epoch = 0
-    sf_tag = f"_sf{test_sf}" if test_sf is not None else ""
-    model_path = os.path.join(os.path.dirname(__file__), "models", f"best_model_{test_benchmark}{sf_tag}.pth")
-    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    # In-memory snapshots of the best model. We do NOT write checkpoints to disk.
+    best_qenc_state = None
+    best_pool_state = None
+    best_moe_state = None
 
     # ===== Optimizers (per-stage parameter groups) =====
     pool_params = list(pool.parameters())
@@ -1118,35 +1119,29 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         ratio = evaluate(query_encoder, moe_model, valid_workloads, q2idx, max_dim,
                          eval_mode=eval_mode, eval_noise=eval_noise)
 
-        # Save the model that achieves the lowest validation ratio.
+        # Snapshot model state in memory at the lowest validation ratio.
+        # No checkpoint files are written.
         if ratio < best_valid_ratio:
             best_valid_ratio = ratio
             best_epoch = epoch
-            torch.save({
-                'query_encoder': query_encoder.state_dict(),
-                'moe_model': moe_model.state_dict(),
-                'q2idx': q2idx,
-                'max_dim': max_dim,
-                'feat_dim': feat_dim,
-                'num_kernels': NUM_KERNELS,
-                'idx_to_tree_key': idx_to_tree_key,
-            }, model_path)
+            best_qenc_state = {k: v.detach().clone() for k, v in query_encoder.state_dict().items()}
+            best_pool_state = {k: v.detach().clone() for k, v in pool.state_dict().items()}
+            best_moe_state  = {k: v.detach().clone() for k, v in moe_model.state_dict().items()}
         print(f"  Epoch {epoch:3d}: s1={s1_total:.4f} (mse={s1_mse:.4f} ce={s1_ce:.4f} div={s1_div:.4f}) "
               f"s2={s2_loss:.4f} s3={s3_loss:.4f} "
               f"valid_ratio={ratio:.4f}  best_valid={best_valid_ratio:.4f}@ep{best_epoch}")
 
-    # Final TEST evaluation using the best-validation checkpoint.
+    # Final TEST evaluation using the in-memory best-validation snapshot.
     print(f"\n{'='*60}")
     print(f"Training complete. Best valid ratio: {best_valid_ratio:.4f} at epoch {best_epoch}")
-    print(f"Reloading best checkpoint and evaluating on TEST set...")
-    ckpt = torch.load(model_path, map_location=device)
-    query_encoder.load_state_dict(ckpt['query_encoder'])
-    moe_model.load_state_dict(ckpt['moe_model'])
+    if best_qenc_state is not None:
+        query_encoder.load_state_dict(best_qenc_state)
+        pool.load_state_dict(best_pool_state)
+        moe_model.load_state_dict(best_moe_state)
     test_ratio = evaluate(query_encoder, moe_model, test_workloads, q2idx, max_dim,
                           eval_mode=eval_mode, eval_noise=eval_noise)
-    print(f"Final test ratio (best-valid checkpoint, ep{best_epoch}): {test_ratio:.4f}")
+    print(f"Final test ratio (best-valid snapshot, ep{best_epoch}): {test_ratio:.4f}")
     print(f"Time: {time.time() - t0:.1f}s")
-    print(f"Model saved to: {model_path}")
 
     return test_ratio
 
