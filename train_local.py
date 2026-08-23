@@ -66,7 +66,7 @@ LAKE_NAME2ID = {'delta': 0, 'iceberg': 1, 'hudi': 2}
 
 import re as _re
 
-def normalize_query_name(qname, sf):
+def normalize_query_name(qname, sf, benchmark=None, canonical_aliases=False):
     """Normalize query name: strip datalake prefix, add sf prefix.
     tpch_0_q1 -> sf10_q1,  db1 -> sf1_db1,  job_10a -> sf10_job_10a
     """
@@ -74,6 +74,21 @@ def normalize_query_name(qname, sf):
     m = _re.match(r'^[a-z][\w-]*_\d+_(q\w+)$', qname)
     if m:
         qname = m.group(1)
+    if canonical_aliases and benchmark == 'tpcds':
+        # The collected TPC-DS CSVs mix three spellings for the same query
+        # template: query10, tpcds_q10, and tpcds_q_10.  Keeping them separate
+        # gives identical plan embeddings contradictory route labels and can
+        # split one logical query across train/valid/test.
+        m = _re.match(r'^(?:query|tpcds_q_?|q_?)0*(\d+)(?:_?([ab]))?$', qname)
+        if m:
+            suffix = m.group(2) or ''
+            qname = f"tpcds_q{int(m.group(1))}{suffix}"
+    elif canonical_aliases and benchmark == 'tpch':
+        # Spark-side files use dbN while other collectors use qN for the same
+        # TPC-H template.  Canonicalize only inside the TPC-H benchmark.
+        m = _re.match(r'^(?:db|q)0*(\d+)$', qname)
+        if m:
+            qname = f"tpch_q{int(m.group(1))}"
     return f"sf{sf}_{qname}"
 
 
@@ -293,7 +308,7 @@ class QueryEncoder(nn.Module):
 
 # ===================== Data Loading =====================
 
-def load_csv_data(benchmark, supply=False):
+def load_csv_data(benchmark, supply=False, canonical_aliases=False):
     """Load all CSV data from data/output/{benchmark}/sf{1,10,100}/*.csv"""
     if supply:
         benchmark_name = f"{benchmark}_supply"
@@ -338,7 +353,10 @@ def load_csv_data(benchmark, supply=False):
                     if engine_id is None or lake_id is None:
                         continue
 
-                    query_id = normalize_query_name(qname, sf)
+                    query_id = normalize_query_name(
+                        qname, sf, benchmark=benchmark,
+                        canonical_aliases=canonical_aliases,
+                    )
                     engine_config, lake_config = parse_conf(conf_str)
 
                     combined = engine_config + lake_config + [float(engine_id), float(lake_id)]
@@ -414,8 +432,76 @@ def fix_floor_latencies(all_data, floor_val=1500.0):
     return all_data
 
 
+def filter_noisy_training_records(all_data, train_qnames, max_fraction=0.05,
+                                  z_threshold=3.5, min_records=5):
+    """Remove robust log-latency outliers from training queries only.
+
+    Validation and test queries are untouched. Removal is capped independently
+    for every query/combo group, so a noisy large group cannot consume the
+    budget of a small group or erase an engine/lake candidate entirely.
+    """
+    max_fraction = min(max(float(max_fraction), 0.0), 0.20)
+    if max_fraction == 0:
+        return 0, 0
+    removed = considered = 0
+    for qid in train_qnames:
+        for cc, recs in all_data.get(qid, {}).items():
+            n = len(recs)
+            considered += n
+            max_remove = min(int(math.floor(n * max_fraction)), n - 1)
+            if n < min_records or max_remove <= 0:
+                continue
+            logs = np.asarray([math.log(max(lat, 1e-12)) for _, lat in recs])
+            med = float(np.median(logs))
+            mad = float(np.median(np.abs(logs - med)))
+            if mad <= 1e-12:
+                continue
+            robust_z = np.abs(logs - med) / (1.4826 * mad)
+            candidates = np.flatnonzero(robust_z > z_threshold)
+            if not len(candidates):
+                continue
+            ranked = sorted(candidates.tolist(), key=lambda i: robust_z[i], reverse=True)
+            drop = set(ranked[:max_remove])
+            all_data[qid][cc] = [rec for i, rec in enumerate(recs) if i not in drop]
+            removed += len(drop)
+    print(f"  Noise filter: removed {removed}/{considered} training records "
+          f"({(100.0 * removed / considered) if considered else 0.0:.2f}%, "
+          f"per-group cap={100 * max_fraction:.1f}%)")
+    return removed, considered
+
+
+def normalize_config_features(all_data, train_qnames, max_dim):
+    """Z-normalize padded configuration vectors using training records only."""
+    train_rows = []
+    for qid in train_qnames:
+        for recs in all_data.get(qid, {}).values():
+            for conf, _ in recs:
+                values = conf.tolist()[:max_dim]
+                train_rows.append(values + [0.0] * (max_dim - len(values)))
+    if not train_rows:
+        return
+    train_matrix = np.asarray(train_rows, dtype=np.float32)
+    mean = train_matrix.mean(axis=0)
+    std = train_matrix.std(axis=0)
+    std[std < 1e-6] = 1.0
+
+    for qdata in all_data.values():
+        for cc, recs in qdata.items():
+            normalized = []
+            for conf, latency in recs:
+                values = conf.tolist()[:max_dim]
+                padded = np.asarray(
+                    values + [0.0] * (max_dim - len(values)), dtype=np.float32
+                )
+                normalized.append((torch.from_numpy((padded - mean) / std), latency))
+            qdata[cc] = normalized
+    print(f"  Config normalization: fitted {len(train_rows)} training records "
+          f"across {max_dim} padded features")
+
+
 def get_all_data(test_benchmark=None, test_sf=None, use_supply=False,
-                 train_frac=0.70, valid_frac=0.15, test_frac=0.15, split_seed=42):
+                 train_frac=0.70, valid_frac=0.15, test_frac=0.15, split_seed=42,
+                 canonical_query_aliases=False):
     """Load benchmark CSVs and split queries RANDOMLY into train/valid/test.
 
     No leave-one-out splitting. If `test_benchmark` is set, only that benchmark's
@@ -436,7 +522,9 @@ def get_all_data(test_benchmark=None, test_sf=None, use_supply=False,
     max_dim = 0
     for bm in benchmarks_to_load:
         print(f"\nLoading ({bm}):")
-        bm_data, bm_max_dim = load_csv_data(bm)
+        bm_data, bm_max_dim = load_csv_data(
+            bm, canonical_aliases=canonical_query_aliases
+        )
         max_dim = max(max_dim, bm_max_dim)
         for qid, qdata in bm_data.items():
             if qid in all_data:
@@ -449,7 +537,9 @@ def get_all_data(test_benchmark=None, test_sf=None, use_supply=False,
                 all_data[qid] = qdata
         if use_supply:
             print(f"  Loading supply ({bm}):")
-            supply_data, s_max_dim = load_csv_data(bm, supply=True)
+            supply_data, s_max_dim = load_csv_data(
+                bm, supply=True, canonical_aliases=canonical_query_aliases
+            )
             max_dim = max(max_dim, s_max_dim)
             for qid, qdata in supply_data.items():
                 if qid in all_data:
@@ -572,6 +662,28 @@ def generate_workloads(query_ids, grouped_data, num_workloads, min_q=3, max_q=15
     return workloads
 
 
+def generate_single_query_workloads(query_ids, grouped_data, repeats=1, seed=42):
+    """Build per-query workloads without changing the train/eval input shape.
+
+    The original per-query evaluation trains gates on multi-query workloads but
+    calls them with a single query at inference time.  Keeping every workload at
+    one query also removes conflicting per-query gate labels for a shared
+    workload embedding.  Validation and test use ``repeats=1`` so every metric
+    observation is an independent query rather than a duplicated sample.
+    """
+    workloads = []
+    for repeat in range(repeats):
+        ordered = list(query_ids)
+        random.Random(seed + repeat).shuffle(ordered)
+        for offset, qid in enumerate(ordered):
+            generated = generate_workloads(
+                [qid], grouped_data, 1, min_q=1, max_q=1,
+                min_combo_coverage=1, seed=seed + repeat * 100003 + offset,
+            )
+            workloads.extend(generated)
+    return workloads
+
+
 # ===================== Workload aggregation =====================
 
 class AttentionPool(nn.Module):
@@ -650,7 +762,17 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 lambda_div=0.1, lambda_diversity=1.0,
                 lambda_emb_spread=2.0, tree_weight_decay=1e-3,
                 gumbel_tau=1.0, batch_size=32,
-                ratio_cap=20.0):
+                ratio_cap=20.0, consistent_per_query=False,
+                per_query_train_repeats=16,
+                log_ratio_target=False, noise_filter_fraction=0.05,
+                router_aux_weight=0.0, router_margin_scale=0.25,
+                router_class_balance=False, router_stage1_aux_weight=0.0,
+                router_regret_weight=0.0, num_train_workloads=1000,
+                canonical_query_aliases=False, normalize_configs=False,
+                neutral_unseen_fallback=False, per_query_expert_weight=0.0,
+                expert_rank_weight=0.0, workload_expert_weight=1.0,
+                workload_gate_ce_weight=1.0, early_stop_patience=0,
+                stage3_median_configs=False):
     # Set seed for reproducibility
     random.seed(seed)
     np.random.seed(seed)
@@ -662,8 +784,14 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
 
     # Load data
     all_data, max_dim, train_qnames, valid_qnames, test_qnames = get_all_data(
-        test_benchmark, test_sf=test_sf, use_supply=use_supply
+        test_benchmark, test_sf=test_sf, use_supply=use_supply,
+        canonical_query_aliases=canonical_query_aliases,
     )
+    filter_noisy_training_records(
+        all_data, train_qnames, max_fraction=noise_filter_fraction
+    )
+    if normalize_configs:
+        normalize_config_features(all_data, train_qnames, max_dim)
 
     # Build query ID mapping
     all_query_ids = sorted(all_data.keys())
@@ -672,7 +800,14 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
 
     # Generate workloads
     print("\nGenerating training workloads...")
-    train_workloads = generate_workloads(train_qnames, all_data, 1000, seed=42)
+    if eval_mode == 'per_query' and consistent_per_query:
+        train_workloads = generate_single_query_workloads(
+            train_qnames, all_data, repeats=per_query_train_repeats, seed=42
+        )
+    else:
+        train_workloads = generate_workloads(
+            train_qnames, all_data, num_train_workloads, seed=42
+        )
     print(f"  Generated {len(train_workloads)} training workloads")
 
     print("Generating validation workloads...")
@@ -680,7 +815,10 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     print(f"  Generated {len(valid_workloads)} validation workloads")
 
     print(f"Generating test workloads (min_q={test_min_q}, max_q={test_max_q}, seed={test_seed})...")
-    test_workloads = generate_workloads(test_qnames, all_data, 50, min_q=test_min_q, max_q=test_max_q, seed=test_seed)
+    test_workloads = generate_workloads(
+        test_qnames, all_data, 50,
+        min_q=test_min_q, max_q=test_max_q, seed=test_seed,
+    )
     print(f"  Generated {len(test_workloads)} test workloads")
 
     if not train_workloads:
@@ -697,6 +835,8 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     #                         These supervise gates (CE) and overall MSE on r=1.
     #   _stage3             : list of (conf, target_r, eng_id, lak_id) — every (q, combo, conf)
     #                         record sampled (≤16/combo), used for expert-focused training.
+    median_config_cache = {}
+
     def precompute_paper_tensors(workloads, q2idx_map, max_d):
         for wl in workloads:
             qids = wl['query_ids']
@@ -733,6 +873,46 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                     q_best_lat[qid] = ml
             wl['_q_best_lat'] = q_best_lat
 
+            # Auxiliary labels for the existing gates at the exact single-query
+            # shape used by per-query inference. This changes supervision only;
+            # the TreeEncoder -> AttentionPool -> two-gate architecture is
+            # unchanged. Ambiguous routes receive less weight.
+            per_query_routes = []
+            for qid in qids:
+                if qid not in stats or qid not in q2idx_map:
+                    continue
+                combo_best = []
+                for cc, recs in stats[qid].items():
+                    if recs:
+                        combo_best.append((min(lat for _, lat in recs), cc))
+                combo_best.sort(key=lambda item: item[0])
+                if not combo_best:
+                    continue
+                best_latency, best_cc = combo_best[0]
+                if len(combo_best) > 1 and best_latency > 0:
+                    margin = (combo_best[1][0] - best_latency) / best_latency
+                else:
+                    margin = router_margin_scale
+                confidence = min(1.0, max(0.05, margin / max(router_margin_scale, 1e-6)))
+
+                # Cost-sensitive routing target.  Cross-entropy treats a 1%
+                # miss and a 20x miss as equally wrong; log-regret preserves
+                # that distinction while keeping the same two hard gates.
+                route_cost = np.full(
+                    (TwoGateMoE.ENGINE_CLASSES, TwoGateMoE.LAKE_CLASSES),
+                    math.log(max(ratio_cap, 1.0)), dtype=np.float32,
+                )
+                for combo_latency, cc in combo_best:
+                    ratio = combo_latency / max(best_latency, 1e-12)
+                    route_cost[int(cc[0]), int(cc[1])] = math.log(
+                        max(1.0, min(ratio, ratio_cap))
+                    )
+                per_query_routes.append(
+                    (q2idx_map[qid], int(best_cc[0]), int(best_cc[1]),
+                     confidence, route_cost)
+                )
+            wl['_per_query_routes'] = per_query_routes
+
             # Stage 1 records: per query, the globally best (combo, conf), target r = 1.0
             stage1 = []
             for qid in qids:
@@ -746,7 +926,9 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 if best_q_conf is None:
                     continue
                 conf_padded = prepare_conf(best_q_conf.tolist(), max_d).to(device)
-                stage1.append((conf_padded, 1.0, int(best_q_cc[0]), int(best_q_cc[1])))
+                optimum_target = 0.0 if log_ratio_target else 1.0
+                stage1.append((conf_padded, optimum_target,
+                               int(best_q_cc[0]), int(best_q_cc[1])))
             wl['_stage1'] = stage1
 
             # Stage 3 records: all (q, combo, conf) sampled, target_r = lat / q_best_lat
@@ -756,10 +938,25 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                     continue
                 qbest = q_best_lat[qid]
                 for cc, recs in stats[qid].items():
-                    if len(recs) <= 16:
-                        sampled = list(recs)
+                    stage3_recs = list(recs)
+                    if stage3_median_configs:
+                        cache_key = (qid, cc)
+                        if cache_key not in median_config_cache:
+                            by_conf = defaultdict(list)
+                            conf_tensor = {}
+                            for conf, latency in stage3_recs:
+                                key = tuple(round(float(x), 6) for x in conf.tolist())
+                                by_conf[key].append(latency)
+                                conf_tensor[key] = conf
+                            median_config_cache[cache_key] = [
+                                (conf_tensor[key], float(np.median(latencies)))
+                                for key, latencies in by_conf.items()
+                            ]
+                        stage3_recs = median_config_cache[cache_key]
+                    if len(stage3_recs) <= 16:
+                        sampled = stage3_recs
                     else:
-                        sorted_recs = sorted(recs, key=lambda x: x[1])
+                        sorted_recs = sorted(stage3_recs, key=lambda x: x[1])
                         n = len(sorted_recs)
                         idxs = {0, n - 1}
                         step = max(1, n // 15)
@@ -770,12 +967,45 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                         conf_padded = prepare_conf(conf.tolist(), max_d).to(device)
                         r = lat / qbest if qbest > 0 else 1.0
                         r = min(r, ratio_cap)
-                        stage3.append((conf_padded, r, int(cc[0]), int(cc[1])))
+                        if log_ratio_target:
+                            r = math.log(max(r, 1e-12))
+                        stage3.append((conf_padded, r, int(cc[0]), int(cc[1]),
+                                       q2idx_map[qid]))
             wl['_stage3'] = stage3
 
     print("Precomputing paper tensors...")
     for wl_list in [train_workloads, valid_workloads, test_workloads]:
         precompute_paper_tensors(wl_list, q2idx, max_dim)
+
+    # Inverse-sqrt class weights from unique training queries. They affect only
+    # the optional auxiliary gate loss and are computed without validation/test.
+    eng_route_counts = np.zeros(TwoGateMoE.ENGINE_CLASSES, dtype=np.float64)
+    lak_route_counts = np.zeros(TwoGateMoE.LAKE_CLASSES, dtype=np.float64)
+    for qid in train_qnames:
+        combo_best = []
+        for cc, recs in all_data.get(qid, {}).items():
+            if recs:
+                combo_best.append((min(lat for _, lat in recs), cc))
+        if combo_best:
+            _, cc = min(combo_best, key=lambda item: item[0])
+            eng_route_counts[cc[0]] += 1
+            lak_route_counts[cc[1]] += 1
+
+    def _balanced_weights(counts):
+        weights = 1.0 / np.sqrt(np.maximum(counts, 1.0))
+        weights /= weights.mean()
+        return torch.tensor(weights, device=device, dtype=torch.float)
+
+    aux_eng_weights = _balanced_weights(eng_route_counts) if router_class_balance else None
+    aux_lak_weights = _balanced_weights(lak_route_counts) if router_class_balance else None
+    if router_aux_weight > 0:
+        print(f"  Router auxiliary supervision: weight={router_aux_weight} "
+              f"margin_scale={router_margin_scale} class_balance={router_class_balance}")
+        print(f"  Route counts: engine={eng_route_counts.astype(int).tolist()} "
+              f"lake={lak_route_counts.astype(int).tolist()}")
+    if router_stage1_aux_weight > 0 or router_regret_weight > 0:
+        print(f"  End-to-end router loss: aux_weight={router_stage1_aux_weight} "
+              f"regret_weight={router_regret_weight}")
 
     # Tree-based embedding (always used)
     mapped_tree, feat_dim = load_all_plan_trees(num_augment=5, swap_prob=0.3)
@@ -805,6 +1035,14 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         use_layer_norm=True,
         init_gain=2.0,
     ).to(device)
+    if neutral_unseen_fallback:
+        # Unmapped validation/test queries never receive an embedding gradient.
+        # A shared neutral initialization makes their behavior deterministic
+        # and lets the existing gate bias learn a training-only prior, while
+        # retaining the paper's per-query nn.Embedding fallback parameters.
+        with torch.no_grad():
+            query_encoder.fallback_embedding.weight.zero_()
+        print("  Fallback initialization: neutral zero vector for unmapped queries")
 
     # Attention pool for workload aggregation (replaces mean/max/std).
     pool = AttentionPool(dim=QENC_DIM, num_heads=NUM_ATTN_HEADS).to(device)
@@ -862,8 +1100,18 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
 
     print(f"\n{'='*60}")
     print(f"Training: {BIG_EPOCHS} epochs — paper-spec 3-stage MoE")
+    print(f"  Seed: {seed} | train_workloads={num_train_workloads}")
     print(f"  Stage 2 sub-epochs: {stage2_subepochs} | Stage 3 sub-epochs: {stage3_subepochs}")
     print(f"  λ_div={lambda_div} | gumbel τ={gumbel_tau} | batch_size={batch_size} | ratio_cap={ratio_cap}")
+    print(f"  Data repairs: noise_cap={noise_filter_fraction:.3f} "
+          f"normalize_configs={normalize_configs} log_ratio={log_ratio_target} "
+          f"median_configs={stage3_median_configs}")
+    print(f"  Gate supervision: aux={router_aux_weight} "
+          f"stage1_aux={router_stage1_aux_weight} regret={router_regret_weight} "
+          f"workload_ce={workload_gate_ce_weight} class_balance={router_class_balance}")
+    print(f"  Expert supervision: per_query={per_query_expert_weight} "
+          f"rank={expert_rank_weight} workload={workload_expert_weight}")
+    print("  Inference: original hard engine/lake gate, then selected-combo expert")
     print(f"{'='*60}")
 
     def _get_w_emb(q_indices):
@@ -872,6 +1120,47 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     def _get_w_emb_train(q_indices):
         # Differentiable lookup — must call precompute_training_table() before this
         return aggregate_workload_emb(query_encoder.forward_train(q_indices))
+
+    def _single_query_router_terms(raw_q_emb, routes):
+        """Losses for the existing gates at their single-query input shape.
+
+        ``raw_q_emb`` may be differentiable (Stage 1) or detached (Stage 2).
+        The returned regret is the expected log slowdown under the factorized
+        engine/lake probabilities, so it trains the original gates directly
+        for routing cost without adding a network or changing hard inference.
+        """
+        single_q_gate_emb = torch.cat(
+            [raw_q_emb] * (pool.num_heads + 2), dim=-1
+        )
+        aux_eng_logits = moe_model.engine_gate(single_q_gate_emb)
+        aux_lak_logits = moe_model.lake_gate(single_q_gate_emb)
+        aux_eng_targets = torch.tensor(
+            [route[1] for route in routes], device=device, dtype=torch.long
+        )
+        aux_lak_targets = torch.tensor(
+            [route[2] for route in routes], device=device, dtype=torch.long
+        )
+        confidence = torch.tensor(
+            [route[3] for route in routes], device=device, dtype=torch.float
+        )
+        aux_eng_ce = F.cross_entropy(
+            aux_eng_logits, aux_eng_targets,
+            weight=aux_eng_weights, reduction='none'
+        )
+        aux_lak_ce = F.cross_entropy(
+            aux_lak_logits, aux_lak_targets,
+            weight=aux_lak_weights, reduction='none'
+        )
+        hard_ce = ((aux_eng_ce + aux_lak_ce) * confidence).sum() \
+            / confidence.sum().clamp_min(1e-6)
+
+        eng_probs = F.softmax(aux_eng_logits, dim=-1)
+        lak_probs = F.softmax(aux_lak_logits, dim=-1)
+        joint_probs = eng_probs.unsqueeze(2) * lak_probs.unsqueeze(1)
+        cost_np = np.stack([route[4] for route in routes], axis=0)
+        route_cost = torch.as_tensor(cost_np, device=device, dtype=torch.float)
+        regret = (joint_probs * route_cost).sum(dim=(1, 2)).mean()
+        return hard_ce, regret
 
     def _run_stage1_endtoend(workloads):
         """End-to-end: tree-conv + gates + experts + post-mlp ALL trained.
@@ -892,6 +1181,7 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
             query_encoder.precompute_training_table(device)
 
             bmse_terms = []; bce_terms = []
+            b_aux_route_terms = []; b_regret_terms = []
             b_eng_p = []; b_lak_p = []
             b_w_emb = []   # collect workload embeddings for spread regularizer
             for wl in chunk:
@@ -918,6 +1208,16 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 bce_terms.append(F.cross_entropy(eng_lg, t_eng) + F.cross_entropy(lak_lg, t_lak))
                 b_eng_p.append(F.softmax(eng_lg, dim=-1))
                 b_lak_p.append(F.softmax(lak_lg, dim=-1))
+                if ((router_stage1_aux_weight > 0 or router_regret_weight > 0)
+                        and wl.get('_per_query_routes')):
+                    routes = wl['_per_query_routes']
+                    route_ids = torch.tensor(
+                        [route[0] for route in routes], device=device, dtype=torch.long
+                    )
+                    raw_q_emb = query_encoder.forward_train(route_ids)
+                    aux_ce, regret = _single_query_router_terms(raw_q_emb, routes)
+                    b_aux_route_terms.append(aux_ce)
+                    b_regret_terms.append(regret)
 
             if not bmse_terms:
                 continue
@@ -955,9 +1255,19 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 off_cos = cos_M[~eye]
                 # Combine: variance term + cosine concentration penalty
                 emb_spread_loss = -emb_var + off_cos.mean()
-            loss = (mse_m + ce_m + lambda_div * div +
+            aux_route_loss = (
+                torch.stack(b_aux_route_terms).mean()
+                if b_aux_route_terms else torch.tensor(0.0, device=device)
+            )
+            regret_loss = (
+                torch.stack(b_regret_terms).mean()
+                if b_regret_terms else torch.tensor(0.0, device=device)
+            )
+            loss = (mse_m + workload_gate_ce_weight * ce_m + lambda_div * div +
                     lambda_diversity * diversity_loss +
-                    lambda_emb_spread * emb_spread_loss)
+                    lambda_emb_spread * emb_spread_loss +
+                    router_stage1_aux_weight * aux_route_loss +
+                    router_regret_weight * regret_loss)
             opt_full.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(all_params, 1.0)
@@ -1013,6 +1323,7 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 chunk = workloads[i:i + batch_size]
                 i += batch_size
                 bce_terms = []; b_eng_p = []; b_lak_p = []
+                aux_route_terms = []; regret_terms = []
                 for wl in chunk:
                     q_indices = wl['_q_indices']
                     if q_indices is None or len(q_indices) == 0:
@@ -1025,6 +1336,16 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                     bce_terms.append(F.cross_entropy(eng_lg, te) + F.cross_entropy(lak_lg, tl))
                     b_eng_p.append(F.softmax(eng_lg, dim=-1))
                     b_lak_p.append(F.softmax(lak_lg, dim=-1))
+                    if ((router_aux_weight > 0 or router_regret_weight > 0)
+                            and wl.get('_per_query_routes')):
+                        routes = wl['_per_query_routes']
+                        route_ids = torch.tensor(
+                            [route[0] for route in routes], device=device, dtype=torch.long
+                        )
+                        raw_q_emb = query_encoder(route_ids)
+                        aux_ce, regret = _single_query_router_terms(raw_q_emb, routes)
+                        aux_route_terms.append(aux_ce)
+                        regret_terms.append(regret)
                 if not bce_terms:
                     continue
                 ce_m = torch.stack(bce_terms).mean()
@@ -1039,7 +1360,18 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 ent_eng = -(avg_eng * (avg_eng + 1e-12).log()).sum()
                 ent_lak = -(avg_lak * (avg_lak + 1e-12).log()).sum()
                 diversity_loss = (log_e - ent_eng) + (log_l - ent_lak)
-                loss = ce_m + lambda_div * div + lambda_diversity * diversity_loss
+                aux_route_loss = (
+                    torch.stack(aux_route_terms).mean()
+                    if aux_route_terms else torch.tensor(0.0, device=device)
+                )
+                regret_loss = (
+                    torch.stack(regret_terms).mean()
+                    if regret_terms else torch.tensor(0.0, device=device)
+                )
+                loss = (workload_gate_ce_weight * ce_m
+                        + router_aux_weight * aux_route_loss
+                        + router_regret_weight * regret_loss
+                        + lambda_div * div + lambda_diversity * diversity_loss)
                 opt_gate.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(gate_params, 1.0)
@@ -1084,17 +1416,61 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
 
                 opt_expert.zero_grad()
                 total_mse = 0.0; ngrp = 0
+                per_query_mse = 0.0; n_per_query_groups = 0
+                rank_loss = 0.0; n_rank_groups = 0
                 for (e_id, l_id), idxs in groups.items():
                     confs = torch.stack([stage3[i][0] for i in idxs])
                     t_r = torch.tensor([stage3[i][1] for i in idxs], device=device, dtype=torch.float)
-                    w_emb_e = w_emb.expand(len(idxs), -1)
-                    pred = moe_model.forward_for_eng_lak(w_emb_e, confs, e_id, l_id)
-                    mse = F.mse_loss(pred.squeeze(-1), t_r)
-                    total_mse = total_mse + mse
-                    ngrp += 1
-                if ngrp == 0:
+                    if workload_expert_weight > 0:
+                        w_emb_e = w_emb.expand(len(idxs), -1)
+                        pred = moe_model.forward_for_eng_lak(
+                            w_emb_e, confs, e_id, l_id
+                        )
+                        total_mse = total_mse + F.mse_loss(pred.squeeze(-1), t_r)
+                        ngrp += 1
+
+                    if per_query_expert_weight > 0 or expert_rank_weight > 0:
+                        route_ids = torch.tensor(
+                            [stage3[i][4] for i in idxs],
+                            device=device, dtype=torch.long,
+                        )
+                        raw_q_emb = query_encoder(route_ids)
+                        single_q_emb = torch.cat(
+                            [raw_q_emb] * (pool.num_heads + 2), dim=-1
+                        )
+                        pq_pred = moe_model.forward_for_eng_lak(
+                            single_q_emb, confs, e_id, l_id
+                        ).squeeze(-1)
+                        if per_query_expert_weight > 0:
+                            per_query_mse = per_query_mse + F.mse_loss(pq_pred, t_r)
+                            n_per_query_groups += 1
+                        if expert_rank_weight > 0:
+                            positions_by_query = defaultdict(list)
+                            for pos, idx in enumerate(idxs):
+                                positions_by_query[stage3[idx][4]].append(pos)
+                            for positions in positions_by_query.values():
+                                if len(positions) < 2:
+                                    continue
+                                pos_t = torch.tensor(
+                                    positions, device=device, dtype=torch.long
+                                )
+                                group_pred = pq_pred[pos_t]
+                                group_target = t_r[pos_t]
+                                best_pos = group_target.argmin().view(1)
+                                rank_loss = rank_loss + F.cross_entropy(
+                                    (-group_pred).unsqueeze(0), best_pos
+                                )
+                                n_rank_groups += 1
+                if ngrp == 0 and n_per_query_groups == 0 and n_rank_groups == 0:
                     continue
-                loss = total_mse / ngrp
+                loss = torch.tensor(0.0, device=device)
+                if ngrp > 0:
+                    loss = loss + workload_expert_weight * total_mse / ngrp
+                if n_per_query_groups > 0:
+                    loss = (loss + per_query_expert_weight * per_query_mse
+                            / n_per_query_groups)
+                if n_rank_groups > 0:
+                    loss = loss + expert_rank_weight * rank_loss / n_rank_groups
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(expert_params, 1.0)
                 opt_expert.step()
@@ -1130,6 +1506,10 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         print(f"  Epoch {epoch:3d}: s1={s1_total:.4f} (mse={s1_mse:.4f} ce={s1_ce:.4f} div={s1_div:.4f}) "
               f"s2={s2_loss:.4f} s3={s3_loss:.4f} "
               f"valid_ratio={ratio:.4f}  best_valid={best_valid_ratio:.4f}@ep{best_epoch}")
+        if early_stop_patience > 0 and epoch - best_epoch >= early_stop_patience:
+            print(f"  Early stop: no validation improvement for "
+                  f"{early_stop_patience} epochs")
+            break
 
     # Final TEST evaluation using the in-memory best-validation snapshot.
     print(f"\n{'='*60}")
@@ -1138,6 +1518,14 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         query_encoder.load_state_dict(best_qenc_state)
         pool.load_state_dict(best_pool_state)
         moe_model.load_state_dict(best_moe_state)
+        # ``_emb_table`` is a detached cache, not part of state_dict. Without
+        # rebuilding it here, the final test mixes the best checkpoint weights
+        # with tree embeddings from the last training epoch. Recompute in eval
+        # mode so dropout is disabled and the reported test really corresponds
+        # to the selected validation snapshot.
+        query_encoder.eval()
+        if hasattr(query_encoder, 'recompute_tree_embeddings'):
+            query_encoder.recompute_tree_embeddings(device)
     test_ratio = evaluate(query_encoder, moe_model, test_workloads, q2idx, max_dim,
                           eval_mode=eval_mode, eval_noise=eval_noise)
     print(f"Final test ratio (best-valid snapshot, ep{best_epoch}): {test_ratio:.4f}")
@@ -1361,6 +1749,56 @@ def main():
                         help='Workload-batch size for gradient accumulation')
     parser.add_argument('--ratio-cap', type=float, default=20.0,
                         help='Cap on Stage-3 ratio target to stabilize MSE')
+    parser.add_argument('--consistent-per-query-training', action='store_true',
+                        help='Experimental mode: train gates on single-query workloads; '
+                             'disabled by default to preserve paper routing')
+    parser.add_argument('--per-query-train-repeats', type=int, default=16,
+                        help='Number of shuffled repetitions of each training query in '
+                             'consistent per-query mode')
+    parser.add_argument('--log-ratio-target', action='store_true',
+                        help='Regress log(latency / optimum) to reduce domination by '
+                             'long-tail latency ratios; argmin inference is unchanged')
+    parser.add_argument('--noise-filter-fraction', type=float, default=0.05,
+                        help='Maximum robust outlier fraction removed per training query/combo '
+                             '(clamped to [0, 0.20]; validation/test are untouched)')
+    parser.add_argument('--router-aux-weight', type=float, default=0.0,
+                        help='Weight for single-query auxiliary supervision on the existing gates')
+    parser.add_argument('--router-margin-scale', type=float, default=0.25,
+                        help='Relative best-vs-second-best latency margin treated as full-confidence')
+    parser.add_argument('--router-class-balance', action='store_true',
+                        help='Use inverse-sqrt training-label frequency weights for auxiliary routing')
+    parser.add_argument('--router-stage1-aux-weight', type=float, default=0.0,
+                        help='Weight for single-query gate supervision during end-to-end Stage 1; '
+                             'this also trains the original tree encoder for routing')
+    parser.add_argument('--router-regret-weight', type=float, default=0.0,
+                        help='Weight for expected log-slowdown routing loss on the original gates')
+    parser.add_argument('--train-workloads', type=int, default=1000,
+                        help='Number of sampled multi-query training workloads')
+    parser.add_argument('--canonical-query-aliases', action='store_true',
+                        help='Merge collector-specific TPC-DS/TPC-H spellings of the same '
+                             'logical query before splitting')
+    parser.add_argument('--normalize-configs', action='store_true',
+                        help='Z-normalize padded configuration features from training-set '
+                             'statistics before fitting the unchanged ConfEncoder')
+    parser.add_argument('--neutral-unseen-fallback', action='store_true',
+                        help='Initialize the existing per-query fallback table to zero so '
+                             'unseen queries without plans use a deterministic gate prior')
+    parser.add_argument('--per-query-expert-weight', type=float, default=0.0,
+                        help='Weight for Stage-3 regression using each record\'s single-query '
+                             'embedding, matching per-query inference')
+    parser.add_argument('--expert-rank-weight', type=float, default=0.0,
+                        help='Weight for Stage-3 best-configuration ranking loss')
+    parser.add_argument('--workload-expert-weight', type=float, default=1.0,
+                        help='Weight on the original multi-query Stage-3 regression loss')
+    parser.add_argument('--workload-gate-ce-weight', type=float, default=1.0,
+                        help='Weight on the original multi-query gate CE when adding '
+                             'single-query cost-sensitive routing supervision')
+    parser.add_argument('--early-stop-patience', type=int, default=0,
+                        help='Stop after this many epochs without validation improvement; '
+                             '0 disables early stopping')
+    parser.add_argument('--stage3-median-configs', action='store_true',
+                        help='Collapse repeated training executions of an identical '
+                             'query/combo/config to their median before Stage 3')
     args = parser.parse_args()
 
     sf_str = f" sf={args.sf}" if args.sf else ""
@@ -1380,7 +1818,26 @@ def main():
                 tree_weight_decay=args.tree_weight_decay,
                 gumbel_tau=args.gumbel_tau,
                 batch_size=args.batch_size,
-                ratio_cap=args.ratio_cap)
+                ratio_cap=args.ratio_cap,
+                consistent_per_query=args.consistent_per_query_training,
+                per_query_train_repeats=args.per_query_train_repeats,
+                log_ratio_target=args.log_ratio_target,
+                noise_filter_fraction=args.noise_filter_fraction,
+                router_aux_weight=args.router_aux_weight,
+                router_margin_scale=args.router_margin_scale,
+                router_class_balance=args.router_class_balance,
+                router_stage1_aux_weight=args.router_stage1_aux_weight,
+                router_regret_weight=args.router_regret_weight,
+                num_train_workloads=args.train_workloads,
+                canonical_query_aliases=args.canonical_query_aliases,
+                normalize_configs=args.normalize_configs,
+                neutral_unseen_fallback=args.neutral_unseen_fallback,
+                per_query_expert_weight=args.per_query_expert_weight,
+                expert_rank_weight=args.expert_rank_weight,
+                workload_expert_weight=args.workload_expert_weight,
+                workload_gate_ce_weight=args.workload_gate_ce_weight,
+                early_stop_patience=args.early_stop_patience,
+                stage3_median_configs=args.stage3_median_configs)
 
 
 if __name__ == "__main__":

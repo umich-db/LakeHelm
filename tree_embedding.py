@@ -508,6 +508,17 @@ def build_query_to_plan_mapping(q2idx, mapped_tree_keys):
                         found = candidate
                         break
 
+        # Canonical query identity used when collector-specific dbN/qN aliases
+        # are merged before the train/valid/test split.
+        if not found:
+            m2_canonical = re.match(r'^tpch_q(\d+)$', base)
+            if m2_canonical:
+                num = m2_canonical.group(1)
+                for candidate in [f'tpch_1_db{num}', f'tpch_0_q{num}']:
+                    if candidate in base_keys:
+                        found = candidate
+                        break
+
         # Strategy 4: ssb q{M}_{N} → ssb_Q{M}.{N} or ssb_q{M}{N}
         if not found:
             m3 = re.match(r'^q(\d+)_(\d+)$', base)
@@ -527,6 +538,26 @@ def build_query_to_plan_mapping(q2idx, mapped_tree_keys):
         if not found and base.startswith('job_'):
             if base in base_keys:
                 found = base
+
+        # Strategy 6a: flattened SSB names were renamed in the latency CSVs,
+        # while their plan files kept the shorter ``ssb_qN`` names.
+        # Only accept the alias when that exact plan key exists; several flat
+        # queries genuinely have no bundled plan and must remain unmapped.
+        if not found:
+            m_flat = re.match(r'^ssb_flat_q_0*(\d+)$', base)
+            if m_flat:
+                candidate = f'ssb_q{int(m_flat.group(1))}'
+                if candidate in base_keys:
+                    found = candidate
+
+        # Strategy 6b: TPC-DS split-query plans use ``q14a``/``q14b`` in the
+        # tree cache, whereas the CSV rows use ``q14_a``/``q14_b``.
+        if not found:
+            m_split = re.match(r'^tpcds_q(\d+)_([ab])$', base)
+            if m_split:
+                candidate = f'tpcds_q{m_split.group(1)}{m_split.group(2)}'
+                if candidate in base_keys:
+                    found = candidate
 
         # Strategy 7: tpch q{N} → tpch_0_q{N}
         if not found:
