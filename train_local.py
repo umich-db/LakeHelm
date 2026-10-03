@@ -36,7 +36,8 @@ from collections import defaultdict
 from pathlib import Path
 
 from tree_embedding import (
-    load_all_plan_trees, build_query_to_plan_mapping, TreeQueryEncoder
+    load_all_plan_trees, build_query_to_plan_mapping, TreeQueryEncoder,
+    schema_agnostic_node_features
 )
 
 SEED = 42
@@ -125,6 +126,57 @@ def parse_conf(conf_str):
         engine_config = vals
         lake_config = [0.0]
     return engine_config, lake_config
+
+# Canonical, name-aligned config encoding (--conf-canonical).  The CSVs mix three
+# config formats: 'key=value; ...' (named), plain 'v;v;...' and 'engine|lake'
+# positional lists whose positions mean different knobs in different collectors.
+# parse_conf() reads them all positionally, so a feature slot means different
+# knobs across benchmarks.  Here named knobs go to fixed slots; positional
+# formats only fill a separate raw block, flagged by a format one-hot.
+CONF_CANONICAL = False
+_KNOBS = {
+    'spark': ['spark.executor.memory', 'spark.executor.cores', 'spark.executor.instances',
+              'spark.driver.memory', 'spark.sql.shuffle.partitions',
+              'spark.sql.files.maxPartitionBytes'],
+    'presto': ['memory.heap-headroom-per-node', 'node-scheduler.max-splits-per-node',
+               'query.max-memory', 'query.max-memory-per-node',
+               'query.max-total-memory-per-node', 'task.concurrency', 'task.max-worker-threads'],
+}
+_KNOBS['trino'] = _KNOBS['presto']
+_N_KNOB, _N_RAW = 7, 9
+
+
+def _num(v):
+    v = v.strip()
+    m = _re.match(r'^([-+]?[\d.]+(?:e[-+]?\d+)?)\s*([a-zA-Z]*)$', v)
+    if not m:
+        return None
+    x = float(m.group(1)); u = m.group(2).lower()
+    return x * {'g': 1024.0, 'gb': 1024.0, 'm': 1.0, 'mb': 1.0, 'k': 1 / 1024.0, 'kb': 1 / 1024.0}.get(u, 1.0)
+
+
+def parse_conf_canonical(conf_str, engine):
+    """[named knobs (7, log1p) | named mask | format one-hot kv/plain/pipe (3) | raw positional (9, log1p)]"""
+    knobs = [0.0] * _N_KNOB; raw = [0.0] * _N_RAW
+    slog = lambda x: math.copysign(math.log1p(abs(x)), x)
+    if '=' in conf_str and '|' not in conf_str:
+        names = _KNOBS.get(engine, [])
+        for part in conf_str.split(';'):
+            if '=' not in part:
+                continue
+            k, v = part.split('=', 1)
+            k = k.strip()
+            if k in names:
+                x = _num(v)
+                if x is not None:
+                    knobs[names.index(k)] = slog(x)
+        return knobs + [1.0] + [1.0, 0.0, 0.0] + raw
+    vals = [_num(x) for x in _re.split(r'[;|]', conf_str) if x.strip()]
+    vals = [slog(x) for x in vals if x is not None][:_N_RAW]
+    raw[:len(vals)] = vals
+    fmt = [0.0, 0.0, 1.0] if '|' in conf_str else [0.0, 1.0, 0.0]
+    return knobs + [0.0] + fmt + raw
+
 
 # ===================== Neural Network Components =====================
 
@@ -308,8 +360,13 @@ class QueryEncoder(nn.Module):
 
 # ===================== Data Loading =====================
 
-def load_csv_data(benchmark, supply=False, canonical_aliases=False):
-    """Load all CSV data from data/output/{benchmark}/sf{1,10,100}/*.csv"""
+def load_csv_data(benchmark, supply=False, canonical_aliases=False, bm_prefix=False):
+    """Load all CSV data from data/output/{benchmark}/sf{1,10,100}/*.csv
+
+    bm_prefix: prefix query ids with ``{benchmark}|`` so that pooling several
+    benchmarks cannot merge distinct queries that share a name (ssb and tpch
+    both use db1..db22; ssb and ssb_flat share q1_1 ...).
+    """
     if supply:
         benchmark_name = f"{benchmark}_supply"
     else:
@@ -357,7 +414,12 @@ def load_csv_data(benchmark, supply=False, canonical_aliases=False):
                         qname, sf, benchmark=benchmark,
                         canonical_aliases=canonical_aliases,
                     )
-                    engine_config, lake_config = parse_conf(conf_str)
+                    if bm_prefix:
+                        query_id = f"{benchmark}|{query_id}"
+                    if CONF_CANONICAL:
+                        engine_config, lake_config = parse_conf_canonical(conf_str, engine_name), []
+                    else:
+                        engine_config, lake_config = parse_conf(conf_str)
 
                     combined = engine_config + lake_config + [float(engine_id), float(lake_id)]
                     max_dim = max(max_dim, len(combined))
@@ -377,6 +439,42 @@ def load_csv_data(benchmark, supply=False, canonical_aliases=False):
             print(f"  Error reading {filename}: {e}")
 
     return grouped_data, max_dim
+
+
+LATENCY_CAP_RATIO = 0.0
+LATENCY_CAP_SCOPE = None   # None = all queries; else set of (benchmark, sf) strings
+
+
+def _in_cap_scope(qid, default_bm):
+    if LATENCY_CAP_SCOPE is None:
+        return True
+    bm, rest = qid.split('|', 1) if '|' in qid else (default_bm, qid)
+    sf = rest.split('_', 1)[0][2:]
+    return (bm, sf) in LATENCY_CAP_SCOPE
+
+
+def cap_latencies(all_data, cap_ratio, default_bm=None):
+    """Clip every record's latency to cap_ratio x that query's best latency
+    (over all combos/configs).  Removes anomalous runs (e.g. a collector batch
+    measuring 1000-2000 s where every other run of the same query/combo takes
+    ~3 s) and bounds any single query's ratio at cap_ratio."""
+    if cap_ratio <= 0:
+        return all_data
+    n_cap = n_all = 0
+    for qid, combo_data in all_data.items():
+        if not _in_cap_scope(qid, default_bm):
+            continue
+        best = min((lat for recs in combo_data.values() for _, lat in recs), default=0.0)
+        if best <= 0:
+            continue
+        lim = cap_ratio * best
+        for cc, recs in combo_data.items():
+            n_all += len(recs)
+            n_cap += sum(lat > lim for _, lat in recs)
+            combo_data[cc] = [(c, min(lat, lim)) for c, lat in recs]
+    print(f"  Latency cap: {n_cap}/{n_all} records clipped to {cap_ratio:g}x their query's best "
+          f"(scope: {sorted(LATENCY_CAP_SCOPE) if LATENCY_CAP_SCOPE else 'all'})")
+    return all_data
 
 
 def fix_floor_latencies(all_data, floor_val=1500.0):
@@ -501,8 +599,12 @@ def normalize_config_features(all_data, train_qnames, max_dim):
 
 def get_all_data(test_benchmark=None, test_sf=None, use_supply=False,
                  train_frac=0.70, valid_frac=0.15, test_frac=0.15, split_seed=42,
-                 canonical_query_aliases=False):
+                 canonical_query_aliases=False, holdout=False):
     """Load benchmark CSVs and split queries RANDOMLY into train/valid/test.
+
+    holdout=True (cross-schema): every query of `test_benchmark` (only sf=`test_sf`
+    when given) is test; ALL sfs of `test_benchmark` are excluded from training;
+    the other benchmarks (all sfs) are split randomly into train/valid.
 
     No leave-one-out splitting. If `test_benchmark` is set, only that benchmark's
     data is loaded; otherwise all benchmarks are pooled. The split is then a
@@ -512,6 +614,10 @@ def get_all_data(test_benchmark=None, test_sf=None, use_supply=False,
     Returns (all_data, max_dim, train_qnames, valid_qnames, test_qnames).
     """
     all_benchmarks = ['tpcds', 'ssb', 'ssb_flat', 'job', 'tpch']
+    if holdout:
+        return _get_holdout_data(test_benchmark, test_sf, all_benchmarks,
+                                 train_frac / (train_frac + valid_frac), split_seed,
+                                 canonical_query_aliases)
     benchmarks_to_load = [test_benchmark] if test_benchmark else all_benchmarks
     print(f"\nLoading benchmarks: {benchmarks_to_load}")
     if test_sf is not None:
@@ -570,12 +676,50 @@ def get_all_data(test_benchmark=None, test_sf=None, use_supply=False,
     # Repair floor-latency records (1500ms artifacts)
     print("\nFixing floor-latency artifacts...")
     all_data = fix_floor_latencies(all_data, floor_val=1500.0)
+    all_data = cap_latencies(all_data, LATENCY_CAP_RATIO, default_bm=test_benchmark)
 
     print(f"\nData summary:")
     print(f"  Total queries: {len(all_data)}")
     print(f"  Train: {len(train_qnames)}, Valid: {len(valid_qnames)}, Test: {len(test_qnames)}")
     print(f"  Max config dim: {max_dim}")
 
+    return all_data, max_dim, train_qnames, valid_qnames, test_qnames
+
+
+def _get_holdout_data(test_benchmark, test_sf, all_benchmarks, train_share, split_seed,
+                      canonical_query_aliases):
+    """Cross-schema split: test = held-out benchmark, train/valid = all others."""
+    print(f"\nCross-schema holdout: test={test_benchmark}"
+          f"{f' sf={test_sf}' if test_sf is not None else ' (all sf)'}; "
+          f"train/valid = {[b for b in all_benchmarks if b != test_benchmark]} (all sf), "
+          f"train share={train_share:.0%} (seed={split_seed})")
+    all_data = {}
+    max_dim = 0
+    for bm in all_benchmarks:
+        print(f"\nLoading ({bm}):")
+        bm_data, bm_max_dim = load_csv_data(
+            bm, canonical_aliases=canonical_query_aliases, bm_prefix=True
+        )
+        max_dim = max(max_dim, bm_max_dim)
+        all_data.update(bm_data)
+
+    test_prefix = f"{test_benchmark}|" + (f"sf{test_sf}_" if test_sf is not None else "")
+    test_qnames = sorted(q for q in all_data if q.startswith(test_prefix))
+    # Other sfs of the held-out benchmark are dropped, never trained on.
+    all_data = {q: v for q, v in all_data.items()
+                if not q.startswith(f"{test_benchmark}|") or q in set(test_qnames)}
+    pool = sorted(q for q in all_data if not q.startswith(f"{test_benchmark}|"))
+    random.Random(split_seed).shuffle(pool)
+    n_train = int(len(pool) * train_share)
+    train_qnames, valid_qnames = pool[:n_train], pool[n_train:]
+
+    print("\nFixing floor-latency artifacts...")
+    all_data = fix_floor_latencies(all_data, floor_val=1500.0)
+    all_data = cap_latencies(all_data, LATENCY_CAP_RATIO, default_bm=test_benchmark)
+    print(f"\nData summary:")
+    print(f"  Total queries: {len(all_data)}")
+    print(f"  Train: {len(train_qnames)}, Valid: {len(valid_qnames)}, Test: {len(test_qnames)}")
+    print(f"  Max config dim: {max_dim}")
     return all_data, max_dim, train_qnames, valid_qnames, test_qnames
 
 
@@ -772,7 +916,11 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 neutral_unseen_fallback=False, per_query_expert_weight=0.0,
                 expert_rank_weight=0.0, workload_expert_weight=1.0,
                 workload_gate_ce_weight=1.0, early_stop_patience=0,
-                stage3_median_configs=False):
+                stage3_median_configs=False, gate_prior_reg='uniform',
+                gate_soft_label_temp=0.0, gate_lr=3e-4, gate_dropout=None,
+                joint_gate_inference=False, select_metric='mean', holdout=False,
+                stage2_train_encoder=False, tree_feat_norm='raw', tree_readout='root',
+                export_gate_data=None, sf_embedding=False, expert_residual_prior=False):
     # Set seed for reproducibility
     random.seed(seed)
     np.random.seed(seed)
@@ -785,7 +933,7 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     # Load data
     all_data, max_dim, train_qnames, valid_qnames, test_qnames = get_all_data(
         test_benchmark, test_sf=test_sf, use_supply=use_supply,
-        canonical_query_aliases=canonical_query_aliases,
+        canonical_query_aliases=canonical_query_aliases, holdout=holdout,
     )
     filter_noisy_training_records(
         all_data, train_qnames, max_fraction=noise_filter_fraction
@@ -815,10 +963,21 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     print(f"  Generated {len(valid_workloads)} validation workloads")
 
     print(f"Generating test workloads (min_q={test_min_q}, max_q={test_max_q}, seed={test_seed})...")
-    test_workloads = generate_workloads(
-        test_qnames, all_data, 50,
-        min_q=test_min_q, max_q=test_max_q, seed=test_seed,
-    )
+    if holdout:
+        # Every held-out query evaluated exactly once, grouped per sf.
+        test_groups = defaultdict(list)
+        for q in test_qnames:
+            test_groups[q.split('|', 1)[1].split('_', 1)[0]].append(q)
+        test_workloads_by_sf = {
+            sf: generate_single_query_workloads(qs, all_data, repeats=1, seed=test_seed)
+            for sf, qs in sorted(test_groups.items())
+        }
+        test_workloads = [wl for wls in test_workloads_by_sf.values() for wl in wls]
+    else:
+        test_workloads = generate_workloads(
+            test_qnames, all_data, 50,
+            min_q=test_min_q, max_q=test_max_q, seed=test_seed,
+        )
     print(f"  Generated {len(test_workloads)} test workloads")
 
     if not train_workloads:
@@ -837,6 +996,45 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     #                         record sampled (≤16/combo), used for expert-focused training.
     median_config_cache = {}
 
+    # Train-split prior of each (sf, combo, config): mean log(lat / query best).
+    # With --expert-residual-prior the experts regress the residual against it,
+    # so an unsure expert defaults to configs that are good across training
+    # schemas.  Built from train_qnames ONLY (never valid/test).
+    def _conf_key(conf):
+        return tuple(round(float(x), 4) for x in conf.tolist())
+
+    def _sf_of(qid):
+        return _re.search(r'sf(\d+)_', qid).group(1)
+
+    _pr_acc = defaultdict(list); _pr_acc_c = defaultdict(list)
+    for _q in train_qnames:
+        _recs = all_data.get(_q, {})
+        _best = min((l for rs in _recs.values() for _, l in rs), default=0.0)
+        if _best <= 0:
+            continue
+        for _cc, _rs in _recs.items():
+            for _c, _l in _rs:
+                if _c is None:
+                    continue
+                v = math.log(max(min(_l / _best, ratio_cap), 1.0))
+                _pr_acc[(_sf_of(_q), _cc, _conf_key(_c))].append(v)
+                _pr_acc_c[(_sf_of(_q), _cc)].append(v)
+    _pr = {k: float(np.mean(v)) for k, v in _pr_acc.items()}
+    _pr_c = {k: float(np.mean(v)) for k, v in _pr_acc_c.items()}
+    _pr_g = float(np.mean([v for vs in _pr_acc.values() for v in vs])) if _pr_acc else 0.0
+
+    def config_prior(qid, cc, conf):
+        if not expert_residual_prior:
+            return 0.0
+        sf_ = _sf_of(qid)
+        return _pr.get((sf_, cc, _conf_key(conf)), _pr_c.get((sf_, cc), _pr_g))
+
+    if expert_residual_prior:
+        assert log_ratio_target, '--expert-residual-prior needs --log-ratio-target'
+        print(f"  Expert residual prior: {len(_pr)} (sf, combo, config) keys from "
+              f"{len(train_qnames)} train queries")
+    _EVAL_OPTS['config_prior'] = config_prior
+
     def precompute_paper_tensors(workloads, q2idx_map, max_d):
         for wl in workloads:
             qids = wl['query_ids']
@@ -854,6 +1052,21 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                     if ml < best_l:
                         best_l = ml; best_c = cc
             wl['_best_combo'] = best_c
+            # Log-slowdown of each combo for the whole workload (soft gate labels).
+            wl_cost = np.full(
+                (TwoGateMoE.ENGINE_CLASSES, TwoGateMoE.LAKE_CLASSES),
+                math.log(max(ratio_cap, 1.0)), dtype=np.float32,
+            )
+            if best_c is not None and best_l > 0:
+                totals = wl.get('combo_totals') or {
+                    cc: min(lat for _, lat in recs)
+                    for cc, recs in wl['aggregated_data'].items() if recs
+                }
+                for cc, tot in totals.items():
+                    wl_cost[int(cc[0]), int(cc[1])] = math.log(
+                        max(1.0, min(tot / best_l, ratio_cap))
+                    )
+            wl['_route_cost'] = torch.tensor(wl_cost, device=device)
             wl['_best_eng'] = int(best_c[0]) if best_c else 0
             wl['_best_lak'] = int(best_c[1]) if best_c else 0
 
@@ -927,6 +1140,7 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                     continue
                 conf_padded = prepare_conf(best_q_conf.tolist(), max_d).to(device)
                 optimum_target = 0.0 if log_ratio_target else 1.0
+                optimum_target -= config_prior(qid, best_q_cc, best_q_conf)
                 stage1.append((conf_padded, optimum_target,
                                int(best_q_cc[0]), int(best_q_cc[1])))
             wl['_stage1'] = stage1
@@ -969,6 +1183,7 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                         r = min(r, ratio_cap)
                         if log_ratio_target:
                             r = math.log(max(r, 1e-12))
+                        r -= config_prior(qid, cc, conf)
                         stage3.append((conf_padded, r, int(cc[0]), int(cc[1]),
                                        q2idx_map[qid]))
             wl['_stage3'] = stage3
@@ -976,11 +1191,15 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     print("Precomputing paper tensors...")
     for wl_list in [train_workloads, valid_workloads, test_workloads]:
         precompute_paper_tensors(wl_list, q2idx, max_dim)
+    if holdout:
+        for wls in test_workloads_by_sf.values():
+            precompute_paper_tensors(wls, q2idx, max_dim)
 
     # Inverse-sqrt class weights from unique training queries. They affect only
     # the optional auxiliary gate loss and are computed without validation/test.
     eng_route_counts = np.zeros(TwoGateMoE.ENGINE_CLASSES, dtype=np.float64)
     lak_route_counts = np.zeros(TwoGateMoE.LAKE_CLASSES, dtype=np.float64)
+    combo_route_counts = defaultdict(int)
     for qid in train_qnames:
         combo_best = []
         for cc, recs in all_data.get(qid, {}).items():
@@ -990,6 +1209,7 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
             _, cc = min(combo_best, key=lambda item: item[0])
             eng_route_counts[cc[0]] += 1
             lak_route_counts[cc[1]] += 1
+            combo_route_counts[cc] += 1
 
     def _balanced_weights(counts):
         weights = 1.0 / np.sqrt(np.maximum(counts, 1.0))
@@ -998,6 +1218,18 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
 
     aux_eng_weights = _balanced_weights(eng_route_counts) if router_class_balance else None
     aux_lak_weights = _balanced_weights(lak_route_counts) if router_class_balance else None
+
+    # Training-label prior (Laplace-smoothed) for prior-matching gate regularization,
+    # and the training-majority combo order used as a no-model routing reference.
+    prior_eng = torch.tensor((eng_route_counts + 1.0) / (eng_route_counts.sum() + 3.0),
+                             device=device, dtype=torch.float)
+    prior_lak = torch.tensor((lak_route_counts + 1.0) / (lak_route_counts.sum() + 3.0),
+                             device=device, dtype=torch.float)
+    _EVAL_OPTS['joint'] = joint_gate_inference
+    _EVAL_OPTS['prior_combos'] = sorted(combo_route_counts, key=lambda cc: -combo_route_counts[cc])
+    print(f"  Gate prior: engine={[round(x, 3) for x in prior_eng.tolist()]} "
+          f"lake={[round(x, 3) for x in prior_lak.tolist()]} reg={gate_prior_reg} "
+          f"soft_T={gate_soft_label_temp} joint_inference={joint_gate_inference}")
     if router_aux_weight > 0:
         print(f"  Router auxiliary supervision: weight={router_aux_weight} "
               f"margin_scale={router_margin_scale} class_balance={router_class_balance}")
@@ -1008,6 +1240,9 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
               f"regret_weight={router_regret_weight}")
 
     # Tree-based embedding (always used)
+    import tree_embedding as _te
+    _te.TREE_READOUT = tree_readout
+    print(f"  Tree readout: {tree_readout}")
     mapped_tree, feat_dim = load_all_plan_trees(num_augment=5, swap_prob=0.3)
     if feat_dim == 0:
         print("WARNING: No plan trees loaded, falling back to pure learnable embeddings")
@@ -1016,6 +1251,33 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
 
     base_tree_keys = set(k for k in mapped_tree.keys() if '_aug' not in k)
     idx_to_tree_key = build_query_to_plan_mapping(q2idx, base_tree_keys)
+
+    if tree_feat_norm == 'agnostic' and mapped_tree:
+        mapped_tree, op_vocab = schema_agnostic_node_features(mapped_tree)
+        feat_dim = next(iter(mapped_tree.values()))[0].size(1)
+        print(f"  Schema-agnostic node features: {len(op_vocab)} operators "
+              f"({op_vocab}) → feat_dim={feat_dim}")
+    if tree_feat_norm in ('log', 'agnostic') and mapped_tree:
+        # Raw plan-node features mix small categorical codes (<=19) with a
+        # cardinality column reaching 6e8, which alone drives the tree-conv output
+        # and collapses embeddings (within-benchmark cos ~0.96-1.0).  Signed log1p,
+        # then standardize with statistics of TRAINING-query plans only.
+        def _slog(t):
+            if tree_feat_norm == 'agnostic':
+                return t  # already log-scaled where needed
+            return torch.sign(t) * torch.log1p(t.abs())
+        train_keys = sorted({idx_to_tree_key[q2idx[q]] for q in train_qnames
+                             if q in q2idx and q2idx[q] in idx_to_tree_key})
+        feats = torch.cat([_slog(mapped_tree[k][0]) for k in train_keys], dim=0)
+        mu = feats.mean(0)
+        sd = feats.std(0)
+        # Dims constant on training plans: centre only (no division by ~0), so
+        # unseen-schema values stay on the log scale instead of exploding.
+        sd = torch.where(sd < 1e-6, torch.ones_like(sd), sd)
+        mapped_tree = {k: ((_slog(v[0]) - mu) / sd,) + tuple(v[1:])
+                       for k, v in mapped_tree.items()}
+        print(f"  Tree feature norm: signed log1p + z-score from {len(train_keys)} "
+              f"training plans ({feats.size(0)} nodes)")
 
     NUM_KERNELS = 4
     QENC_DIM = feat_dim * NUM_KERNELS  # 288 — per-query embedding dim
@@ -1045,6 +1307,20 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         print("  Fallback initialization: neutral zero vector for unmapped queries")
 
     # Attention pool for workload aggregation (replaces mean/max/std).
+    if sf_embedding:
+        # The same query template at sf1/10/100 maps to ONE plan and therefore one
+        # embedding, yet the best combo/config depends strongly on data size.  The
+        # scale factor is known at deployment, so add a learned per-sf vector.
+        sf_vocab = {'1': 0, '10': 1, '100': 2}
+        q_sf = torch.tensor([sf_vocab.get(_re.search(r'sf(\d+)_', q).group(1), 0)
+                             for q in all_query_ids], device=device)
+        query_encoder.sf_embedding = nn.Embedding(3, QENC_DIM).to(device)
+        query_encoder.register_buffer('_q_sf', q_sf)
+        _fwd, _fwd_train = query_encoder.forward, query_encoder.forward_train
+        query_encoder.forward = lambda ids: _fwd(ids) + query_encoder.sf_embedding(query_encoder._q_sf[ids])
+        query_encoder.forward_train = (lambda ids: _fwd_train(ids)
+                                       + query_encoder.sf_embedding(query_encoder._q_sf[ids]))
+        print(f"  SF embedding: {dict(zip(*torch.unique(q_sf, return_counts=True)))}")
     pool = AttentionPool(dim=QENC_DIM, num_heads=NUM_ATTN_HEADS).to(device)
     set_pool(pool)
     print(f"  AttentionPool: dim={QENC_DIM} heads={NUM_ATTN_HEADS} → out_dim={pool.out_dim}")
@@ -1056,6 +1332,12 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         gate_hidden_dims=gate_hidden, expert_hidden_dims=expert_hidden,
         dropout_prob=0.3,
     ).to(device)
+
+    if gate_dropout is not None:
+        for gate in (moe_model.engine_gate, moe_model.lake_gate):
+            for m in gate.modules():
+                if isinstance(m, nn.Dropout):
+                    m.p = gate_dropout
 
     print(f"\nModel params: query_encoder={sum(p.numel() for p in query_encoder.parameters()):,}, "
           f"moe={sum(p.numel() for p in moe_model.parameters()):,}")
@@ -1092,7 +1374,11 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         {'params': pool_params, 'weight_decay': 1e-5},
         {'params': moe_only_params, 'weight_decay': 1e-5},
     ], lr=3e-4)
-    opt_gate = Adam(gate_params, lr=3e-4, weight_decay=1e-5)
+    opt_gate = Adam(gate_params, lr=gate_lr, weight_decay=1e-5)
+    if stage2_train_encoder:
+        # Let Stage 2 also adapt the tree-conv encoder to the routing objective.
+        opt_gate.add_param_group({'params': tree_params, 'lr': gate_lr,
+                                  'weight_decay': tree_weight_decay})
     opt_expert = Adam(expert_params, lr=3e-4, weight_decay=1e-5)
     sched_full = CosineAnnealingLR(opt_full, T_max=BIG_EPOCHS, eta_min=1e-5)
     sched_gate = CosineAnnealingLR(opt_gate, T_max=BIG_EPOCHS, eta_min=1e-5)
@@ -1120,6 +1406,34 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     def _get_w_emb_train(q_indices):
         # Differentiable lookup — must call precompute_training_table() before this
         return aggregate_workload_emb(query_encoder.forward_train(q_indices))
+
+    def _gate_balance_terms(avg_eng, avg_lak):
+        """(L_div, anti-collapse) on batch-mean gate probs.  'uniform' keeps the
+        original push toward 1/3; 'train' targets the training-label prior so a
+        skewed optimum (e.g. hudi best for 58% of queries) is not penalized."""
+        if gate_prior_reg == 'train':
+            div = ((avg_eng - prior_eng) ** 2).sum() + ((avg_lak - prior_lak) ** 2).sum()
+            kl = ((avg_eng * ((avg_eng + 1e-12).log() - prior_eng.log())).sum()
+                  + (avg_lak * ((avg_lak + 1e-12).log() - prior_lak.log())).sum())
+            return div, kl
+        inv_e = 1.0 / TwoGateMoE.ENGINE_CLASSES
+        inv_l = 1.0 / TwoGateMoE.LAKE_CLASSES
+        div = ((avg_eng - inv_e) ** 2).sum() + ((avg_lak - inv_l) ** 2).sum()
+        ent_eng = -(avg_eng * (avg_eng + 1e-12).log()).sum()
+        ent_lak = -(avg_lak * (avg_lak + 1e-12).log()).sum()
+        diversity = ((math.log(TwoGateMoE.ENGINE_CLASSES) - ent_eng)
+                     + (math.log(TwoGateMoE.LAKE_CLASSES) - ent_lak))
+        return div, diversity
+
+    def _soft_gate_ce(eng_lg, lak_lg, route_cost):
+        """CE against softmax(-log_slowdown / T), marginalized to engine / lake.
+        route_cost: (B, E, L) log-slowdown; near-tied combos share the target mass."""
+        B = route_cost.size(0)
+        tj = F.softmax(-route_cost.reshape(B, -1) / gate_soft_label_temp, dim=-1)
+        tj = tj.view(B, TwoGateMoE.ENGINE_CLASSES, TwoGateMoE.LAKE_CLASSES)
+        ce_e = -(tj.sum(2) * F.log_softmax(eng_lg, dim=-1)).sum(-1)
+        ce_l = -(tj.sum(1) * F.log_softmax(lak_lg, dim=-1)).sum(-1)
+        return (ce_e + ce_l).mean()
 
     def _single_query_router_terms(raw_q_emb, routes):
         """Losses for the existing gates at their single-query input shape.
@@ -1159,6 +1473,8 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         joint_probs = eng_probs.unsqueeze(2) * lak_probs.unsqueeze(1)
         cost_np = np.stack([route[4] for route in routes], axis=0)
         route_cost = torch.as_tensor(cost_np, device=device, dtype=torch.float)
+        if gate_soft_label_temp > 0:
+            hard_ce = _soft_gate_ce(aux_eng_logits, aux_lak_logits, route_cost)
         regret = (joint_probs * route_cost).sum(dim=(1, 2)).mean()
         return hard_ce, regret
 
@@ -1205,7 +1521,11 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 pl = lak_p.gather(1, t_lak.unsqueeze(1)).squeeze(1)
                 mse_per = (pred.squeeze(-1) - t_r) ** 2 * pe * pl
                 bmse_terms.append(mse_per.mean())
-                bce_terms.append(F.cross_entropy(eng_lg, t_eng) + F.cross_entropy(lak_lg, t_lak))
+                if gate_soft_label_temp > 0:
+                    bce_terms.append(_soft_gate_ce(eng_lg[:1], lak_lg[:1],
+                                                   wl['_route_cost'].unsqueeze(0)))
+                else:
+                    bce_terms.append(F.cross_entropy(eng_lg, t_eng) + F.cross_entropy(lak_lg, t_lak))
                 b_eng_p.append(F.softmax(eng_lg, dim=-1))
                 b_lak_p.append(F.softmax(lak_lg, dim=-1))
                 if ((router_stage1_aux_weight > 0 or router_regret_weight > 0)
@@ -1226,17 +1546,8 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
             all_eng_p = torch.cat(b_eng_p, dim=0)  # (B_total, ENG)
             all_lak_p = torch.cat(b_lak_p, dim=0)  # (B_total, LAK)
             avg_eng = all_eng_p.mean(0); avg_lak = all_lak_p.mean(0)
-            inv_e = 1.0 / TwoGateMoE.ENGINE_CLASSES
-            inv_l = 1.0 / TwoGateMoE.LAKE_CLASSES
-            div = ((avg_eng - inv_e) ** 2).sum() + ((avg_lak - inv_l) ** 2).sum()
-            # NEW anti-collapse: maximize entropy of batch-mean prob distribution.
-            # Loss = max_entropy - actual_entropy (>=0, =0 at uniform).
-            # Pushes batch-mean prob toward uniform with strong gradient even at collapse.
-            log_e = math.log(TwoGateMoE.ENGINE_CLASSES)
-            log_l = math.log(TwoGateMoE.LAKE_CLASSES)
-            ent_eng = -(avg_eng * (avg_eng + 1e-12).log()).sum()
-            ent_lak = -(avg_lak * (avg_lak + 1e-12).log()).sum()
-            diversity_loss = (log_e - ent_eng) + (log_l - ent_lak)
+            # Anti-collapse on batch-mean probs (target: uniform or training prior).
+            div, diversity_loss = _gate_balance_terms(avg_eng, avg_lak)
             # NEW: workload-embedding spread regularizer — variance + InfoNCE contrastive.
             # Variance: maximize per-dim cross-sample variance.
             # InfoNCE: each workload's embedding should be more similar to itself
@@ -1276,6 +1587,60 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
             n_steps += 1
         return total / max(n_steps, 1), mse_acc / max(n_steps, 1), ce_acc / max(n_steps, 1), div_acc / max(n_steps, 1)
 
+    # Query groups for tree-conv collapse diagnostics (plan-mapped queries only;
+    # unmapped ones share the fallback vector and would fake a collapse).
+    # Deduplicated by plan key: queries sharing a plan (e.g. the same template at
+    # sf1/10/100) get identical embeddings and would inflate the counts.
+    def _uniq_plan_idxs(qs):
+        seen = {}
+        for q in qs:
+            i = q2idx.get(q)
+            if i is not None and i in idx_to_tree_key:
+                seen.setdefault(idx_to_tree_key[i], i)
+        return list(seen.values())
+    _diag_groups = {
+        name: _uniq_plan_idxs(qs)
+        for name, qs in (('train', train_qnames), ('valid', valid_qnames), ('test', test_qnames))
+    }
+    if holdout:
+        for bm in sorted({q.split('|', 1)[0] for q in train_qnames}):
+            _diag_groups[f"tr:{bm}"] = _uniq_plan_idxs(
+                [q for q in train_qnames if q.startswith(bm + '|')])
+
+    def _emb_diagnostic(tag):
+        """Tree-conv output collapse check on the eval-mode embedding table.
+        cos   = mean pairwise cosine (LayerNorm output, so ~correlation; →1 = collapse)
+        erank = effective rank exp(H(σ²/Σσ²)) of the centered matrix (of QENC_DIM)
+        std   = mean per-dim std across queries;  uniq = distinct embeddings
+        shift = cosine(test centroid, train centroid) — cross-schema distribution gap"""
+        if not hasattr(query_encoder, 'recompute_tree_embeddings'):
+            return
+        query_encoder.eval()
+        query_encoder.recompute_tree_embeddings(device)
+        table = query_encoder._emb_table
+        parts = []; cents = {}
+        with torch.no_grad():
+            for name, idxs in _diag_groups.items():
+                if len(idxs) < 2:
+                    continue
+                X = table[torch.tensor(idxs, device=table.device)].float()
+                Xn = F.normalize(X, dim=-1)
+                n = X.size(0)
+                cos = ((Xn @ Xn.T).sum() - n) / (n * (n - 1))
+                Xc = X - X.mean(0, keepdim=True)
+                sv = torch.linalg.svdvals(Xc) ** 2
+                p = sv / sv.sum().clamp_min(1e-12)
+                erank = torch.exp(-(p * (p + 1e-12).log()).sum())
+                std = Xc.std(0).mean()
+                uniq = torch.unique(torch.round(X * 1e3), dim=0).size(0)
+                cents[name] = X.mean(0)
+                parts.append(f"{name}(n={n}) cos={cos.item():.3f} erank={erank.item():.1f} "
+                             f"std={std.item():.3f} uniq={uniq}")
+        shift = ""
+        if 'train' in cents and 'test' in cents:
+            shift = f" | shift cos(test,train centroid)={F.cosine_similarity(cents['test'], cents['train'], dim=0).item():.3f}"
+        print(f"    EmbDiag[{tag}]: " + " ; ".join(parts) + shift)
+
     def _gate_diagnostic(workloads, label=""):
         """Per-workload gate argmax → check vs ground-truth (_best_eng/lak).
         Returns (eng_acc, lak_acc, combo_acc, eng_hist, lak_hist) for diagnostic."""
@@ -1313,8 +1678,12 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         if sub_epochs <= 0:
             return 0.0
         moe_model.train()
-        if hasattr(query_encoder, 'recompute_tree_embeddings'):
+        if stage2_train_encoder:
+            query_encoder.train()
+        elif hasattr(query_encoder, 'recompute_tree_embeddings'):
             query_encoder.recompute_tree_embeddings(device)
+        emb_fn = _get_w_emb_train if stage2_train_encoder else _get_w_emb
+        raw_fn = query_encoder.forward_train if stage2_train_encoder else query_encoder
         total = 0.0; n_steps = 0
         for se in range(sub_epochs):
             random.shuffle(workloads)
@@ -1322,18 +1691,24 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
             while i < len(workloads):
                 chunk = workloads[i:i + batch_size]
                 i += batch_size
+                if stage2_train_encoder:
+                    query_encoder.precompute_training_table(device)
                 bce_terms = []; b_eng_p = []; b_lak_p = []
                 aux_route_terms = []; regret_terms = []
                 for wl in chunk:
                     q_indices = wl['_q_indices']
                     if q_indices is None or len(q_indices) == 0:
                         continue
-                    w_emb = _get_w_emb(q_indices)
+                    w_emb = emb_fn(q_indices)
                     eng_lg = moe_model.engine_gate(w_emb)
                     lak_lg = moe_model.lake_gate(w_emb)
                     te = torch.tensor([wl['_best_eng']], device=device, dtype=torch.long)
                     tl = torch.tensor([wl['_best_lak']], device=device, dtype=torch.long)
-                    bce_terms.append(F.cross_entropy(eng_lg, te) + F.cross_entropy(lak_lg, tl))
+                    if gate_soft_label_temp > 0:
+                        bce_terms.append(_soft_gate_ce(eng_lg, lak_lg,
+                                                       wl['_route_cost'].unsqueeze(0)))
+                    else:
+                        bce_terms.append(F.cross_entropy(eng_lg, te) + F.cross_entropy(lak_lg, tl))
                     b_eng_p.append(F.softmax(eng_lg, dim=-1))
                     b_lak_p.append(F.softmax(lak_lg, dim=-1))
                     if ((router_aux_weight > 0 or router_regret_weight > 0)
@@ -1342,7 +1717,7 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                         route_ids = torch.tensor(
                             [route[0] for route in routes], device=device, dtype=torch.long
                         )
-                        raw_q_emb = query_encoder(route_ids)
+                        raw_q_emb = raw_fn(route_ids)
                         aux_ce, regret = _single_query_router_terms(raw_q_emb, routes)
                         aux_route_terms.append(aux_ce)
                         regret_terms.append(regret)
@@ -1352,14 +1727,7 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 all_eng_p = torch.cat(b_eng_p, dim=0)
                 all_lak_p = torch.cat(b_lak_p, dim=0)
                 avg_eng = all_eng_p.mean(0); avg_lak = all_lak_p.mean(0)
-                inv_e = 1.0 / TwoGateMoE.ENGINE_CLASSES
-                inv_l = 1.0 / TwoGateMoE.LAKE_CLASSES
-                div = ((avg_eng - inv_e) ** 2).sum() + ((avg_lak - inv_l) ** 2).sum()
-                log_e = math.log(TwoGateMoE.ENGINE_CLASSES)
-                log_l = math.log(TwoGateMoE.LAKE_CLASSES)
-                ent_eng = -(avg_eng * (avg_eng + 1e-12).log()).sum()
-                ent_lak = -(avg_lak * (avg_lak + 1e-12).log()).sum()
-                diversity_loss = (log_e - ent_eng) + (log_l - ent_lak)
+                div, diversity_loss = _gate_balance_terms(avg_eng, avg_lak)
                 aux_route_loss = (
                     torch.stack(aux_route_terms).mean()
                     if aux_route_terms else torch.tensor(0.0, device=device)
@@ -1374,9 +1742,13 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                         + lambda_div * div + lambda_diversity * diversity_loss)
                 opt_gate.zero_grad()
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(gate_params, 1.0)
+                torch.nn.utils.clip_grad_norm_(
+                    gate_params + (tree_params if stage2_train_encoder else []), 1.0)
                 opt_gate.step()
                 total += loss.item(); n_steps += 1
+            if stage2_train_encoder and hasattr(query_encoder, 'recompute_tree_embeddings'):
+                query_encoder.eval()
+                query_encoder.recompute_tree_embeddings(device)
             if valid_workloads_for_diag is not None:
                 ea, la, ca, eh, lh = _gate_diagnostic(valid_workloads_for_diag)
                 eh_str = ",".join(f"{k}={v}" for k, v in sorted(eh.items()))
@@ -1477,6 +1849,7 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
                 total += loss.item(); n_steps += 1
         return total / max(n_steps, 1)
 
+    _emb_diagnostic("init")
     for epoch in range(1, BIG_EPOCHS + 1):
         s1_total = s1_mse = s1_ce = s1_div = 0.0
         for _ in range(max(1, stage1_subepochs)):
@@ -1489,11 +1862,17 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
         s2_loss = _run_stage2_gate(train_workloads, stage2_subepochs,
                                     valid_workloads_for_diag=valid_workloads)
         s3_loss = _run_stage3_expert(train_workloads, stage3_subepochs)
+        _emb_diagnostic(f"ep{epoch}")
         sched_full.step(); sched_gate.step(); sched_expert.step()
 
         # MODEL SELECTION on VALIDATION set (test never used during training).
         ratio = evaluate(query_encoder, moe_model, valid_workloads, q2idx, max_dim,
                          eval_mode=eval_mode, eval_noise=eval_noise)
+        if select_metric != 'mean' and select_metric in _LAST_EVAL:
+            # 'geo': end-to-end geometric ratio; 'oracle_geo': ratio when routed to
+            # each valid query's true best combo = quality of the expert's config
+            # choice only (for training the encoder+experts before tuning the gate).
+            ratio = _LAST_EVAL[select_metric]
 
         # Snapshot model state in memory at the lowest validation ratio.
         # No checkpoint files are written.
@@ -1529,25 +1908,123 @@ def train_model(test_benchmark, test_sf=None, use_supply=False,
     test_ratio = evaluate(query_encoder, moe_model, test_workloads, q2idx, max_dim,
                           eval_mode=eval_mode, eval_noise=eval_noise)
     print(f"Final test ratio (best-valid snapshot, ep{best_epoch}): {test_ratio:.4f}")
+    if _LAST_EVAL:
+        print("Final test summary: " + " ".join(
+            f"{k}={v:.4f}" for k, v in _LAST_EVAL.items()))
+    if holdout:
+        for sf, wls in test_workloads_by_sf.items():
+            print(f"  Held-out {test_benchmark} {sf} ({len(wls)} queries):")
+            r = evaluate(query_encoder, moe_model, wls, q2idx, max_dim,
+                         eval_mode=eval_mode, eval_noise=eval_noise)
+            print(f"Holdout test {test_benchmark} {sf}: ratio={r:.4f} " + " ".join(
+                f"{k}={v:.4f}" for k, v in _LAST_EVAL.items()))
     print(f"Time: {time.time() - t0:.1f}s")
 
+    if export_gate_data:
+        _export_gate_data(export_gate_data, all_data, q2idx, train_qnames, valid_qnames,
+                          test_qnames, query_encoder, moe_model, max_dim)
     return test_ratio
+
+
+def _export_gate_data(path, all_data, q2idx, train_qnames, valid_qnames, test_qnames,
+                      query_encoder, moe_model, max_dim):
+    """Freeze the (best-valid) encoder + experts and dump what a gate needs:
+    per-query embedding, per-combo log-slowdown of the combo's best config
+    (routing cost), and the ratio actually obtained when the frozen expert picks
+    the config inside each combo (end-to-end outcome of routing there).
+    Split labels are kept so gate tuning can train on train, select on valid and
+    touch test only once."""
+    query_encoder.eval(); moe_model.eval()
+    if hasattr(query_encoder, 'recompute_tree_embeddings'):
+        query_encoder.recompute_tree_embeddings(device)
+    split = {q: 'train' for q in train_qnames}
+    split.update({q: 'valid' for q in valid_qnames})
+    split.update({q: 'test' for q in test_qnames})
+    E, L = TwoGateMoE.ENGINE_CLASSES, TwoGateMoE.LAKE_CLASSES
+    qids, splits, embs, costs, expert_ratios = [], [], [], [], []
+    rec_q, rec_combo, rec_key, rec_lat, rec_pred = [], [], [], [], []
+    with torch.no_grad():
+        for qid in sorted(q for q in all_data if q in split and q in q2idx):
+            recs_by_cc = {cc: [(c, l) for c, l in recs if c is not None]
+                          for cc, recs in all_data[qid].items()}
+            recs_by_cc = {cc: r for cc, r in recs_by_cc.items() if r}
+            if not recs_by_cc:
+                continue
+            best = min(l for r in recs_by_cc.values() for _, l in r)
+            if best <= 0:
+                continue
+            idx = torch.tensor([q2idx[qid]], device=device)
+            q_emb = aggregate_workload_emb(query_encoder(idx))
+            cost = torch.full((E, L), float('nan'))
+            exp_r = torch.full((E, L), float('nan'))
+            for (e, l), recs in recs_by_cc.items():
+                cost[e, l] = math.log(min(l_ for _, l_ in recs) / best)
+                conf_b = torch.stack([prepare_conf(c.tolist(), max_dim) for c, _ in recs]).to(device)
+                pred = moe_model.forward_for_eng_lak(
+                    q_emb.expand(len(recs), -1), conf_b, e, l).squeeze(-1)
+                pred = pred + torch.tensor([_EVAL_OPTS['config_prior'](qid, (e, l), c)
+                                            for c, _ in recs], device=pred.device)
+                exp_r[e, l] = recs[int(pred.argmin().item())][1] / best
+                for (c, lat_), pv in zip(recs, pred.tolist()):
+                    rec_q.append(len(qids)); rec_combo.append(e * L + l)
+                    rec_key.append((e, l) + tuple(round(float(x), 4) for x in c.tolist()))
+                    rec_lat.append(lat_ / best); rec_pred.append(pv)
+            qids.append(qid); splits.append(split[qid])
+            embs.append(query_encoder(idx)[0].cpu())
+            costs.append(cost); expert_ratios.append(exp_r)
+    torch.save({'qids': qids, 'split': splits, 'emb': torch.stack(embs),
+                'cost': torch.stack(costs), 'expert_ratio': torch.stack(expert_ratios),
+                # per measured (query, combo, config) record: config identity, ratio
+                # to the query's best latency, and the frozen expert's prediction
+                'rec_q': rec_q, 'rec_combo': rec_combo, 'rec_key': rec_key,
+                'rec_ratio': rec_lat, 'rec_pred': rec_pred}, path)
+    print(f"Exported gate data for {len(qids)} queries → {path}")
+
+
+# Evaluation options set by train_model; metrics of the latest per-query eval.
+_EVAL_OPTS = {'joint': False, 'prior_combos': [], 'config_prior': lambda q, cc, c: 0.0}
+_LAST_EVAL = {}
+
+
+def _geo(r):
+    return float(np.exp(np.log(np.asarray(r, dtype=float)).mean()))
 
 
 def evaluate_per_query(query_encoder, moe_model, workloads, q2idx, max_dim):
     """Paper-style per-query inference (no oracle routing):
        1. q_emb = query_encoder([q])
        2. Run gates → eng* = argmax engine_gate, lak* = argmax lake_gate
+          (with joint inference: argmax p_e*p_l over combos this query has data for)
        3. Among the records for this query restricted to combo (eng*, lak*),
           score every conf via forward_for_eng_lak and pick argmin pred.
        4. ratio = chosen_actual_lat / query_min_lat (across ALL combos).
+    Also reports two diagnostics using the same expert config choice:
+       oracle-gate (true best combo) and prior (training-majority available combo).
     """
     query_encoder.eval()
     moe_model.eval()
 
-    ratios = []
+    ratios = []; oracle_ratios = []; prior_ratios = []
     eng_correct = lak_correct = combo_correct = total = 0
+    prior_correct = 0
     fallback_used = 0
+
+    cprior = _EVAL_OPTS['config_prior']
+
+    def _pick_in_combo(q_emb, recs, combo, qid):
+        confs = []; lats = []; pri = []
+        for conf, lat in recs:
+            if conf is None:
+                continue
+            confs.append(prepare_conf(conf.tolist(), max_dim))
+            lats.append(lat); pri.append(cprior(qid, combo, conf))
+        if not confs:
+            return None
+        conf_b = torch.stack(confs).to(device)
+        preds = moe_model.forward_for_eng_lak(q_emb.expand(len(confs), -1), conf_b,
+                                              combo[0], combo[1]).squeeze(-1)
+        preds = preds + torch.tensor(pri, device=preds.device, dtype=preds.dtype)
+        return lats[preds.argmin().item()]
 
     with torch.no_grad():
         for wl in workloads:
@@ -1560,77 +2037,98 @@ def evaluate_per_query(query_encoder, moe_model, workloads, q2idx, max_dim):
                 q_idx = torch.tensor([q2idx[qid]], device=device)
                 q_emb = aggregate_workload_emb(query_encoder(q_idx))
 
+                # Per-query global min (across all combos) — denominator
+                best_combo_overall = None; best_lat_overall = float('inf')
+                for cc, recs in pq_data[qid].items():
+                    for _, lat in recs:
+                        if lat < best_lat_overall:
+                            best_lat_overall = lat; best_combo_overall = cc
+                if best_combo_overall is None or best_lat_overall <= 0:
+                    continue
+                query_min_lat = best_lat_overall
+                avail = [cc for cc, recs in pq_data[qid].items()
+                         if any(conf is not None for conf, _ in recs)]
+                if not avail:
+                    continue
+
                 # Step 2: gate selection
                 eng_lg = moe_model.engine_gate(q_emb)
                 lak_lg = moe_model.lake_gate(q_emb)
-                e_star = int(eng_lg.argmax(-1).item())
-                l_star = int(lak_lg.argmax(-1).item())
+                if _EVAL_OPTS['joint']:
+                    ep = F.softmax(eng_lg, dim=-1)[0]; lp = F.softmax(lak_lg, dim=-1)[0]
+                    chosen_combo = max(avail, key=lambda cc: float(ep[cc[0]] * lp[cc[1]]))
+                else:
+                    chosen_combo = (int(eng_lg.argmax(-1).item()),
+                                    int(lak_lg.argmax(-1).item()))
 
-                # Per-query global min (across all combos) — denominator
-                all_lats = []; best_combo_overall = None; best_lat_overall = float('inf')
-                for cc, recs in pq_data[qid].items():
-                    for _, lat in recs:
-                        all_lats.append(lat)
-                        if lat < best_lat_overall:
-                            best_lat_overall = lat; best_combo_overall = cc
-                if not all_lats:
-                    continue
-                query_min_lat = best_lat_overall
-
-                # Step 3: candidate confs restricted to (e*, l*).
-                chosen_combo = (e_star, l_star)
-                cand = pq_data[qid].get(chosen_combo)
-                if not cand:
+                # Step 3: candidate confs restricted to the chosen combo.
+                if chosen_combo in avail:
+                    chosen_actual = _pick_in_combo(q_emb, pq_data[qid][chosen_combo],
+                                                   chosen_combo, qid)
+                else:
                     # Fallback: combo not present for this query → score all combos
                     fallback_used += 1
-                    cand_combos = list(pq_data[qid].items())
                     confs = []; lats = []; combos = []
-                    for cc, recs in cand_combos:
+                    for cc, recs in pq_data[qid].items():
                         for conf, lat in recs:
                             if conf is None:
                                 continue
                             confs.append(prepare_conf(conf.tolist(), max_dim))
                             lats.append(lat); combos.append(cc)
-                    if not confs:
-                        continue
                     conf_b = torch.stack(confs).to(device)
                     q_emb_e = q_emb.expand(len(confs), -1)
                     combo_ids = torch.tensor([[float(c[0]), float(c[1])] for c in combos],
                                               device=device, dtype=torch.float)
-                    preds = moe_model.forward_oracle(q_emb_e, conf_b, combo_ids)
-                    pick = preds.squeeze(-1).argmin().item()
+                    preds = moe_model.forward_oracle(q_emb_e, conf_b, combo_ids).squeeze(-1)
+                    preds = preds + torch.tensor(
+                        [cprior(qid, cc, c) for cc, recs in pq_data[qid].items()
+                         for c, _ in recs if c is not None],
+                        device=preds.device, dtype=preds.dtype)
+                    pick = preds.argmin().item()
                     chosen_actual = lats[pick]; chosen_combo = combos[pick]
-                else:
-                    confs = []; lats = []
-                    for conf, lat in cand:
-                        if conf is None:
-                            continue
-                        confs.append(prepare_conf(conf.tolist(), max_dim))
-                        lats.append(lat)
-                    if not confs:
-                        continue
-                    conf_b = torch.stack(confs).to(device)
-                    q_emb_e = q_emb.expand(len(confs), -1)
-                    preds = moe_model.forward_for_eng_lak(q_emb_e, conf_b, e_star, l_star)
-                    pick = preds.squeeze(-1).argmin().item()
-                    chosen_actual = lats[pick]
-
-                if query_min_lat <= 0:
+                if chosen_actual is None:
                     continue
-                ratio = chosen_actual / query_min_lat
-                ratios.append(ratio)
+                ratios.append(chosen_actual / query_min_lat)
 
-                if best_combo_overall is not None:
-                    if chosen_combo[0] == best_combo_overall[0]: eng_correct += 1
-                    if chosen_combo[1] == best_combo_overall[1]: lak_correct += 1
-                    if chosen_combo == best_combo_overall: combo_correct += 1
+                # Diagnostics: perfect gate, and training-majority routing.
+                o = _pick_in_combo(q_emb, pq_data[qid][best_combo_overall], best_combo_overall, qid)
+                if o is not None:
+                    oracle_ratios.append(o / query_min_lat)
+                prior_combo = next((cc for cc in _EVAL_OPTS['prior_combos'] if cc in avail),
+                                   avail[0])
+                pr = _pick_in_combo(q_emb, pq_data[qid][prior_combo], prior_combo, qid)
+                if pr is not None:
+                    prior_ratios.append(pr / query_min_lat)
+                if prior_combo == best_combo_overall:
+                    prior_correct += 1
+
+                if chosen_combo[0] == best_combo_overall[0]: eng_correct += 1
+                if chosen_combo[1] == best_combo_overall[1]: lak_correct += 1
+                if chosen_combo == best_combo_overall: combo_correct += 1
                 total += 1
 
     avg_ratio = float(np.mean(ratios)) if ratios else float('inf')
+    _LAST_EVAL.clear()
     if total > 0:
         ea = eng_correct / total; la = lak_correct / total; ca = combo_correct / total
         print(f"    Eval[per_query]: eng_acc={ea:.3f} lake_acc={la:.3f} combo_acc={ca:.3f} "
               f"avg_ratio={avg_ratio:.4f} ({len(ratios)} q, fallback={fallback_used})")
+        if ratios:
+            r = np.asarray(ratios, dtype=float)
+            print(f"    Eval[per_query] extra: geo_ratio={_geo(r):.4f} "
+                  f"median_ratio={float(np.median(r)):.4f} max_ratio={float(r.max()):.4f}")
+            _LAST_EVAL.update(mean=avg_ratio, geo=_geo(r), median=float(np.median(r)),
+                              combo_acc=ca)
+        if oracle_ratios and prior_ratios:
+            _LAST_EVAL.update(oracle_mean=float(np.mean(oracle_ratios)),
+                              oracle_geo=_geo(oracle_ratios),
+                              prior_mean=float(np.mean(prior_ratios)),
+                              prior_geo=_geo(prior_ratios),
+                              prior_combo_acc=prior_correct / total)
+            print(f"    Eval[per_query] diag: oracle_gate mean={_LAST_EVAL['oracle_mean']:.4f} "
+                  f"geo={_LAST_EVAL['oracle_geo']:.4f} | prior_route mean="
+                  f"{_LAST_EVAL['prior_mean']:.4f} geo={_LAST_EVAL['prior_geo']:.4f} "
+                  f"combo_acc={_LAST_EVAL['prior_combo_acc']:.3f}")
     return avg_ratio
 
 
@@ -1799,7 +2297,61 @@ def main():
     parser.add_argument('--stage3-median-configs', action='store_true',
                         help='Collapse repeated training executions of an identical '
                              'query/combo/config to their median before Stage 3')
+    parser.add_argument('--gate-prior-reg', type=str, default='uniform',
+                        choices=['uniform', 'train'],
+                        help='Target of the gate anti-collapse terms: uniform (original) or '
+                             'the training-label prior')
+    parser.add_argument('--gate-soft-label-temp', type=float, default=0.0,
+                        help='>0: gate CE uses softmax(-log_slowdown/T) soft labels instead of '
+                             'the hard argmin combo')
+    parser.add_argument('--gate-lr', type=float, default=3e-4,
+                        help='Learning rate of the Stage-2 gate optimizer')
+    parser.add_argument('--gate-dropout', type=float, default=None,
+                        help='Override dropout inside the two gates (default: shared 0.3)')
+    parser.add_argument('--joint-gate-inference', action='store_true',
+                        help='Pick argmax p_e*p_l among combos the query has data for, '
+                             'instead of independent engine/lake argmax')
+    parser.add_argument('--tree-feat-norm', type=str, default='raw',
+                        choices=['raw', 'log', 'agnostic'],
+                        help="Plan-node features before tree-conv: raw (original); log = "
+                             "signed-log1p + train-set z-score; agnostic = operators aligned by "
+                             "name, table slots summarized, then train-set z-score (cross-schema)")
+    parser.add_argument('--export-gate-data', type=str, default=None,
+                        help='After training, dump frozen embeddings + per-combo costs + '
+                             'expert-chosen ratios for offline gate tuning (gate_tune.py)')
+    parser.add_argument('--latency-cap-ratio', type=float, default=0.0,
+                        help='Clip each record latency to this multiple of its query best '
+                             '(0 = off; e.g. 10 bounds every ratio at 10x)')
+    parser.add_argument('--latency-cap-scope', type=str, default=None,
+                        help='Comma list of benchmark:sf the cap applies to, e.g. '
+                             '"tpcds:10,tpcds:100,job:10,tpch:10" (default: all)')
+    parser.add_argument('--conf-canonical', action='store_true',
+                        help='Name-aligned config features (named knobs in fixed slots, '
+                             'positional formats in a separate flagged block)')
+    parser.add_argument('--expert-residual-prior', action='store_true',
+                        help='Experts regress log-ratio minus the train-split (sf, combo, config) '
+                             'prior; inference adds the prior back')
+    parser.add_argument('--sf-embedding', action='store_true',
+                        help='Add a learned per-scale-factor vector to query embeddings '
+                             '(sf is known at deployment; plans are shared across sf)')
+    parser.add_argument('--tree-readout', type=str, default='root', choices=['root', 'root_mean'],
+                        help='Plan embedding = root node (original) or average of root and '
+                             'mean over all nodes (prevents deep-plan collapse)')
+    parser.add_argument('--stage2-train-encoder', action='store_true',
+                        help='Stage 2 also updates the tree-conv encoder (default: frozen)')
+    parser.add_argument('--holdout', action='store_true',
+                        help='Cross-schema: test on --benchmark (optionally only --sf), '
+                             'train/valid on all other benchmarks (all sfs)')
+    parser.add_argument('--select-metric', type=str, default='mean',
+                        choices=['mean', 'geo', 'oracle_geo'],
+                        help='Validation ratio used for checkpoint selection')
     args = parser.parse_args()
+    global CONF_CANONICAL, LATENCY_CAP_RATIO
+    CONF_CANONICAL = args.conf_canonical
+    LATENCY_CAP_RATIO = args.latency_cap_ratio
+    global LATENCY_CAP_SCOPE
+    if args.latency_cap_scope:
+        LATENCY_CAP_SCOPE = {tuple(x.strip().split(':')) for x in args.latency_cap_scope.split(',')}
 
     sf_str = f" sf={args.sf}" if args.sf else ""
     print(f"\n{'#'*70}")
@@ -1837,7 +2389,19 @@ def main():
                 workload_expert_weight=args.workload_expert_weight,
                 workload_gate_ce_weight=args.workload_gate_ce_weight,
                 early_stop_patience=args.early_stop_patience,
-                stage3_median_configs=args.stage3_median_configs)
+                stage3_median_configs=args.stage3_median_configs,
+                gate_prior_reg=args.gate_prior_reg,
+                gate_soft_label_temp=args.gate_soft_label_temp,
+                gate_lr=args.gate_lr, gate_dropout=args.gate_dropout,
+                joint_gate_inference=args.joint_gate_inference,
+                select_metric=args.select_metric,
+                holdout=args.holdout,
+                stage2_train_encoder=args.stage2_train_encoder,
+                tree_feat_norm=args.tree_feat_norm,
+                tree_readout=args.tree_readout,
+                export_gate_data=args.export_gate_data,
+                sf_embedding=args.sf_embedding,
+                expert_residual_prior=args.expert_residual_prior)
 
 
 if __name__ == "__main__":

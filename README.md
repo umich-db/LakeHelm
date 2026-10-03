@@ -22,18 +22,43 @@ pip install torch --index-url https://download.pytorch.org/whl/cu124
 
 ## 3. How to Train
 
-### 3.1 Single benchmark / scale factor
+### 3.1 Cross-schema evaluation (main protocol)
+
+The held-out benchmark (all of its scale factors) is the test set; the other four
+benchmarks (all scale factors) are split 85/15 into train/valid. One model per
+held-out benchmark reports every sf of that benchmark, so 5 models cover the 13
+(benchmark, sf) tasks.
 
 ```bash
-python3 train_local.py --benchmark tpcds --sf 100 --epochs 30 --eval-mode per_query \
-                        --stage1-subepochs 5 --stage2-subepochs 10 --stage3-subepochs 10
+# one held-out benchmark
+python3 train_local.py --benchmark tpch --holdout --seed 0 --epochs 30 --eval-mode per_query \
+    --early-stop-patience 10 --canonical-query-aliases \
+    --tree-feat-norm agnostic --tree-readout root_mean --sf-embedding \
+    --expert-residual-prior --select-metric oracle_geo \
+    --consistent-per-query-training --per-query-train-repeats 4 \
+    --router-aux-weight 1.0 --router-class-balance --router-regret-weight 1.0 \
+    --log-ratio-target --per-query-expert-weight 1.0 --expert-rank-weight 0.5 \
+    --normalize-configs --stage3-median-configs --neutral-unseen-fallback
 ```
 
-### 3.2 All (benchmark, sf) pairs
+### 3.2 Reproduce all 13 tasks
 
 ```bash
-bash run_all.sh
+GPUS="0 1 2 3" SEEDS="0 1" PY=python3 bash run_all.sh   # 5 benchmarks x 2 seeds
 ```
+
+Logs go to `logs/holdout_<benchmark>_s<seed>.log`. Each ends with one line per scale
+factor of the held-out benchmark:
+
+```
+Holdout test tpch sf10: ratio=... geo=... combo_acc=... oracle_geo=... prior_geo=...
+```
+
+`geo` is the end-to-end result with the learned gate; `prior_geo` routes every query to
+the training-majority combo (config still chosen by the model); `oracle_geo` assumes a
+perfect gate. Data: run `git lfs pull` first (latency CSVs are stored with Git LFS); the
+plan-tree cache `.tree_cache.pt` is built automatically on the first run. No checkpoint
+is needed — every run trains from scratch.
 
 ### 3.3 Common command-line arguments
 
@@ -51,19 +76,28 @@ bash run_all.sh
 | `--lambda-emb-spread` | `2.0` | Weight on workload-embedding spread regularizer |
 | `--tree-weight-decay` | `1e-3` | Weight decay specifically for tree-conv encoder |
 | `--gumbel-tau` | `1.0` | Temperature for Gumbel-softmax routing |
+| `--holdout` | off | Cross-schema: test = `--benchmark` (all sf, or only `--sf`); train/valid = the other benchmarks |
+| `--canonical-query-aliases` | off | Merge spellings of the same query (`db3`/`q3`, `query10`/`tpcds_q_10`) before splitting |
+| `--tree-feat-norm` | `raw` | `agnostic`: operators aligned by name, per-schema table slots summarized, train-set z-score |
+| `--tree-readout` | `root` | `root_mean`: average root and mean-over-nodes (prevents deep-plan collapse) |
+| `--sf-embedding` | off | Learned per-scale-factor vector added to query embeddings |
+| `--expert-residual-prior` | off | Experts regress log-ratio minus a train-split (sf, combo, config) prior |
+| `--select-metric` | `mean` | Checkpoint selection on valid: `mean`, `geo`, or `oracle_geo` (expert quality only) |
+| `--export-gate-data` | none | Dump frozen embeddings / costs / expert predictions for `gate_tune.py`, `route_tune.py` |
 
 ### 3.4 What happens during training
 
 ```
-Step 1: Load CSV data from the chosen benchmark(s)
-Step 2: Random query-level split: 70% train / 15% valid / 15% test
-Step 3: Build tree-conv embeddings from SQL execution plans
-Step 4: Generate workloads (random subsets of queries)
+Step 1: Load CSVs of all benchmarks (query ids prefixed with the benchmark)
+Step 2: --holdout: held-out benchmark = test; other benchmarks → 85% train / 15% valid
+Step 3: Build schema-agnostic plan-node features (stats from training plans only) → tree-conv embeddings
+Step 4: Build the train-split (sf, combo, config) prior used by the residual experts
 Step 5: Train TwoGateMoE for `epochs` outer epochs with three stages each
-Step 6: Pick the checkpoint with the best validation ratio; report its test ratio
+Step 6: Pick the checkpoint with the best valid oracle-gate geo ratio; report test per sf once
 ```
 
-Random query-level split is the default — there is **no leave-one-out** evaluation in this codebase.
+Without `--holdout` the original within-benchmark random 70/15/15 query split is used.
+Nothing computed from test queries feeds training, feature statistics, priors or model selection.
 
 ---
 

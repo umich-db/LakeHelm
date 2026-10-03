@@ -444,12 +444,25 @@ def batch_construct_forest(mapped_tree):
     return all_feats, all_children, root_ids
 
 
+# Readout of a plan tree: 'root' (original) uses only the root node; 'root_mean'
+# averages the root with the mean over all nodes.  Deep plans (e.g. JOB) whose
+# upper operators are identical otherwise wash leaf information out of the
+# root and collapse to one embedding.
+TREE_READOUT = 'root'
+
+
 def compute_all_query_root_embeddings(mapped_tree, tree_model, device, detach_emb=False):
     """Compute root embeddings for all queries in mapped_tree."""
     all_feats, all_children, root_ids = batch_construct_forest(mapped_tree)
     all_feats = all_feats.to(device)
 
-    root_embs, _ = tree_model(all_feats, all_children, root_ids)
+    root_embs, node_embs = tree_model(all_feats, all_children, root_ids)
+    if TREE_READOUT == 'root_mean':
+        sizes = torch.tensor([v[0].size(0) for v in mapped_tree.values()], device=node_embs.device)
+        seg = torch.repeat_interleave(torch.arange(len(sizes), device=node_embs.device), sizes)
+        sums = torch.zeros(len(sizes), node_embs.size(1), device=node_embs.device,
+                           dtype=node_embs.dtype).index_add(0, seg, node_embs)
+        root_embs = 0.5 * (root_embs + sums / sizes.unsqueeze(1).to(node_embs.dtype))
 
     if detach_emb:
         root_embs = root_embs.detach()
@@ -474,7 +487,15 @@ def build_query_to_plan_mapping(q2idx, mapped_tree_keys):
     mapping = {}  # idx -> tree_key
     unmapped = []
 
+    # Plan-key prefixes allowed per benchmark when query ids carry a
+    # ``{benchmark}|`` prefix (pooled / cross-schema loading).
+    bm_plan_prefix = {'tpcds': 'tpcds_', 'tpch': 'tpch_', 'ssb': 'ssb_',
+                      'ssb_flat': 'ssb_', 'job': 'job_'}
+
     for qname, idx in q2idx.items():
+        bm = None
+        if '|' in qname:
+            bm, qname = qname.split('|', 1)
         # Strip sf{N}_ prefix to get base query name
         m = re.match(r'^sf\d+_(.+)$', qname)
         base = m.group(1) if m else qname
@@ -574,6 +595,11 @@ def build_query_to_plan_mapping(q2idx, mapped_tree_keys):
             # tpcds_gpt_q_1, etc.
             if base in base_keys:
                 found = base
+
+        # With a known benchmark, never borrow another benchmark's plan
+        # (e.g. ssb's db1..db22 would otherwise map onto TPC-H plans).
+        if found and bm and not found.startswith(bm_plan_prefix.get(bm, '')):
+            found = None
 
         if found:
             mapping[idx] = found
@@ -891,3 +917,64 @@ def load_all_plan_trees(plan_dir=None, num_augment=5, swap_prob=0.3, use_cache=T
             print(f"Cache save failed: {e}")
 
     return mapped_tree, feat_dim
+
+
+# ===================== Schema-agnostic node features (cross-schema) =====================
+
+def benchmark_operator_names(plan_dir=None):
+    """Per-benchmark operator vocabulary in the order process_general_plans()
+    assigned indices (first appearance over sorted plan files).  The cached
+    feature column 0 is an index into THIS per-benchmark list, so the same
+    integer means different operators in different benchmarks."""
+    import io
+    import contextlib
+    from bao_server.TreeConvolution.spark_feature_embedding import (
+        extract_optimized_logical_plan, process_physical_plan_index, extract_table_names,
+    )
+    plan_dir = plan_dir or PLAN_DIR
+    names = {}
+    for bm in ['tpch', 'tpcds', 'ssb', 'job']:
+        ops = {}
+        for fn in sorted(os.listdir(plan_dir)):
+            if not (fn.endswith('_plan.txt') and fn.startswith(bm)):
+                continue
+            with contextlib.redirect_stdout(io.StringIO()):
+                plan = extract_optimized_logical_plan(os.path.join(plan_dir, fn))
+                if plan:
+                    for node in process_physical_plan_index(
+                            plan, extract_table_names(plan_dir, fn)):
+                        ops.setdefault(node.operator, None)
+        names[bm] = list(ops)
+    return names
+
+
+def schema_agnostic_node_features(mapped_tree, plan_dir=None):
+    """Rewrite node features so every dimension means the same thing in every
+    benchmark:
+      one-hot(operator by NAME) | limit | signed-log1p(cardinality/selectivity)
+      | one-hot(predicate kind: none/AND/OR)
+      | order-invariant summary of the schema-specific table-slot columns
+        (#non-zero, log1p(sum), max, mean of non-zero).
+    Table-slot positions differ per benchmark (they index that schema's
+    tables), so they are summarized instead of used positionally."""
+    per_bm = benchmark_operator_names(plan_dir)
+    vocab = sorted({op for ops in per_bm.values() for op in ops}) + ['<none>']
+    vid = {op: i for i, op in enumerate(vocab)}
+    lut = {bm: torch.tensor([vid[op] for op in ops] + [vid['<none>']] * 64)
+           for bm, ops in per_bm.items()}
+    out = {}
+    for key, (x, children, root_id) in mapped_tree.items():
+        bm = key.split('_')[0]
+        op_local = x[:, 0].long().clamp(0, lut[bm].numel() - 1)
+        op = F.one_hot(lut[bm][op_local], len(vocab)).float()
+        pred_kind = F.one_hot(x[:, 3].long().clamp(0, 2), 3).float()
+        card = torch.sign(x[:, 2:3]) * torch.log1p(x[:, 2:3].abs())
+        rest = x[:, 4:]
+        nz = (rest != 0).float()
+        cnt = nz.sum(1, keepdim=True)
+        summ = torch.log1p(rest.abs().sum(1, keepdim=True))
+        mx = rest.abs().max(1, keepdim=True).values
+        mean_nz = rest.abs().sum(1, keepdim=True) / cnt.clamp_min(1.0)
+        feats = torch.cat([op, x[:, 1:2], card, pred_kind, cnt, summ, mx, mean_nz], dim=1)
+        out[key] = (feats, children, root_id)
+    return out, vocab
