@@ -218,3 +218,32 @@ Random query-level split, default 70 / 15 / 15. Best checkpoint is selected on t
 - **Latency floor repair**: Exactly-1500ms records (timeout artifacts) are replaced with samples drawn from that query+combo's latency distribution.
 - **Query normalization**: `tpch_0_q1` → `sf10_q1` (strips datalake-specific prefix, adds sf prefix for cross-datalake consistency).
 - **Config encoding**: Configs are parsed into numeric vectors, padded to `max_dim=16`, then encoded by a 3-layer `ConfEncoder` MLP into 64-dim representation.
+
+---
+
+## 7. Add-on: Calcite plans for your own queries
+
+`lakehelm_calcite.py` turns raw SQL into optimized logical plans with Apache Calcite
+(`calcite_planner/`, a small Maven project built automatically on first use; needs Java 11+
+and Maven) and into plan-tree features with the same 30-dim layout as
+`--tree-feat-norm agnostic`. It is an add-on: `run_all.sh` does not use it.
+
+Inputs: a DDL file (`CREATE TABLE ...`), a JSON of table row counts (used by Calcite's
+cost-based join ordering and the cardinality features), and SQL files — see
+`examples/calcite/`.
+
+```bash
+# print the optimized plans
+python3 lakehelm_calcite.py plan --ddl examples/calcite/schema.sql --rows examples/calcite/rows.json \
+    --sql examples/calcite/queries/*.sql --text
+
+# measured workload (query, config, latency) -> plans + features + latency CSVs
+python3 lakehelm_calcite.py prepare --ddl examples/calcite/schema.sql --rows examples/calcite/rows.json \
+    --workload examples/calcite/workload.csv --benchmark mybench --out prepared/
+```
+
+Workload CSV columns: `query_name, sql_file, engine, datalake, conf, latency, sf`
+(`engine` ∈ spark/presto/trino, `datalake` ∈ delta/iceberg/hudi, latency in ms).
+`prepare` writes `prepared/<benchmark>/sf<N>/<benchmark>_<engine>_<datalake>_sf<N>.csv`
+(the `data/output` format), `prepared/plans.json` and `prepared/trees.pt`
+(`{query: (node_feats, children, root)}` plus `feature_names`).
